@@ -1,0 +1,92 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String?  @unique
+  createdAt DateTime @default(now())
+
+  roomPhotos  RoomPhoto[]
+  generations Generation[]
+}
+
+model RoomPhoto {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+  storageKey String
+  mimeType   String
+  width      Int?
+  height     Int?
+  createdAt  DateTime @default(now())
+
+  generations Generation[]
+
+  @@index([userId])
+}
+
+enum RoomType {
+  LIVING_ROOM
+  BEDROOM
+  KITCHEN
+  BATHROOM
+  OFFICE
+  KIDS_ROOM
+}
+
+enum DesignStyle {
+  MODERN
+  SCANDINAVIAN
+  MINIMALISM
+  LOFT_INDUSTRIAL
+  BOHO
+  JAPANESE
+  CLASSIC
+  PROVENCE
+}
+
+enum GenerationStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model Generation {
+  id           String            @id @default(cuid())
+  userId       String?
+  user         User?             @relation(fields: [userId], references: [id])
+  roomPhotoId  String
+  roomPhoto    RoomPhoto         @relation(fields: [roomPhotoId], references: [id])
+  roomType     RoomType
+  style        DesignStyle
+  customPrompt String?
+  status       GenerationStatus  @default(PENDING)
+  model        String
+  errorMessage String?
+  createdAt    DateTime          @default(now())
+  startedAt    DateTime?
+  completedAt  DateTime?
+
+  results GenerationResult[]
+
+  @@index([status])
+  @@index([userId])
+}
+
+model GenerationResult {
+  id           String     @id @default(cuid())
+  generationId String
+  generation   Generation @relation(fields: [generationId], references: [id])
+  storageKey   String
+  index        Int
+  createdAt    DateTime   @default(now())
+
+  @@unique([generationId, index])
+}
