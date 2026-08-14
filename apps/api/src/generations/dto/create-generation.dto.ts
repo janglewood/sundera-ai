@@ -1,4 +1,11 @@
-import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsIn,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 import { ROOM_TYPES, DESIGN_STYLES } from '@sundera/shared';
 
 export class CreateGenerationDto {
@@ -15,4 +22,10 @@ export class CreateGenerationDto {
   @IsString()
   @MaxLength(500)
   customPrompt?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(4)
+  @IsString({ each: true })
+  referenceImageIds?: string[];
 }

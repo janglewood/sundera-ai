@@ -74,7 +74,8 @@ model Generation {
   startedAt    DateTime?
   completedAt  DateTime?
 
-  results GenerationResult[]
+  results         GenerationResult[]
+  referenceImages ReferenceImage[]
 
   @@index([status])
   @@index([userId])
@@ -89,4 +90,18 @@ model GenerationResult {
   createdAt    DateTime   @default(now())
 
   @@unique([generationId, index])
+}
+
+model ReferenceImage {
+  id           String      @id @default(cuid())
+  generationId String?
+  generation   Generation? @relation(fields: [generationId], references: [id])
+  storageKey   String
+  mimeType     String
+  sourceUrl    String?
+  index        Int?
+  createdAt    DateTime    @default(now())
+
+  @@unique([generationId, index])
+  @@index([generationId])
 }

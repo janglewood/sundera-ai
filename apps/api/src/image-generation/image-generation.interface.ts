@@ -1,6 +1,8 @@
 export interface ImageEditRequest {
   /** Base64 data URL of the source room photo, e.g. "data:image/jpeg;base64,..." */
   sourceImageDataUrl: string;
+  /** Base64 data URLs of style-reference images, sent alongside the source photo */
+  referenceImageDataUrls?: string[];
   prompt: string;
   variantCount: number;
 }

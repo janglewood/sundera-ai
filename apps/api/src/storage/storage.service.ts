@@ -66,7 +66,7 @@ export class StorageService {
   }
 
   buildObjectKey(
-    prefix: 'uploads' | 'results',
+    prefix: 'uploads' | 'results' | 'references',
     id: string,
     ext: string,
     index?: number,
@@ -74,6 +74,6 @@ export class StorageService {
     if (prefix === 'results') {
       return `results/${id}/${index}.${ext}`;
     }
-    return `uploads/${id}.${ext}`;
+    return `${prefix}/${id}.${ext}`;
   }
 }
