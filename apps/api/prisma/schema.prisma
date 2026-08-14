@@ -49,6 +49,12 @@ enum DesignStyle {
   JAPANESE
   CLASSIC
   PROVENCE
+  ART_DECO
+  MID_CENTURY
+  COASTAL
+  FARMHOUSE
+  MEDITERRANEAN
+  ECLECTIC
 }
 
 enum GenerationStatus {
