@@ -31,11 +31,7 @@ export class OpenRouterImageGenerationProvider implements ImageGenerationProvide
     // instead of batching via `n`.
     const variants = await Promise.all(
       Array.from({ length: request.variantCount }, () =>
-        this.editImageOnce(
-          request.sourceImageDataUrl,
-          request.referenceImageDataUrls ?? [],
-          request.prompt,
-        ),
+        this.editImageOnce(request.sourceImageDataUrl, request.prompt),
       ),
     );
     return variants.flat();
@@ -43,7 +39,6 @@ export class OpenRouterImageGenerationProvider implements ImageGenerationProvide
 
   private async editImageOnce(
     sourceImageDataUrl: string,
-    referenceImageDataUrls: string[],
     prompt: string,
   ): Promise<ImageEditResultVariant[]> {
     const controller = new AbortController();
@@ -60,12 +55,12 @@ export class OpenRouterImageGenerationProvider implements ImageGenerationProvide
           model: this.model,
           prompt,
           n: 1,
-          input_references: [sourceImageDataUrl, ...referenceImageDataUrls].map(
-            (url) => ({
+          input_references: [
+            {
               type: 'image_url',
-              image_url: { url },
-            }),
-          ),
+              image_url: { url: sourceImageDataUrl },
+            },
+          ],
         }),
         signal: controller.signal,
       });

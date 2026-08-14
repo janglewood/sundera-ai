@@ -25,20 +25,13 @@ function buildPrompt(
   roomType: string,
   style: string,
   customPrompt: string | null,
-  hasReferences: boolean,
 ): string {
   const roomLabel = ROOM_TYPE_LABELS[roomType as RoomType] ?? roomType;
   const styleLabel = DESIGN_STYLE_LABELS[style as DesignStyle] ?? style;
-  let base =
+  const base =
     `Redesign this ${roomLabel.toLowerCase()} in ${styleLabel.toLowerCase()} style. ` +
     'Preserve the existing walls, windows, doors, and camera perspective exactly; ' +
     'only change furniture, decor, materials, and color palette.';
-  if (hasReferences) {
-    base +=
-      ' Additional reference images are provided purely for style inspiration ' +
-      '(materials, colors, furniture, decor) — do not copy their room layout, ' +
-      'structure, or camera angle.';
-  }
   return customPrompt ? `${base} ${customPrompt}` : base;
 }
 
@@ -101,27 +94,14 @@ export class GenerationWorkerService {
     );
     const sourceImageDataUrl = `data:${roomPhoto.mimeType};base64,${sourceBuffer.toString('base64')}`;
 
-    const referenceImages = await this.prisma.referenceImage.findMany({
-      where: { generationId: claimed.id },
-      orderBy: { index: 'asc' },
-    });
-    const referenceImageDataUrls = await Promise.all(
-      referenceImages.map(async (reference) => {
-        const buffer = await this.storage.getObjectBuffer(reference.storageKey);
-        return `data:${reference.mimeType};base64,${buffer.toString('base64')}`;
-      }),
-    );
-
     const prompt = buildPrompt(
       claimed.roomType,
       claimed.style,
       claimed.customPrompt,
-      referenceImageDataUrls.length > 0,
     );
 
     const variants = await this.imageGenerationProvider.editImage({
       sourceImageDataUrl,
-      referenceImageDataUrls,
       prompt,
       variantCount: 3,
     });

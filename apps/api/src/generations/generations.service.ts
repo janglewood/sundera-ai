@@ -22,16 +22,6 @@ export class GenerationsService {
       );
     }
 
-    const referenceImageIds = dto.referenceImageIds ?? [];
-    if (referenceImageIds.length > 0) {
-      const found = await this.prisma.referenceImage.findMany({
-        where: { id: { in: referenceImageIds } },
-      });
-      if (found.length !== referenceImageIds.length) {
-        throw new NotFoundException('One or more reference images not found');
-      }
-    }
-
     const generation = await this.prisma.generation.create({
       data: {
         roomPhotoId: dto.roomPhotoId,
@@ -41,17 +31,6 @@ export class GenerationsService {
         model: this.configService.getOrThrow<string>('OPENROUTER_MODEL'),
       },
     });
-
-    if (referenceImageIds.length > 0) {
-      await this.prisma.$transaction(
-        referenceImageIds.map((id, index) =>
-          this.prisma.referenceImage.update({
-            where: { id },
-            data: { generationId: generation.id, index },
-          }),
-        ),
-      );
-    }
 
     return { id: generation.id, status: generation.status };
   }

@@ -6,7 +6,6 @@ import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { StorageModule } from './storage/storage.module';
 import { UploadsModule } from './uploads/uploads.module';
-import { ReferenceImagesModule } from './reference-images/reference-images.module';
 import { GenerationsModule } from './generations/generations.module';
 
 @Module({
@@ -16,7 +15,6 @@ import { GenerationsModule } from './generations/generations.module';
     PrismaModule,
     StorageModule,
     UploadsModule,
-    ReferenceImagesModule,
     GenerationsModule,
   ],
   controllers: [AppController],

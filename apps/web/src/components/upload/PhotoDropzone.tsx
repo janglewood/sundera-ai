@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 
 const MAX_DIMENSION = 2000;
 
-export async function downscaleImage(file: File): Promise<File> {
+async function downscaleImage(file: File): Promise<File> {
   if (!file.type.startsWith("image/") || file.type === "image/webp") {
     return file;
   }

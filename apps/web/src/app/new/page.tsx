@@ -3,10 +3,9 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
-import type { CreateUploadResponse, DesignStyle, RoomType } from "@sundera/shared";
+import type { DesignStyle, RoomType } from "@sundera/shared";
 import { RoomTypeGrid } from "@/components/select/RoomTypeGrid";
 import { StyleGrid } from "@/components/select/StyleGrid";
-import { ReferenceImagesPicker } from "@/components/upload/ReferenceImagesPicker";
 import { createGeneration } from "@/lib/generations";
 
 interface SpeechRecognitionResultLike {
@@ -46,9 +45,6 @@ function NewGenerationForm() {
 
   const [roomType, setRoomType] = useState<RoomType | null>(null);
   const [style, setStyle] = useState<DesignStyle | null>(null);
-  const [referenceImages, setReferenceImages] = useState<CreateUploadResponse[]>(
-    [],
-  );
   const [customPrompt, setCustomPrompt] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -134,10 +130,6 @@ function NewGenerationForm() {
         roomType,
         style,
         customPrompt: customPrompt.trim() || undefined,
-        referenceImageIds:
-          referenceImages.length > 0
-            ? referenceImages.map((image) => image.id)
-            : undefined,
       });
       router.push(`/generations/${generation.id}`);
     } catch (err) {
@@ -158,17 +150,6 @@ function NewGenerationForm() {
       <section>
         <h2 className="mb-4 text-lg font-semibold">Pick a style</h2>
         <StyleGrid value={style} onChange={setStyle} />
-      </section>
-
-      <section>
-        <h2 className="mb-4 text-lg font-semibold">
-          Reference images (optional)
-        </h2>
-        <ReferenceImagesPicker
-          value={referenceImages}
-          onChange={setReferenceImages}
-          disabled={isSubmitting}
-        />
       </section>
 
       <section>

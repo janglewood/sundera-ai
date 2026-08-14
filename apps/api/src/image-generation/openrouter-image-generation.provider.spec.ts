@@ -49,30 +49,4 @@ describe('OpenRouterImageGenerationProvider', () => {
       { buffer: Buffer.from('fake-image'), mimeType: 'image/png' },
     ]);
   });
-
-  it('sends the source image first, then reference images, in input_references', async () => {
-    const fetchMock = jest.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        data: [{ b64_json: Buffer.from('fake-image').toString('base64'), media_type: 'image/png' }],
-      }),
-    });
-    global.fetch = fetchMock as unknown as typeof fetch;
-
-    const provider = new OpenRouterImageGenerationProvider(config);
-    await provider.editImage({
-      sourceImageDataUrl: 'data:image/png;base64,SOURCE',
-      referenceImageDataUrls: ['data:image/png;base64,REF1', 'data:image/png;base64,REF2'],
-      prompt: 'Redesign this room',
-      variantCount: 1,
-    });
-
-    const [, init] = fetchMock.mock.calls[0];
-    const body = JSON.parse(init.body);
-    expect(body.input_references).toEqual([
-      { type: 'image_url', image_url: { url: 'data:image/png;base64,SOURCE' } },
-      { type: 'image_url', image_url: { url: 'data:image/png;base64,REF1' } },
-      { type: 'image_url', image_url: { url: 'data:image/png;base64,REF2' } },
-    ]);
-  });
 });

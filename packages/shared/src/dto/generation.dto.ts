@@ -7,7 +7,6 @@ export interface CreateGenerationRequest {
   roomType: RoomType;
   style: DesignStyle;
   customPrompt?: string;
-  referenceImageIds?: string[];
 }
 
 export interface CreateGenerationResponse {
@@ -36,8 +35,4 @@ export interface GenerationResponse {
 export interface CreateUploadResponse {
   id: string;
   previewUrl: string;
-}
-
-export interface CreateReferenceImageFromUrlRequest {
-  url: string;
 }
