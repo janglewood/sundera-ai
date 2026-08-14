@@ -1,8 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { CreateGenerationDto } from './dto/create-generation.dto';
+import { CreateEditGenerationDto } from './dto/create-edit-generation.dto';
 
 @Injectable()
 export class GenerationsService {
@@ -35,23 +40,66 @@ export class GenerationsService {
     return { id: generation.id, status: generation.status };
   }
 
+  async createEdit(parentGenerationId: string, dto: CreateEditGenerationDto) {
+    const parent = await this.prisma.generation.findUnique({
+      where: { id: parentGenerationId },
+      include: { results: true },
+    });
+    if (!parent) {
+      throw new NotFoundException(
+        `Generation not found: ${parentGenerationId}`,
+      );
+    }
+    if (parent.status !== 'COMPLETED') {
+      throw new BadRequestException(
+        `Generation ${parentGenerationId} is not completed yet`,
+      );
+    }
+    const sourceResult = parent.results.find(
+      (result) => result.id === dto.sourceResultId,
+    );
+    if (!sourceResult) {
+      throw new NotFoundException(
+        `GenerationResult not found: ${dto.sourceResultId}`,
+      );
+    }
+
+    const generation = await this.prisma.generation.create({
+      data: {
+        roomPhotoId: parent.roomPhotoId,
+        roomType: parent.roomType,
+        style: parent.style,
+        customPrompt: dto.prompt,
+        sourceResultId: sourceResult.id,
+        model: this.configService.getOrThrow<string>('OPENROUTER_MODEL'),
+      },
+    });
+
+    return { id: generation.id, status: generation.status };
+  }
+
   async getById(id: string) {
     const generation = await this.prisma.generation.findUnique({
       where: { id },
-      include: { roomPhoto: true, results: { orderBy: { index: 'asc' } } },
+      include: {
+        roomPhoto: true,
+        sourceResult: true,
+        results: { orderBy: { index: 'asc' } },
+      },
     });
     if (!generation) {
       throw new NotFoundException(`Generation not found: ${id}`);
     }
 
     const sourceImageUrl = await this.storage.getPresignedGetUrl(
-      generation.roomPhoto.storageKey,
+      generation.sourceResult?.storageKey ?? generation.roomPhoto.storageKey,
     );
 
     const resultImages =
       generation.status === 'COMPLETED'
         ? await Promise.all(
             generation.results.map(async (result) => ({
+              id: result.id,
               index: result.index,
               url: await this.storage.getPresignedGetUrl(result.storageKey),
             })),
@@ -69,6 +117,8 @@ export class GenerationsService {
       errorMessage: generation.errorMessage,
       createdAt: generation.createdAt.toISOString(),
       completedAt: generation.completedAt?.toISOString() ?? null,
+      isEdit: generation.sourceResultId !== null,
+      parentGenerationId: generation.sourceResult?.generationId ?? null,
     };
   }
 }

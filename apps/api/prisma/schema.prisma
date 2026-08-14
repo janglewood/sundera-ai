@@ -80,19 +80,25 @@ model Generation {
   startedAt    DateTime?
   completedAt  DateTime?
 
-  results GenerationResult[]
+  sourceResultId String?
+  sourceResult   GenerationResult? @relation("EditSource", fields: [sourceResultId], references: [id])
+
+  results GenerationResult[] @relation("GenerationResults")
 
   @@index([status])
   @@index([userId])
+  @@index([sourceResultId])
 }
 
 model GenerationResult {
   id           String     @id @default(cuid())
   generationId String
-  generation   Generation @relation(fields: [generationId], references: [id])
+  generation   Generation @relation("GenerationResults", fields: [generationId], references: [id])
   storageKey   String
   index        Int
   createdAt    DateTime   @default(now())
+
+  editsSourcedFromThis Generation[] @relation("EditSource")
 
   @@unique([generationId, index])
 }

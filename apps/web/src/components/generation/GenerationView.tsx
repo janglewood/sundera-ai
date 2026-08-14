@@ -1,10 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ROOM_TYPE_LABELS, DESIGN_STYLE_LABELS } from "@sundera/shared";
 import type { RoomType, DesignStyle } from "@sundera/shared";
 import { usePollGeneration } from "@/lib/use-poll-generation";
+import { createGenerationEdit } from "@/lib/generations";
+import { VoiceTextarea } from "@/components/shared/VoiceTextarea";
 import { GenerationProgress } from "./GenerationProgress";
 import { BeforeAfterSlider } from "./BeforeAfterSlider";
 
@@ -13,8 +16,12 @@ interface GenerationViewProps {
 }
 
 export function GenerationView({ id }: GenerationViewProps) {
+  const router = useRouter();
   const { generation, error } = usePollGeneration(id);
   const [selectedVariant, setSelectedVariant] = useState(0);
+  const [editPrompt, setEditPrompt] = useState("");
+  const [isEditSubmitting, setIsEditSubmitting] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
   if (error) {
     return (
@@ -52,6 +59,24 @@ export function GenerationView({ id }: GenerationViewProps) {
   const results = generation.resultImages ?? [];
   const activeResult = results[selectedVariant] ?? results[0];
 
+  async function handleEditSubmit() {
+    if (!activeResult || !editPrompt.trim()) return;
+    setIsEditSubmitting(true);
+    setEditError(null);
+    try {
+      const edit = await createGenerationEdit(id, {
+        sourceResultId: activeResult.id,
+        prompt: editPrompt.trim(),
+      });
+      router.push(`/generations/${edit.id}`);
+    } catch (err) {
+      setEditError(
+        err instanceof Error ? err.message : "Failed to start edit",
+      );
+      setIsEditSubmitting(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="text-center">
@@ -59,6 +84,11 @@ export function GenerationView({ id }: GenerationViewProps) {
           {ROOM_TYPE_LABELS[generation.roomType as RoomType]} in{" "}
           {DESIGN_STYLE_LABELS[generation.style as DesignStyle]} style
         </h1>
+        {generation.isEdit && generation.customPrompt && (
+          <p className="mt-1 text-sm text-foreground/60">
+            Edited: {generation.customPrompt}
+          </p>
+        )}
       </div>
 
       {activeResult && (
@@ -87,7 +117,38 @@ export function GenerationView({ id }: GenerationViewProps) {
         </div>
       )}
 
+      {activeResult && (
+        <div className="flex flex-col gap-3">
+          <label className="text-sm font-medium">
+            Want to tweak this result?
+          </label>
+          <VoiceTextarea
+            value={editPrompt}
+            onChange={setEditPrompt}
+            placeholder="e.g. change the sofa to leather"
+            rows={3}
+          />
+          {editError && <p className="text-sm text-red-500">{editError}</p>}
+          <button
+            type="button"
+            disabled={!editPrompt.trim() || isEditSubmitting}
+            onClick={() => void handleEditSubmit()}
+            className="rounded-full bg-foreground px-6 py-3 font-medium text-background transition-opacity disabled:opacity-40"
+          >
+            {isEditSubmitting ? "Starting…" : "Edit"}
+          </button>
+        </div>
+      )}
+
       <div className="flex justify-center gap-4 text-sm">
+        {generation.isEdit && generation.parentGenerationId && (
+          <Link
+            href={`/generations/${generation.parentGenerationId}`}
+            className="underline"
+          >
+            Undo last edit
+          </Link>
+        )}
         <Link href="/" className="underline">
           Start over
         </Link>

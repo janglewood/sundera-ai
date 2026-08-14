@@ -1,4 +1,5 @@
 import type {
+  CreateEditRequest,
   CreateGenerationRequest,
   CreateGenerationResponse,
   CreateUploadResponse,
@@ -20,4 +21,14 @@ export function createGeneration(
 
 export function getGeneration(id: string): Promise<GenerationResponse> {
   return apiGet<GenerationResponse>(`/generations/${id}`);
+}
+
+export function createGenerationEdit(
+  id: string,
+  request: CreateEditRequest,
+): Promise<CreateGenerationResponse> {
+  return apiPostJson<CreateGenerationResponse>(
+    `/generations/${id}/edit`,
+    request,
+  );
 }
