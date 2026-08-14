@@ -13,6 +13,7 @@ interface ClaimedGeneration {
   roomType: string;
   style: string;
   customPrompt: string | null;
+  sourceResultId: string | null;
 }
 
 const MIME_TO_EXT: Record<string, string> = {
@@ -20,6 +21,10 @@ const MIME_TO_EXT: Record<string, string> = {
   'image/jpeg': 'jpg',
   'image/webp': 'webp',
 };
+
+const EXT_TO_MIME: Record<string, string> = Object.fromEntries(
+  Object.entries(MIME_TO_EXT).map(([mime, ext]) => [ext, mime]),
+);
 
 function buildPrompt(
   roomType: string,
@@ -33,6 +38,10 @@ function buildPrompt(
     'Preserve the existing walls, windows, doors, and camera perspective exactly; ' +
     'only change furniture, decor, materials, and color palette.';
   return customPrompt ? `${base} ${customPrompt}` : base;
+}
+
+function buildEditPrompt(prompt: string): string {
+  return `Apply this edit to the image: ${prompt}. Preserve everything else exactly as is.`;
 }
 
 @Injectable()
@@ -79,26 +88,36 @@ export class GenerationWorkerService {
         FOR UPDATE SKIP LOCKED
         LIMIT 1
       )
-      RETURNING id, "roomPhotoId", "roomType", style, "customPrompt"
+      RETURNING id, "roomPhotoId", "roomType", style, "customPrompt", "sourceResultId"
     `;
     return rows[0] ?? null;
   }
 
   private async process(claimed: ClaimedGeneration): Promise<void> {
-    const roomPhoto = await this.prisma.roomPhoto.findUniqueOrThrow({
-      where: { id: claimed.roomPhotoId },
-    });
+    let sourceImageDataUrl: string;
+    let prompt: string;
 
-    const sourceBuffer = await this.storage.getObjectBuffer(
-      roomPhoto.storageKey,
-    );
-    const sourceImageDataUrl = `data:${roomPhoto.mimeType};base64,${sourceBuffer.toString('base64')}`;
-
-    const prompt = buildPrompt(
-      claimed.roomType,
-      claimed.style,
-      claimed.customPrompt,
-    );
+    if (claimed.sourceResultId) {
+      const sourceResult = await this.prisma.generationResult.findUniqueOrThrow({
+        where: { id: claimed.sourceResultId },
+      });
+      const sourceBuffer = await this.storage.getObjectBuffer(
+        sourceResult.storageKey,
+      );
+      const ext = sourceResult.storageKey.split('.').pop() ?? 'png';
+      const mimeType = EXT_TO_MIME[ext] ?? 'image/png';
+      sourceImageDataUrl = `data:${mimeType};base64,${sourceBuffer.toString('base64')}`;
+      prompt = buildEditPrompt(claimed.customPrompt ?? '');
+    } else {
+      const roomPhoto = await this.prisma.roomPhoto.findUniqueOrThrow({
+        where: { id: claimed.roomPhotoId },
+      });
+      const sourceBuffer = await this.storage.getObjectBuffer(
+        roomPhoto.storageKey,
+      );
+      sourceImageDataUrl = `data:${roomPhoto.mimeType};base64,${sourceBuffer.toString('base64')}`;
+      prompt = buildPrompt(claimed.roomType, claimed.style, claimed.customPrompt);
+    }
 
     const variants = await this.imageGenerationProvider.editImage({
       sourceImageDataUrl,

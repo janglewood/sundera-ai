@@ -6,6 +6,7 @@ import { Suspense, useState } from "react";
 import type { DesignStyle, RoomType } from "@sundera/shared";
 import { RoomTypeGrid } from "@/components/select/RoomTypeGrid";
 import { StyleGrid } from "@/components/select/StyleGrid";
+import { VoiceTextarea } from "@/components/shared/VoiceTextarea";
 import { createGeneration } from "@/lib/generations";
 
 function NewGenerationForm() {
@@ -67,11 +68,10 @@ function NewGenerationForm() {
         <label className="mb-2 block text-sm font-medium">
           Anything else? (optional)
         </label>
-        <textarea
+        <VoiceTextarea
           value={customPrompt}
-          onChange={(e) => setCustomPrompt(e.target.value)}
+          onChange={setCustomPrompt}
           placeholder="e.g. add more plants, keep the wooden floor"
-          className="w-full rounded-xl border border-foreground/20 bg-transparent p-3 text-sm"
           rows={3}
         />
       </section>

@@ -15,6 +15,7 @@ export interface CreateGenerationResponse {
 }
 
 export interface GenerationResultImage {
+  id: string;
   index: number;
   url: string;
 }
@@ -30,6 +31,13 @@ export interface GenerationResponse {
   errorMessage: string | null;
   createdAt: string;
   completedAt: string | null;
+  isEdit: boolean;
+  parentGenerationId: string | null;
+}
+
+export interface CreateEditRequest {
+  sourceResultId: string;
+  prompt: string;
 }
 
 export interface CreateUploadResponse {
