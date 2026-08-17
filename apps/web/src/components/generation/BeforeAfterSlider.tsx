@@ -1,15 +1,18 @@
 "use client";
 
+import { ArrowsLeftRight } from "@phosphor-icons/react";
 import { useRef, useState } from "react";
 
 interface BeforeAfterSliderProps {
   beforeUrl: string;
   afterUrl: string;
+  className?: string;
 }
 
 export function BeforeAfterSlider({
   beforeUrl,
   afterUrl,
+  className = "",
 }: BeforeAfterSliderProps) {
   const [position, setPosition] = useState(50);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -26,7 +29,7 @@ export function BeforeAfterSlider({
   return (
     <div
       ref={containerRef}
-      className="relative aspect-4/3 w-full touch-none select-none overflow-hidden rounded-2xl"
+      className={`relative aspect-4/3 w-full touch-none select-none overflow-hidden rounded-2xl ${className}`}
       onMouseDown={(e) => {
         isDraggingRef.current = true;
         updateFromClientX(e.clientX);
@@ -64,15 +67,17 @@ export function BeforeAfterSlider({
         />
       </div>
       <div
-        className="absolute inset-y-0 w-1 -translate-x-1/2 bg-white shadow-lg"
+        className="absolute inset-y-0 w-0.5 -translate-x-1/2 bg-accent shadow-[0_0_0_1px_rgba(255,255,255,0.5)]"
         style={{ left: `${position}%` }}
       >
-        <div className="absolute top-1/2 left-1/2 h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-md" />
+        <div className="absolute top-1/2 left-1/2 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white bg-accent text-accent-foreground shadow-md">
+          <ArrowsLeftRight size={16} weight="bold" />
+        </div>
       </div>
-      <span className="absolute top-3 left-3 rounded-full bg-black/60 px-2 py-1 text-xs text-white">
+      <span className="absolute top-3 left-3 rounded-full bg-black/50 px-3 py-1 text-xs font-semibold tracking-wide text-white uppercase backdrop-blur-md">
         Before
       </span>
-      <span className="absolute top-3 right-3 rounded-full bg-black/60 px-2 py-1 text-xs text-white">
+      <span className="absolute top-3 right-3 rounded-full bg-accent px-3 py-1 text-xs font-semibold tracking-wide text-accent-foreground uppercase backdrop-blur-md">
         After
       </span>
     </div>

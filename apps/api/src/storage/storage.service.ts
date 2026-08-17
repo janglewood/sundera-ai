@@ -55,6 +55,12 @@ export class StorageService {
   }
 
   async getObjectBuffer(key: string): Promise<Buffer> {
+    return (await this.getObject(key)).buffer;
+  }
+
+  async getObject(
+    key: string,
+  ): Promise<{ buffer: Buffer; contentType: string }> {
     const response = await this.client.send(
       new GetObjectCommand({ Bucket: this.bucket, Key: key }),
     );
@@ -62,7 +68,10 @@ export class StorageService {
     if (!bytes) {
       throw new Error(`Object body empty for key: ${key}`);
     }
-    return Buffer.from(bytes);
+    return {
+      buffer: Buffer.from(bytes),
+      contentType: response.ContentType ?? 'application/octet-stream',
+    };
   }
 
   buildObjectKey(

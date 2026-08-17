@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { DownloadSimple } from "@phosphor-icons/react/dist/ssr";
 import { ROOM_TYPE_LABELS, DESIGN_STYLE_LABELS } from "@sundera/shared";
 import type { RoomType, DesignStyle } from "@sundera/shared";
 import { usePollGeneration } from "@/lib/use-poll-generation";
-import { createGenerationEdit } from "@/lib/generations";
+import { createGenerationEdit, getResultDownloadUrl } from "@/lib/generations";
 import { VoiceTextarea } from "@/components/shared/VoiceTextarea";
 import { GenerationProgress } from "./GenerationProgress";
 import { BeforeAfterSlider } from "./BeforeAfterSlider";
@@ -92,10 +93,20 @@ export function GenerationView({ id }: GenerationViewProps) {
       </div>
 
       {activeResult && (
-        <BeforeAfterSlider
-          beforeUrl={generation.sourceImageUrl}
-          afterUrl={activeResult.url}
-        />
+        <>
+          <BeforeAfterSlider
+            beforeUrl={generation.sourceImageUrl}
+            afterUrl={activeResult.url}
+          />
+          <a
+            href={getResultDownloadUrl(id, activeResult.id)}
+            download
+            className="mx-auto flex items-center gap-2 rounded-full border border-foreground/20 px-6 py-3 font-medium transition-opacity hover:opacity-70"
+          >
+            <DownloadSimple size={18} weight="bold" />
+            Download image
+          </a>
+        </>
       )}
 
       {results.length > 1 && (
