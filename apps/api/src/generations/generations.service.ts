@@ -121,4 +121,23 @@ export class GenerationsService {
       parentGenerationId: generation.sourceResult?.generationId ?? null,
     };
   }
+
+  async getResultFile(generationId: string, resultId: string) {
+    const result = await this.prisma.generationResult.findUnique({
+      where: { id: resultId },
+    });
+    if (!result || result.generationId !== generationId) {
+      throw new NotFoundException(`GenerationResult not found: ${resultId}`);
+    }
+
+    const { buffer, contentType } = await this.storage.getObject(
+      result.storageKey,
+    );
+    const ext = result.storageKey.split('.').pop() ?? 'jpg';
+    return {
+      buffer,
+      contentType,
+      filename: `sundera-redesign-${result.index + 1}.${ext}`,
+    };
+  }
 }

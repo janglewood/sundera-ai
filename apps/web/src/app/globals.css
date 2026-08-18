@@ -1,26 +1,133 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #faf6f1;
+  --foreground: #2a2420;
+  --color-card: #ffffff;
+  --color-card-foreground: #2a2420;
+  --color-muted: #efe7da;
+  --color-muted-foreground: #5b5347;
+  --color-border: #e4dbcb;
+  --color-primary: #43392f;
+  --color-primary-foreground: #faf6f1;
+  --color-accent: #d97706;
+  --color-accent-hover: #b45309;
+  --color-accent-foreground: #ffffff;
+  --color-accent-soft: #f4e3ce;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--color-card);
+  --color-card-foreground: var(--color-card-foreground);
+  --color-muted: var(--color-muted);
+  --color-muted-foreground: var(--color-muted-foreground);
+  --color-border: var(--color-border);
+  --color-primary: var(--color-primary);
+  --color-primary-foreground: var(--color-primary-foreground);
+  --color-accent: var(--color-accent);
+  --color-accent-hover: var(--color-accent-hover);
+  --color-accent-foreground: var(--color-accent-foreground);
+  --color-accent-soft: var(--color-accent-soft);
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-calistoga);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #201b15;
+    --foreground: #f3ecdf;
+    --color-card: #2a241c;
+    --color-card-foreground: #f3ecdf;
+    --color-muted: #2c2620;
+    --color-muted-foreground: #b3a996;
+    --color-border: #3a3226;
+    --color-primary: #f3ecdf;
+    --color-primary-foreground: #201b15;
+    --color-accent-soft: #3a2c1a;
+  }
+}
+
+html {
+  scroll-padding-top: 3.75rem;
+}
+
+.upload-highlight {
+  position: relative;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  .upload-highlight {
+    animation: upload-highlight-pop 2.5s ease-in-out 0.3s;
+    animation-fill-mode: backwards;
+  }
+
+  .upload-highlight::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    animation: upload-highlight-ring 2.5s ease-in-out 0.3s;
+    animation-fill-mode: backwards;
+  }
+}
+
+@keyframes upload-highlight-pop {
+  0% {
+    transform: scale(1);
+  }
+  18% {
+    transform: scale(1.02);
+  }
+  38% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes upload-highlight-ring {
+  0% {
+    box-shadow:
+      0 0 0 0 color-mix(in srgb, var(--color-accent) 65%, transparent),
+      0 0 0 0 color-mix(in srgb, var(--color-accent) 65%, transparent);
+  }
+  60% {
+    box-shadow:
+      0 0 0 16px color-mix(in srgb, var(--color-accent) 0%, transparent),
+      0 0 0 0 color-mix(in srgb, var(--color-accent) 45%, transparent);
+  }
+  88% {
+    box-shadow:
+      0 0 0 16px color-mix(in srgb, var(--color-accent) 0%, transparent),
+      0 0 0 26px color-mix(in srgb, var(--color-accent) 0%, transparent);
+  }
+  100% {
+    box-shadow:
+      0 0 0 16px transparent,
+      0 0 0 26px transparent;
   }
 }
 
 body {
-  background: var(--background);
+  background:
+    radial-gradient(60rem 34rem at 12% -8%, color-mix(in srgb, var(--color-accent) 20%, transparent), transparent 60%),
+    radial-gradient(50rem 30rem at 88% 18%, color-mix(in srgb, var(--color-accent-soft) 65%, transparent), transparent 55%),
+    radial-gradient(46rem 30rem at 50% 92%, color-mix(in srgb, var(--color-muted-foreground) 18%, transparent), transparent 60%),
+    var(--background);
+  background-attachment: fixed;
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+::selection {
+  background: var(--color-accent-soft);
+  color: var(--color-primary);
 }

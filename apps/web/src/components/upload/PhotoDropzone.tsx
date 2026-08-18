@@ -1,5 +1,6 @@
 "use client";
 
+import { UploadSimple } from "@phosphor-icons/react";
 import { useRef, useState } from "react";
 
 const MAX_DIMENSION = 2000;
@@ -54,10 +55,10 @@ export function PhotoDropzone({ onFileReady, disabled }: PhotoDropzoneProps) {
   return (
     <div className="flex items-stretch gap-3">
       <div
-        className={`flex flex-1 flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed p-10 text-center transition-colors ${
+        className={`flex h-16 flex-1 flex-row items-center justify-center gap-2 overflow-hidden rounded-2xl border-2 bg-linear-to-br from-accent-soft to-accent-soft/30 p-3 text-center transition-colors sm:h-auto sm:flex-col sm:gap-4 sm:border-dashed sm:bg-none sm:p-10 ${
           isDragging
-            ? "border-foreground bg-foreground/5"
-            : "border-foreground/20"
+            ? "border-accent sm:border-foreground sm:bg-foreground/5"
+            : "border-accent/40 sm:border-foreground/20"
         } ${disabled ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
         onClick={() => inputRef.current?.click()}
         onDragOver={(e) => {
@@ -76,12 +77,21 @@ export function PhotoDropzone({ onFileReady, disabled }: PhotoDropzoneProps) {
           <img
             src={preview}
             alt="Room preview"
-            className="max-h-64 rounded-lg object-contain"
+            className="max-h-full rounded-lg object-contain sm:max-h-64"
           />
         ) : (
           <>
-            <p className="text-lg font-medium">Upload a photo of your room</p>
-            <p className="text-sm text-foreground/60">
+            <UploadSimple
+              size={20}
+              weight="bold"
+              className="shrink-0 text-accent-hover sm:hidden"
+              aria-hidden
+            />
+            <p className="min-w-0 truncate text-sm font-medium sm:w-auto sm:text-lg">
+              <span className="sm:hidden">Upload a photo</span>
+              <span className="hidden sm:inline">Upload a photo of your room</span>
+            </p>
+            <p className="hidden text-sm text-foreground/60 sm:block">
               Drag and drop, or click to choose a file (JPEG, PNG, WebP)
             </p>
           </>
@@ -100,7 +110,7 @@ export function PhotoDropzone({ onFileReady, disabled }: PhotoDropzoneProps) {
         aria-label="Take a photo"
         disabled={disabled}
         onClick={() => cameraInputRef.current?.click()}
-        className="flex sm:hidden aspect-square w-16 shrink-0 items-center justify-center self-center rounded-2xl border-2 border-foreground/20 text-foreground/60 transition-colors disabled:pointer-events-none disabled:opacity-50"
+        className="flex sm:hidden aspect-square w-16 shrink-0 items-center justify-center self-center rounded-2xl bg-accent text-accent-foreground shadow-md transition-colors hover:bg-accent-hover disabled:pointer-events-none disabled:opacity-50"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
