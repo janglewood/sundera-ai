@@ -1,3 +1,4 @@
+import { RedirectIfAuthed } from "@/components/auth/RedirectIfAuthed";
 import { CtaBanner } from "@/components/landing/CtaBanner";
 import { Faq } from "@/components/landing/Faq";
 import { Features } from "@/components/landing/Features";
@@ -11,6 +12,7 @@ import { StyleShowcase } from "@/components/landing/StyleShowcase";
 export default function Home() {
   return (
     <div className="flex flex-1 flex-col">
+      <RedirectIfAuthed to="/app" />
       <Header />
       <main className="flex-1">
         <Hero />

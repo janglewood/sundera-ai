@@ -82,6 +82,30 @@ export class GenerationsService {
     return { id: generation.id, status: generation.status };
   }
 
+  async findByUser(userId: string) {
+    const generations = await this.prisma.generation.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        roomPhoto: true,
+        results: { orderBy: { index: 'asc' }, take: 1 },
+      },
+    });
+
+    return Promise.all(
+      generations.map(async (generation) => ({
+        id: generation.id,
+        status: generation.status,
+        roomType: generation.roomType,
+        style: generation.style,
+        createdAt: generation.createdAt.toISOString(),
+        thumbnailUrl: await this.storage.getPresignedGetUrl(
+          generation.results[0]?.storageKey ?? generation.roomPhoto.storageKey,
+        ),
+      })),
+    );
+  }
+
   async getById(id: string) {
     const generation = await this.prisma.generation.findUnique({
       where: { id },
