@@ -14,8 +14,9 @@ const calistoga = Calistoga({
 });
 
 export const metadata: Metadata = {
-  title: "Sundera AI",
-  description: "AI interior redesign from a single room photo",
+  title: "Sundera — AI Interior Design From One Photo",
+  description:
+    "Try AI interior design free: upload a room photo, pick a style, and get a photorealistic redesign in seconds.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

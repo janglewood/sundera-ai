@@ -6,12 +6,16 @@ import { useRef, useState } from "react";
 interface BeforeAfterSliderProps {
   beforeUrl: string;
   afterUrl: string;
+  beforeAlt?: string;
+  afterAlt?: string;
   className?: string;
 }
 
 export function BeforeAfterSlider({
   beforeUrl,
   afterUrl,
+  beforeAlt = "Original room",
+  afterAlt = "Redesigned room",
   className = "",
 }: BeforeAfterSliderProps) {
   const [position, setPosition] = useState(50);
@@ -49,7 +53,7 @@ export function BeforeAfterSlider({
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={afterUrl}
-        alt="Redesigned room"
+        alt={afterAlt}
         className="absolute inset-0 h-full w-full object-cover"
         draggable={false}
       />
@@ -60,7 +64,7 @@ export function BeforeAfterSlider({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={beforeUrl}
-          alt="Original room"
+          alt={beforeAlt}
           className="h-full w-full max-w-none object-cover"
           style={{ width: `${(100 / position) * 100 || 0}%` }}
           draggable={false}
@@ -77,7 +81,8 @@ export function BeforeAfterSlider({
       <span className="absolute top-3 left-3 rounded-full bg-black/50 px-3 py-1 text-xs font-semibold tracking-wide text-white uppercase backdrop-blur-md">
         Before
       </span>
-      <span className="absolute top-3 right-3 rounded-full bg-accent px-3 py-1 text-xs font-semibold tracking-wide text-accent-foreground uppercase backdrop-blur-md">
+      <span className="absolute top-3 right-3 flex items-center gap-1.5 rounded-full bg-black/50 px-3 py-1 text-xs font-semibold tracking-wide text-white uppercase backdrop-blur-md">
+        <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden />
         After
       </span>
     </div>

@@ -1,4 +1,7 @@
+"use client";
+
 import Image from "next/image";
+import { highlightUpload } from "@/lib/highlightUpload";
 
 const NAV_LINKS = [
   { href: "#how-it-works", label: "How it works" },
@@ -35,7 +38,8 @@ export function Header() {
 
         <a
           href="#upload"
-          className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition-colors hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          onClick={highlightUpload}
+          className="rounded-full bg-accent bg-linear-to-br from-accent to-accent-hover px-4 py-2 text-sm font-semibold text-accent-foreground shadow-lg shadow-accent/30 transition-colors hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:bg-none sm:shadow-none"
         >
           Redesign my room
         </a>

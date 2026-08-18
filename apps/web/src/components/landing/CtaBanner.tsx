@@ -1,5 +1,8 @@
+"use client";
+
 import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import { Parallax } from "@/components/landing/Parallax";
+import { highlightUpload } from "@/lib/highlightUpload";
 
 export function CtaBanner() {
   return (
@@ -28,6 +31,7 @@ export function CtaBanner() {
         </p>
         <a
           href="#upload"
+          onClick={highlightUpload}
           className="relative z-10 inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 font-semibold text-accent-foreground transition-colors hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-foreground"
         >
           Start redesigning

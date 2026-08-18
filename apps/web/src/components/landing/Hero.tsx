@@ -37,7 +37,7 @@ export function Hero() {
   return (
     <section
       id="top"
-      className="relative overflow-hidden px-6 py-10 sm:px-8 sm:py-12 lg:h-[calc(100dvh-3.75rem)] lg:py-6"
+      className="relative overflow-hidden px-6 py-6 sm:px-8 sm:py-10 lg:h-[calc(100dvh-3.75rem)] lg:py-6"
     >
       <Parallax
         speed={0.12}
@@ -54,8 +54,8 @@ export function Hero() {
         <div />
       </Parallax>
 
-      <div className="mx-auto flex w-full max-w-2xl flex-col items-center gap-6 lg:h-full lg:max-w-5xl">
-        <div className="relative aspect-3/4 w-full overflow-hidden rounded-3xl shadow-xl shadow-black/10 sm:aspect-video lg:aspect-auto lg:min-h-0 lg:flex-1">
+      <div className="mx-auto flex w-full max-w-2xl flex-col items-center gap-4 sm:gap-6 lg:h-full lg:max-w-5xl">
+        <div className="relative aspect-video w-full overflow-hidden rounded-3xl shadow-xl shadow-black/10 lg:aspect-auto lg:min-h-0 lg:flex-1">
           <video
             className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
               showSlider ? "pointer-events-none opacity-0" : "opacity-100"
@@ -76,21 +76,23 @@ export function Hero() {
           <BeforeAfterSlider
             beforeUrl="/room-before.jpg"
             afterUrl="/room-after.jpg"
+            beforeAlt="AI interior design before and after — room redesigned by Sundera"
+            afterAlt="AI interior design before and after — room redesigned by Sundera"
             className={`absolute inset-0 h-full w-full rounded-none! transition-opacity duration-700 ${
               showSlider ? "opacity-100" : "pointer-events-none opacity-0"
             }`}
           />
         </div>
 
-        <div className="flex w-full flex-col items-center gap-6 text-center lg:shrink-0 lg:flex-row lg:items-center lg:justify-between lg:gap-12 lg:text-left">
-          <div className="flex flex-col items-center gap-4 lg:items-start">
-            <h1 className="font-display text-4xl leading-[1.1] tracking-tight text-balance sm:text-6xl">
-              Your room, reimagined by AI
+        <div className="flex w-full flex-col items-center gap-4 text-center sm:gap-6 lg:shrink-0 lg:flex-row lg:items-center lg:justify-between lg:gap-12 lg:text-left">
+          <div className="flex flex-col items-center gap-3 sm:gap-4 lg:items-start">
+            <h1 className="font-display text-3xl leading-[1.1] tracking-tight text-balance sm:text-5xl lg:text-6xl">
+              AI Interior Design From One Photo
             </h1>
 
-            <p className="max-w-lg text-lg text-muted-foreground text-balance">
-              Upload one photo, pick a room type and a style, and get a
-              photorealistic redesign — while your walls, windows, and
+            <p className="max-w-lg text-base text-muted-foreground text-balance sm:text-lg">
+              Upload a photo of any room, pick a style, and see a
+              photorealistic redesign in seconds — your walls, windows, and
               layout stay exactly where they are.
             </p>
           </div>

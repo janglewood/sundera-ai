@@ -53,9 +53,66 @@ html {
   scroll-padding-top: 3.75rem;
 }
 
+.upload-highlight {
+  position: relative;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   html {
     scroll-behavior: smooth;
+  }
+
+  .upload-highlight {
+    animation: upload-highlight-pop 2.5s ease-in-out 0.3s;
+    animation-fill-mode: backwards;
+  }
+
+  .upload-highlight::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    animation: upload-highlight-ring 2.5s ease-in-out 0.3s;
+    animation-fill-mode: backwards;
+  }
+}
+
+@keyframes upload-highlight-pop {
+  0% {
+    transform: scale(1);
+  }
+  18% {
+    transform: scale(1.02);
+  }
+  38% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes upload-highlight-ring {
+  0% {
+    box-shadow:
+      0 0 0 0 color-mix(in srgb, var(--color-accent) 65%, transparent),
+      0 0 0 0 color-mix(in srgb, var(--color-accent) 65%, transparent);
+  }
+  60% {
+    box-shadow:
+      0 0 0 16px color-mix(in srgb, var(--color-accent) 0%, transparent),
+      0 0 0 0 color-mix(in srgb, var(--color-accent) 45%, transparent);
+  }
+  88% {
+    box-shadow:
+      0 0 0 16px color-mix(in srgb, var(--color-accent) 0%, transparent),
+      0 0 0 26px color-mix(in srgb, var(--color-accent) 0%, transparent);
+  }
+  100% {
+    box-shadow:
+      0 0 0 16px transparent,
+      0 0 0 26px transparent;
   }
 }
 
