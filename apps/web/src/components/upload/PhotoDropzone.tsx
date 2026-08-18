@@ -5,8 +5,16 @@ import { useRef, useState } from "react";
 
 const MAX_DIMENSION = 2000;
 
+const SKIP_DOWNSCALE_TYPES = new Set([
+  "image/webp",
+  // Browsers can't decode HEIC/HEIF via createImageBitmap; the server
+  // transcodes these to JPEG, so just pass the original file through.
+  "image/heic",
+  "image/heif",
+]);
+
 async function downscaleImage(file: File): Promise<File> {
-  if (!file.type.startsWith("image/") || file.type === "image/webp") {
+  if (!file.type.startsWith("image/") || SKIP_DOWNSCALE_TYPES.has(file.type)) {
     return file;
   }
 
@@ -92,14 +100,14 @@ export function PhotoDropzone({ onFileReady, disabled }: PhotoDropzoneProps) {
               <span className="hidden sm:inline">Upload a photo of your room</span>
             </p>
             <p className="hidden text-sm text-foreground/60 sm:block">
-              Drag and drop, or click to choose a file (JPEG, PNG, WebP)
+              Drag and drop, or click to choose a file (JPEG, PNG, WebP, HEIC)
             </p>
           </>
         )}
         <input
           ref={inputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
           className="hidden"
           onChange={(e) => void handleFile(e.target.files?.[0])}
         />

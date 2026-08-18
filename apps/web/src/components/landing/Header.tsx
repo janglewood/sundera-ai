@@ -21,7 +21,7 @@ function AccountControls() {
     return (
       <Link
         href="/login"
-        className="rounded-full px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+        className="rounded-full px-2 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground sm:px-3 sm:py-2 sm:text-sm"
       >
         Sign in
       </Link>
@@ -36,7 +36,7 @@ function AccountControls() {
       <button
         type="button"
         onClick={() => void signOutUser()}
-        className="rounded-full px-3 py-2 font-medium text-muted-foreground transition-colors hover:text-foreground"
+        className="rounded-full px-2 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground sm:px-3 sm:py-2 sm:text-sm"
       >
         Sign out
       </button>
@@ -55,7 +55,7 @@ export function Header() {
             width={800}
             height={162}
             priority
-            className="h-8 w-auto"
+            className="h-6 w-auto sm:h-8"
           />
         </a>
 
@@ -77,7 +77,7 @@ export function Header() {
           <a
             href="#upload"
             onClick={highlightUpload}
-            className="rounded-full bg-accent bg-linear-to-br from-accent to-accent-hover px-4 py-2 text-sm font-semibold text-accent-foreground shadow-lg shadow-accent/30 transition-colors hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:bg-none sm:shadow-none"
+            className="rounded-full bg-accent bg-linear-to-br from-accent to-accent-hover px-3 py-1.5 text-xs font-semibold text-accent-foreground shadow-lg shadow-accent/30 transition-colors hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:bg-none sm:px-4 sm:py-2 sm:text-sm sm:shadow-none"
           >
             Redesign my room
           </a>

@@ -44,3 +44,12 @@ export interface CreateUploadResponse {
   id: string;
   previewUrl: string;
 }
+
+export interface GenerationSummary {
+  id: string;
+  status: GenerationStatus;
+  roomType: RoomType;
+  style: DesignStyle;
+  createdAt: string;
+  thumbnailUrl: string;
+}

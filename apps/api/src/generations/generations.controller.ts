@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { FirebaseAuthGuard } from '../auth/guards/firebase-auth.guard';
 import { OptionalFirebaseAuthGuard } from '../auth/guards/optional-firebase-auth.guard';
 import type { User } from '../../generated/prisma';
 import { GenerationsService } from './generations.service';
@@ -26,6 +27,12 @@ export class GenerationsController {
   @UseGuards(OptionalFirebaseAuthGuard)
   create(@Body() dto: CreateGenerationDto, @CurrentUser() user?: User) {
     return this.generationsService.create(dto, user?.id);
+  }
+
+  @Get('mine')
+  @UseGuards(FirebaseAuthGuard)
+  listMine(@CurrentUser() user: User) {
+    return this.generationsService.findByUser(user.id);
   }
 
   @Get(':id')

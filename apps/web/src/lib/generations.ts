@@ -4,6 +4,7 @@ import type {
   CreateGenerationResponse,
   CreateUploadResponse,
   GenerationResponse,
+  GenerationSummary,
 } from "@sundera/shared";
 import { apiGet, apiPostForm, apiPostJson, apiUrl } from "./api-client";
 
@@ -21,6 +22,10 @@ export function createGeneration(
 
 export function getGeneration(id: string): Promise<GenerationResponse> {
   return apiGet<GenerationResponse>(`/generations/${id}`);
+}
+
+export function listMyGenerations(): Promise<GenerationSummary[]> {
+  return apiGet<GenerationSummary[]>("/generations/mine");
 }
 
 export function createGenerationEdit(
