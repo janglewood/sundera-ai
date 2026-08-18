@@ -16,10 +16,15 @@ describe('OpenRouterImageGenerationProvider', () => {
     const fetchMock = jest.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
-        data: [{ b64_json: Buffer.from('fake-image').toString('base64'), media_type: 'image/png' }],
+        data: [
+          {
+            b64_json: Buffer.from('fake-image').toString('base64'),
+            media_type: 'image/png',
+          },
+        ],
       }),
     });
-    global.fetch = fetchMock as unknown as typeof fetch;
+    global.fetch = fetchMock;
 
     const provider = new OpenRouterImageGenerationProvider(config);
     const result = await provider.editImage({

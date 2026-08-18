@@ -7,6 +7,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { StorageModule } from './storage/storage.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { GenerationsModule } from './generations/generations.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { GenerationsModule } from './generations/generations.module';
     ScheduleModule.forRoot(),
     PrismaModule,
     StorageModule,
+    AuthModule,
     UploadsModule,
     GenerationsModule,
   ],

@@ -1,5 +1,18 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import type { Response } from 'express';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { OptionalFirebaseAuthGuard } from '../auth/guards/optional-firebase-auth.guard';
+import type { User } from '../../generated/prisma';
 import { GenerationsService } from './generations.service';
 import { CreateGenerationDto } from './dto/create-generation.dto';
 import { CreateEditGenerationDto } from './dto/create-edit-generation.dto';
@@ -10,8 +23,9 @@ export class GenerationsController {
 
   @Post()
   @HttpCode(HttpStatus.ACCEPTED)
-  create(@Body() dto: CreateGenerationDto) {
-    return this.generationsService.create(dto);
+  @UseGuards(OptionalFirebaseAuthGuard)
+  create(@Body() dto: CreateGenerationDto, @CurrentUser() user?: User) {
+    return this.generationsService.create(dto, user?.id);
   }
 
   @Get(':id')
@@ -37,7 +51,12 @@ export class GenerationsController {
 
   @Post(':id/edit')
   @HttpCode(HttpStatus.ACCEPTED)
-  createEdit(@Param('id') id: string, @Body() dto: CreateEditGenerationDto) {
-    return this.generationsService.createEdit(id, dto);
+  @UseGuards(OptionalFirebaseAuthGuard)
+  createEdit(
+    @Param('id') id: string,
+    @Body() dto: CreateEditGenerationDto,
+    @CurrentUser() user?: User,
+  ) {
+    return this.generationsService.createEdit(id, dto, user?.id);
   }
 }

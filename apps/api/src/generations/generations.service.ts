@@ -17,18 +17,17 @@ export class GenerationsService {
     private readonly configService: ConfigService,
   ) {}
 
-  async create(dto: CreateGenerationDto) {
+  async create(dto: CreateGenerationDto, userId?: string) {
     const roomPhoto = await this.prisma.roomPhoto.findUnique({
       where: { id: dto.roomPhotoId },
     });
     if (!roomPhoto) {
-      throw new NotFoundException(
-        `RoomPhoto not found: ${dto.roomPhotoId}`,
-      );
+      throw new NotFoundException(`RoomPhoto not found: ${dto.roomPhotoId}`);
     }
 
     const generation = await this.prisma.generation.create({
       data: {
+        userId,
         roomPhotoId: dto.roomPhotoId,
         roomType: dto.roomType,
         style: dto.style,
@@ -40,7 +39,11 @@ export class GenerationsService {
     return { id: generation.id, status: generation.status };
   }
 
-  async createEdit(parentGenerationId: string, dto: CreateEditGenerationDto) {
+  async createEdit(
+    parentGenerationId: string,
+    dto: CreateEditGenerationDto,
+    userId?: string,
+  ) {
     const parent = await this.prisma.generation.findUnique({
       where: { id: parentGenerationId },
       include: { results: true },
@@ -66,6 +69,7 @@ export class GenerationsService {
 
     const generation = await this.prisma.generation.create({
       data: {
+        userId,
         roomPhotoId: parent.roomPhotoId,
         roomType: parent.roomType,
         style: parent.style,

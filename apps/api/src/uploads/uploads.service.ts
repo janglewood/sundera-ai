@@ -16,7 +16,7 @@ export class UploadsService {
     private readonly storage: StorageService,
   ) {}
 
-  async saveUpload(file: Express.Multer.File) {
+  async saveUpload(file: Express.Multer.File, userId?: string) {
     const ext = ALLOWED_MIME_TYPES[file.mimetype];
     if (!ext) {
       throw new BadRequestException(
@@ -29,7 +29,7 @@ export class UploadsService {
     await this.storage.putObject(storageKey, file.buffer, file.mimetype);
 
     const roomPhoto = await this.prisma.roomPhoto.create({
-      data: { id, storageKey, mimeType: file.mimetype },
+      data: { id, storageKey, mimeType: file.mimetype, userId },
     });
 
     const previewUrl = await this.storage.getPresignedGetUrl(storageKey);
