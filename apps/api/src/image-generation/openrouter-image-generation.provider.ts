@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   ImageEditRequest,
@@ -25,7 +29,9 @@ export class OpenRouterImageGenerationProvider implements ImageGenerationProvide
     this.baseUrl = this.configService.getOrThrow<string>('OPENROUTER_BASE_URL');
   }
 
-  async editImage(request: ImageEditRequest): Promise<ImageEditResultVariant[]> {
+  async editImage(
+    request: ImageEditRequest,
+  ): Promise<ImageEditResultVariant[]> {
     // Image-editing mode (input_references present) only supports n=1 per
     // request on this model/provider — fire one request per desired variant
     // instead of batching via `n`.

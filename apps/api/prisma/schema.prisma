@@ -8,9 +8,14 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String?  @unique
-  createdAt DateTime @default(now())
+  id            String   @id @default(cuid())
+  firebaseUid   String   @unique
+  email         String?  @unique
+  emailVerified Boolean  @default(false)
+  displayName   String?
+  photoURL      String?
+  provider      String?
+  createdAt     DateTime @default(now())
 
   roomPhotos  RoomPhoto[]
   generations Generation[]

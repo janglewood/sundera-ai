@@ -98,9 +98,11 @@ export class GenerationWorkerService {
     let prompt: string;
 
     if (claimed.sourceResultId) {
-      const sourceResult = await this.prisma.generationResult.findUniqueOrThrow({
-        where: { id: claimed.sourceResultId },
-      });
+      const sourceResult = await this.prisma.generationResult.findUniqueOrThrow(
+        {
+          where: { id: claimed.sourceResultId },
+        },
+      );
       const sourceBuffer = await this.storage.getObjectBuffer(
         sourceResult.storageKey,
       );
@@ -116,7 +118,11 @@ export class GenerationWorkerService {
         roomPhoto.storageKey,
       );
       sourceImageDataUrl = `data:${roomPhoto.mimeType};base64,${sourceBuffer.toString('base64')}`;
-      prompt = buildPrompt(claimed.roomType, claimed.style, claimed.customPrompt);
+      prompt = buildPrompt(
+        claimed.roomType,
+        claimed.style,
+        claimed.customPrompt,
+      );
     }
 
     const variants = await this.imageGenerationProvider.editImage({
