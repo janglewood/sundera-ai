@@ -28,7 +28,8 @@ const FAQS = [
   },
   {
     question: "Is it free?",
-    answer: "Yes — Sundera AI doesn't have any paid plans yet.",
+    answer:
+      "Yes — the free plan includes 1 generation and 1 edit with limited styles, no account required. Paid plans unlock more generations, edits, downloads, and every style.",
   },
   {
     question: "What happens to my photos?",
