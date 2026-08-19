@@ -4,7 +4,7 @@ const FAQS = [
   {
     question: "Do I need to create an account?",
     answer:
-      "No. Upload a photo and start redesigning right away — no sign-up required.",
+      "You can upload a photo and pick a style without one — creating a free account is only needed to reveal and download your redesign.",
   },
   {
     question: "Will it change the structure of my room?",
@@ -29,7 +29,7 @@ const FAQS = [
   {
     question: "Is it free?",
     answer:
-      "Yes — the free plan includes 1 generation and 1 edit with limited styles, no account required. Paid plans unlock more generations, edits, downloads, and every style.",
+      "Yes — the free plan includes 1 redesign and 1 edit with limited styles, no card required (just a free account to reveal your redesign). Paid plans unlock more redesigns, edits, downloads, and every style.",
   },
   {
     question: "What happens to my photos?",

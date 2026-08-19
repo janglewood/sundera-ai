@@ -113,7 +113,7 @@ export function Hero() {
               </p>
             )}
             <p className="mt-4 text-center text-sm text-muted-foreground">
-              Free, no account needed &middot; first redesign in about a
+              Free, no card required &middot; first redesign in about a
               minute
             </p>
           </div>

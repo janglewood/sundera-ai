@@ -4,10 +4,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { PLAN_LIMITS, isStyleAllowedForFreePlan } from '@sundera/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { CreateGenerationDto } from './dto/create-generation.dto';
 import { CreateEditGenerationDto } from './dto/create-edit-generation.dto';
+import { PaywallRequiredException } from './paywall-required.exception';
 
 @Injectable()
 export class GenerationsService {
@@ -23,6 +25,25 @@ export class GenerationsService {
     });
     if (!roomPhoto) {
       throw new NotFoundException(`RoomPhoto not found: ${dto.roomPhotoId}`);
+    }
+
+    // No paid plans exist yet, so every authenticated user is on the free
+    // tier — anonymous (no userId) requests are left unlimited for now.
+    if (userId) {
+      if (!isStyleAllowedForFreePlan(dto.style)) {
+        throw new PaywallRequiredException(
+          'This style is available on paid plans.',
+        );
+      }
+
+      const generationCount = await this.prisma.generation.count({
+        where: { userId, sourceResultId: null },
+      });
+      if (generationCount >= PLAN_LIMITS.FREE.maxGenerations) {
+        throw new PaywallRequiredException(
+          "You've used your free redesign. Upgrade to create more.",
+        );
+      }
     }
 
     const generation = await this.prisma.generation.create({
@@ -65,6 +86,17 @@ export class GenerationsService {
       throw new NotFoundException(
         `GenerationResult not found: ${dto.sourceResultId}`,
       );
+    }
+
+    if (userId) {
+      const editCount = await this.prisma.generation.count({
+        where: { userId, sourceResultId: { not: null } },
+      });
+      if (editCount >= PLAN_LIMITS.FREE.maxEdits) {
+        throw new PaywallRequiredException(
+          "You've used your free edit. Upgrade for more edits.",
+        );
+      }
     }
 
     const generation = await this.prisma.generation.create({
@@ -120,7 +152,7 @@ export class GenerationsService {
     }
 
     const sourceImageUrl = await this.storage.getPresignedGetUrl(
-      generation.sourceResult?.storageKey ?? generation.roomPhoto.storageKey,
+      generation.roomPhoto.storageKey,
     );
 
     const resultImages =
@@ -151,6 +183,10 @@ export class GenerationsService {
   }
 
   async getResultFile(generationId: string, resultId: string) {
+    if (!PLAN_LIMITS.FREE.downloadsAllowed) {
+      throw new PaywallRequiredException('Downloads are available on paid plans.');
+    }
+
     const result = await this.prisma.generationResult.findUnique({
       where: { id: resultId },
     });

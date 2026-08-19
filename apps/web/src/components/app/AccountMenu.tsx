@@ -16,7 +16,7 @@ export function AccountMenu() {
         onClick={() => void signOutUser()}
         className="shrink-0 font-medium text-foreground/60 hover:text-foreground"
       >
-        Sign out
+        • Sign out
       </button>
     </div>
   );

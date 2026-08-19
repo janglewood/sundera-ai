@@ -6,7 +6,7 @@ import type {
   GenerationResponse,
   GenerationSummary,
 } from "@sundera/shared";
-import { apiGet, apiPostForm, apiPostJson, apiUrl } from "./api-client";
+import { apiGet, apiGetBlob, apiPostForm, apiPostJson } from "./api-client";
 
 export function createUpload(file: File): Promise<CreateUploadResponse> {
   const formData = new FormData();
@@ -38,9 +38,11 @@ export function createGenerationEdit(
   );
 }
 
-export function getResultDownloadUrl(
+export function downloadGenerationResult(
   generationId: string,
   resultId: string,
-): string {
-  return apiUrl(`/generations/${generationId}/results/${resultId}/download`);
+): Promise<Blob> {
+  return apiGetBlob(
+    `/generations/${generationId}/results/${resultId}/download`,
+  );
 }
