@@ -7,7 +7,12 @@ import { DownloadSimple } from "@phosphor-icons/react/dist/ssr";
 import { ROOM_TYPE_LABELS, DESIGN_STYLE_LABELS } from "@sundera/shared";
 import type { RoomType, DesignStyle } from "@sundera/shared";
 import { usePollGeneration } from "@/lib/use-poll-generation";
-import { createGenerationEdit, getResultDownloadUrl } from "@/lib/generations";
+import {
+  createGenerationEdit,
+  downloadGenerationResult,
+} from "@/lib/generations";
+import { ApiError } from "@/lib/api-client";
+import { usePaywall } from "@/lib/paywall/paywall-context";
 import { VoiceTextarea } from "@/components/shared/VoiceTextarea";
 import { GenerationProgress } from "./GenerationProgress";
 import { BeforeAfterSlider } from "./BeforeAfterSlider";
@@ -16,13 +21,20 @@ interface GenerationViewProps {
   id: string;
 }
 
+function extensionFromUrl(url: string): string {
+  const match = /\.([a-zA-Z0-9]+)(?:\?|$)/.exec(url);
+  return match ? match[1] : "jpg";
+}
+
 export function GenerationView({ id }: GenerationViewProps) {
   const router = useRouter();
+  const { openPaywall } = usePaywall();
   const { generation, error } = usePollGeneration(id);
   const [selectedVariant, setSelectedVariant] = useState(0);
   const [editPrompt, setEditPrompt] = useState("");
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   if (error) {
     return (
@@ -71,10 +83,34 @@ export function GenerationView({ id }: GenerationViewProps) {
       });
       router.push(`/generations/${edit.id}`);
     } catch (err) {
-      setEditError(
-        err instanceof Error ? err.message : "Failed to start edit",
-      );
+      if (err instanceof ApiError && err.status === 402) {
+        openPaywall("limit");
+      } else {
+        setEditError(
+          err instanceof Error ? err.message : "Failed to start edit",
+        );
+      }
       setIsEditSubmitting(false);
+    }
+  }
+
+  async function handleDownload() {
+    if (!activeResult) return;
+    setIsDownloading(true);
+    try {
+      const blob = await downloadGenerationResult(id, activeResult.id);
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = `sundera-redesign-${activeResult.index + 1}.${extensionFromUrl(activeResult.url)}`;
+      link.click();
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 402) {
+        openPaywall("limit");
+      }
+    } finally {
+      setIsDownloading(false);
     }
   }
 
@@ -98,14 +134,15 @@ export function GenerationView({ id }: GenerationViewProps) {
             beforeUrl={generation.sourceImageUrl}
             afterUrl={activeResult.url}
           />
-          <a
-            href={getResultDownloadUrl(id, activeResult.id)}
-            download
-            className="mx-auto flex items-center gap-2 rounded-full border border-foreground/20 px-6 py-3 font-medium transition-opacity hover:opacity-70"
+          <button
+            type="button"
+            onClick={() => void handleDownload()}
+            disabled={isDownloading}
+            className="mx-auto flex items-center gap-2 rounded-full border border-foreground/20 px-6 py-3 font-medium transition-opacity hover:opacity-70 disabled:opacity-40"
           >
             <DownloadSimple size={18} weight="bold" />
-            Download image
-          </a>
+            {isDownloading ? "Preparing…" : "Download image"}
+          </button>
         </>
       )}
 

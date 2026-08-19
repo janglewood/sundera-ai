@@ -1,8 +1,8 @@
 "use client";
 
 import { GoogleLogo } from "@phosphor-icons/react";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
 import {
   getAuthErrorMessage,
@@ -13,9 +13,13 @@ import {
 
 type Mode = "signin" | "signup";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, loading } = useAuth();
+
+  const destination =
+    searchParams.get("next") === "paywall" ? "/app?openPaywall=1" : "/app";
 
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
@@ -25,9 +29,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!loading && user) {
-      router.replace("/app");
+      router.replace(destination);
     }
-  }, [loading, user, router]);
+  }, [loading, user, router, destination]);
 
   async function handleSubmit() {
     setIsSubmitting(true);
@@ -38,7 +42,7 @@ export default function LoginPage() {
       } else {
         await signInWithEmail(email, password);
       }
-      router.push("/app");
+      router.push(destination);
     } catch (err) {
       setError(getAuthErrorMessage(err));
       setIsSubmitting(false);
@@ -50,7 +54,7 @@ export default function LoginPage() {
     setError(null);
     try {
       await signInWithGoogle();
-      router.push("/app");
+      router.push(destination);
     } catch (err) {
       setError(getAuthErrorMessage(err));
       setIsSubmitting(false);
@@ -154,5 +158,13 @@ export default function LoginPage() {
           : "Already have an account? Sign in"}
       </button>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }

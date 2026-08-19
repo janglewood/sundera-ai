@@ -48,6 +48,17 @@ export async function apiPostJson<T>(path: string, body: unknown): Promise<T> {
   return handleResponse<T>(response);
 }
 
+export async function apiGetBlob(path: string): Promise<Blob> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    headers: await getAuthHeader(),
+  });
+  if (!response.ok) {
+    const body = await response.text();
+    throw new ApiError(body || response.statusText, response.status);
+  }
+  return response.blob();
+}
+
 export async function apiPostForm<T>(
   path: string,
   formData: FormData,

@@ -1,14 +1,24 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { PhotoDropzone } from "@/components/upload/PhotoDropzone";
 import { createUpload } from "@/lib/generations";
+import { usePaywall } from "@/lib/paywall/paywall-context";
 
-export default function AppHomePage() {
+function AppHome() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { openPaywall } = usePaywall();
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (searchParams.get("openPaywall") === "1") {
+      openPaywall();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   async function handleFileReady(file: File) {
     setIsUploading(true);
@@ -39,5 +49,13 @@ export default function AppHomePage() {
         {error && <p className="text-sm text-red-500">{error}</p>}
       </div>
     </div>
+  );
+}
+
+export default function AppHomePage() {
+  return (
+    <Suspense>
+      <AppHome />
+    </Suspense>
   );
 }

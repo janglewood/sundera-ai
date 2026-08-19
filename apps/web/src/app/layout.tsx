@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Calistoga, Inter } from "next/font/google";
 import { AuthProvider } from "@/lib/auth/auth-context";
+import { PaywallProvider } from "@/lib/paywall/paywall-context";
 import "./globals.css";
 
 const inter = Inter({
@@ -27,7 +28,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${inter.variable} ${calistoga.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <PaywallProvider>{children}</PaywallProvider>
+        </AuthProvider>
       </body>
     </html>
   );

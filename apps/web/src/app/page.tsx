@@ -6,6 +6,7 @@ import { Footer } from "@/components/landing/Footer";
 import { Header } from "@/components/landing/Header";
 import { Hero } from "@/components/landing/Hero";
 import { HowItWorks } from "@/components/landing/HowItWorks";
+import { Pricing } from "@/components/landing/Pricing";
 import { Reveal } from "@/components/landing/Reveal";
 import { StyleShowcase } from "@/components/landing/StyleShowcase";
 
@@ -24,6 +25,9 @@ export default function Home() {
         </Reveal>
         <Reveal>
           <Features />
+        </Reveal>
+        <Reveal>
+          <Pricing />
         </Reveal>
         <Reveal>
           <Faq />

@@ -3,16 +3,23 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
+import { LOCKED_DESIGN_STYLES } from "@sundera/shared";
 import type { DesignStyle, RoomType } from "@sundera/shared";
 import { RoomTypeGrid } from "@/components/select/RoomTypeGrid";
 import { StyleGrid } from "@/components/select/StyleGrid";
 import { VoiceTextarea } from "@/components/shared/VoiceTextarea";
+import { GenerationGate } from "@/components/generation/GenerationGate";
+import { ApiError } from "@/lib/api-client";
 import { createGeneration } from "@/lib/generations";
+import { useAuth } from "@/lib/auth/auth-context";
+import { usePaywall } from "@/lib/paywall/paywall-context";
 
 function NewGenerationForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const photoId = searchParams.get("photoId");
+  const { user, loading } = useAuth();
+  const { openPaywall } = usePaywall();
 
   const [roomType, setRoomType] = useState<RoomType | null>(null);
   const [style, setStyle] = useState<DesignStyle | null>(null);
@@ -32,6 +39,14 @@ function NewGenerationForm() {
     );
   }
 
+  if (loading) {
+    return null;
+  }
+
+  if (!user) {
+    return <GenerationGate />;
+  }
+
   async function handleSubmit() {
     if (!photoId || !roomType || !style) return;
     setIsSubmitting(true);
@@ -45,15 +60,40 @@ function NewGenerationForm() {
       });
       router.push(`/generations/${generation.id}`);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to start generation",
-      );
+      if (err instanceof ApiError && err.status === 402) {
+        openPaywall("limit");
+      } else {
+        setError(
+          err instanceof Error ? err.message : "Failed to start generation",
+        );
+      }
       setIsSubmitting(false);
     }
   }
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-10 px-6 py-16">
+      <button
+        type="button"
+        onClick={() => router.push("/app")}
+        className="flex items-center gap-1 self-start text-sm text-foreground/60 transition-colors hover:text-foreground"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="m15 18-6-6 6-6" />
+        </svg>
+        Back
+      </button>
+
       <section>
         <h2 className="mb-4 text-lg font-semibold">What room is this?</h2>
         <RoomTypeGrid value={roomType} onChange={setRoomType} />
@@ -61,7 +101,12 @@ function NewGenerationForm() {
 
       <section>
         <h2 className="mb-4 text-lg font-semibold">Pick a style</h2>
-        <StyleGrid value={style} onChange={setStyle} />
+        <StyleGrid
+          value={style}
+          onChange={setStyle}
+          lockedStyles={LOCKED_DESIGN_STYLES}
+          onLockedSelect={() => openPaywall("limit")}
+        />
       </section>
 
       <section>

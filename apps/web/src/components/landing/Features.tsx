@@ -40,9 +40,9 @@ const FEATURES = [
   },
   {
     icon: LockOpen,
-    title: "No account required",
+    title: "No credit card needed",
     description:
-      "Upload and go. Try it free — there's no sign-up between you and your first redesign.",
+      "Upload and pick a style free — just a quick sign-up to reveal your redesign.",
   },
 ];
 

@@ -9,6 +9,7 @@ import { signOutUser } from "@/lib/auth/auth-actions";
 const NAV_LINKS = [
   { href: "#how-it-works", label: "How it works" },
   { href: "#styles", label: "Styles" },
+  { href: "#pricing", label: "Pricing" },
   { href: "#faq", label: "FAQ" },
 ];
 
@@ -38,7 +39,7 @@ function AccountControls() {
         onClick={() => void signOutUser()}
         className="rounded-full px-2 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground sm:px-3 sm:py-2 sm:text-sm"
       >
-        Sign out
+        • Sign out
       </button>
     </div>
   );
