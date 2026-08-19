@@ -138,7 +138,6 @@ export function PhotoDropzone({ onFileReady, disabled }: PhotoDropzoneProps) {
         ref={cameraInputRef}
         type="file"
         accept="image/*"
-        capture="environment"
         className="hidden"
         onChange={(e) => void handleFile(e.target.files?.[0])}
       />
