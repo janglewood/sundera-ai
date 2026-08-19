@@ -8,6 +8,7 @@ import { StorageModule } from './storage/storage.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { GenerationsModule } from './generations/generations.module';
 import { AuthModule } from './auth/auth.module';
+import { PaymentsModule } from './payments/payments.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { AuthModule } from './auth/auth.module';
     AuthModule,
     UploadsModule,
     GenerationsModule,
+    PaymentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

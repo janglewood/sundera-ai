@@ -4,9 +4,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PLAN_LIMITS, isStyleAllowedForFreePlan } from '@sundera/shared';
+import { PLAN_LIMITS, isStyleAllowedForPlan } from '@sundera/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
+import { PaymentsService } from '../payments/payments.service';
 import { CreateGenerationDto } from './dto/create-generation.dto';
 import { CreateEditGenerationDto } from './dto/create-edit-generation.dto';
 import { PaywallRequiredException } from './paywall-required.exception';
@@ -17,6 +18,7 @@ export class GenerationsService {
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly configService: ConfigService,
+    private readonly payments: PaymentsService,
   ) {}
 
   async create(dto: CreateGenerationDto, userId?: string) {
@@ -27,10 +29,12 @@ export class GenerationsService {
       throw new NotFoundException(`RoomPhoto not found: ${dto.roomPhotoId}`);
     }
 
-    // No paid plans exist yet, so every authenticated user is on the free
-    // tier — anonymous (no userId) requests are left unlimited for now.
+    // Anonymous (no userId) requests are left unlimited for now.
     if (userId) {
-      if (!isStyleAllowedForFreePlan(dto.style)) {
+      const planTier = await this.payments.resolvePlanTier(userId);
+      const limits = PLAN_LIMITS[planTier];
+
+      if (!isStyleAllowedForPlan(dto.style, planTier)) {
         throw new PaywallRequiredException(
           'This style is available on paid plans.',
         );
@@ -39,9 +43,11 @@ export class GenerationsService {
       const generationCount = await this.prisma.generation.count({
         where: { userId, sourceResultId: null },
       });
-      if (generationCount >= PLAN_LIMITS.FREE.maxGenerations) {
+      if (generationCount >= limits.maxGenerations) {
         throw new PaywallRequiredException(
-          "You've used your free redesign. Upgrade to create more.",
+          planTier === 'FREE'
+            ? "You've used your free redesign. Upgrade to create more."
+            : "You've reached your plan's redesign limit. Upgrade for more.",
         );
       }
     }
@@ -89,12 +95,15 @@ export class GenerationsService {
     }
 
     if (userId) {
+      const planTier = await this.payments.resolvePlanTier(userId);
       const editCount = await this.prisma.generation.count({
         where: { userId, sourceResultId: { not: null } },
       });
-      if (editCount >= PLAN_LIMITS.FREE.maxEdits) {
+      if (editCount >= PLAN_LIMITS[planTier].maxEdits) {
         throw new PaywallRequiredException(
-          "You've used your free edit. Upgrade for more edits.",
+          planTier === 'FREE'
+            ? "You've used your free edit. Upgrade for more edits."
+            : "You've reached your plan's edit limit. Upgrade for more.",
         );
       }
     }
@@ -182,8 +191,13 @@ export class GenerationsService {
     };
   }
 
-  async getResultFile(generationId: string, resultId: string) {
-    if (!PLAN_LIMITS.FREE.downloadsAllowed) {
+  async getResultFile(
+    generationId: string,
+    resultId: string,
+    userId?: string,
+  ) {
+    const planTier = await this.payments.resolvePlanTier(userId);
+    if (!PLAN_LIMITS[planTier].downloadsAllowed) {
       throw new PaywallRequiredException('Downloads are available on paid plans.');
     }
 

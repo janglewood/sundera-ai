@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ImageGenerationModule } from '../image-generation/image-generation.module';
 import { AuthModule } from '../auth/auth.module';
+import { PaymentsModule } from '../payments/payments.module';
 import { GenerationsController } from './generations.controller';
 import { GenerationsService } from './generations.service';
 import { GenerationWorkerService } from './generation-worker.service';
 
 @Module({
-  imports: [ImageGenerationModule, AuthModule],
+  imports: [ImageGenerationModule, AuthModule, PaymentsModule],
   controllers: [GenerationsController],
   providers: [GenerationsService, GenerationWorkerService],
 })
