@@ -17,8 +17,9 @@ model User {
   provider      String?
   createdAt     DateTime @default(now())
 
-  roomPhotos  RoomPhoto[]
-  generations Generation[]
+  roomPhotos   RoomPhoto[]
+  generations  Generation[]
+  subscription Subscription?
 }
 
 model RoomPhoto {
@@ -106,4 +107,37 @@ model GenerationResult {
   editsSourcedFromThis Generation[] @relation("EditSource")
 
   @@unique([generationId, index])
+}
+
+enum PlanTier {
+  STARTER
+  PRO
+}
+
+enum SubscriptionStatus {
+  PENDING
+  ACTIVE
+  CANCELLED
+  EXPIRED
+  FAILED
+}
+
+// Absence of a row means the user is on the FREE tier. lavaContractId is the
+// lava.top *parent* contract id (the id returned from the first invoice) —
+// renewals create separate child contracts but reference this one via
+// parentContractId, and it's the id lava.top's cancel-subscription endpoint
+// expects, so it must stay pinned to the original purchase, never a renewal.
+model Subscription {
+  id                String             @id @default(cuid())
+  userId            String             @unique
+  user              User               @relation(fields: [userId], references: [id])
+  planTier          PlanTier
+  status            SubscriptionStatus @default(PENDING)
+  periodicity       String
+  lavaOfferId       String
+  lavaContractId    String             @unique
+  currentPeriodEnd  DateTime?
+  cancelledAt       DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 }

@@ -1,9 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import { X } from "@phosphor-icons/react/dist/ssr";
-import { PricingCards, ctaClassName } from "@/components/pricing/PricingCards";
+import type { PaidPlanTier } from "@sundera/shared";
+import {
+  PricingCards,
+  ctaClassName,
+  type PricingPlan,
+} from "@/components/pricing/PricingCards";
 import type { PaywallReason } from "@/lib/paywall/paywall-context";
 import { useIsMobile } from "@/lib/useIsMobile";
+import { createCheckout } from "@/lib/billing";
 
 const COPY: Record<PaywallReason, { heading: string; subtext: string }> = {
   limit: {
@@ -26,10 +33,30 @@ interface PaywallModalProps {
 
 export function PaywallModal({ isOpen, reason, onClose }: PaywallModalProps) {
   const isMobile = useIsMobile();
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
   const { heading, subtext } = COPY[reason];
+
+  async function handleUpgrade(
+    plan: PricingPlan,
+    cycle: "monthly" | "annual",
+  ) {
+    setCheckoutError(null);
+    setLoadingPlan(plan.name);
+    try {
+      const { paymentUrl } = await createCheckout({
+        planTier: plan.name.toUpperCase() as PaidPlanTier,
+        periodicity: cycle === "annual" ? "PERIOD_YEAR" : "MONTHLY",
+      });
+      window.location.href = paymentUrl;
+    } catch {
+      setCheckoutError("Couldn't start checkout. Please try again.");
+      setLoadingPlan(null);
+    }
+  }
 
   return (
     <div
@@ -59,11 +86,14 @@ export function PaywallModal({ isOpen, reason, onClose }: PaywallModalProps) {
           <p className="mt-1 text-sm text-muted-foreground sm:mt-3 sm:text-base">
             {subtext}
           </p>
+          {checkoutError && (
+            <p className="mt-3 text-sm text-red-500">{checkoutError}</p>
+          )}
         </div>
 
         <PricingCards
           compactOnMobile={isMobile}
-          renderCta={(plan) =>
+          renderCta={(plan, cycle) =>
             plan.name === "Free" ? (
               <span
                 className={`${ctaClassName(false, isMobile)} cursor-default bg-muted text-muted-foreground hover:bg-muted`}
@@ -73,10 +103,11 @@ export function PaywallModal({ isOpen, reason, onClose }: PaywallModalProps) {
             ) : (
               <button
                 type="button"
-                disabled
+                disabled={loadingPlan !== null}
+                onClick={() => void handleUpgrade(plan, cycle)}
                 className={ctaClassName(plan.highlighted, isMobile)}
               >
-                {plan.cta}
+                {loadingPlan === plan.name ? "Redirecting…" : plan.cta}
               </button>
             )
           }

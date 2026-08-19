@@ -41,13 +41,15 @@ export class GenerationsController {
   }
 
   @Get(':id/results/:resultId/download')
+  @UseGuards(OptionalFirebaseAuthGuard)
   async downloadResult(
     @Param('id') id: string,
     @Param('resultId') resultId: string,
     @Res() res: Response,
+    @CurrentUser() user?: User,
   ) {
     const { buffer, contentType, filename } =
-      await this.generationsService.getResultFile(id, resultId);
+      await this.generationsService.getResultFile(id, resultId, user?.id);
     res.set({
       'Content-Type': contentType,
       'Content-Disposition': `attachment; filename="${filename}"`,

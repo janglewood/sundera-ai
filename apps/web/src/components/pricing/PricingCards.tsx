@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import { Check } from "@phosphor-icons/react/dist/ssr";
 
-type BillingCycle = "monthly" | "annual";
+export type BillingCycle = "monthly" | "annual";
 
 export const PRICING_PLANS = [
   {
@@ -59,7 +59,7 @@ export function ctaClassName(highlighted: boolean, compactOnMobile = false) {
 }
 
 interface PricingCardsProps {
-  renderCta: (plan: PricingPlan) => ReactNode;
+  renderCta: (plan: PricingPlan, cycle: BillingCycle) => ReactNode;
   compactOnMobile?: boolean;
 }
 
@@ -169,7 +169,7 @@ export function PricingCards({
                   </p>
 
                   {compactOnMobile && (
-                    <div className="mt-2 sm:hidden">{renderCta(plan)}</div>
+                    <div className="mt-2 sm:hidden">{renderCta(plan, cycle)}</div>
                   )}
                 </div>
 
@@ -197,7 +197,7 @@ export function PricingCards({
               </div>
 
               <div className={compactOnMobile ? "hidden sm:block" : ""}>
-                {renderCta(plan)}
+                {renderCta(plan, cycle)}
               </div>
             </div>
           );
