@@ -60,9 +60,9 @@ export function Features() {
           {FEATURES.map((feature) => (
             <div
               key={feature.title}
-              className="rounded-2xl border border-white/40 bg-card/40 p-7 shadow-lg shadow-black/5 backdrop-blur-xl transition-shadow hover:shadow-xl dark:border-white/10"
+              className="rounded-2xl border border-white/40 bg-card/40 p-7 shadow-lg shadow-black/5 backdrop-blur-xl transition-shadow hover:shadow-xl"
             >
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/40 bg-accent-soft/60 text-accent-hover backdrop-blur-md dark:border-white/10">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/40 bg-accent-soft/60 text-accent-hover backdrop-blur-md">
                 <feature.icon size={22} weight="bold" aria-hidden />
               </div>
               <h3 className="mt-5 text-base font-semibold">

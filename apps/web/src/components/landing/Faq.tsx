@@ -45,7 +45,7 @@ export function Faq() {
           Frequently asked questions
         </h2>
 
-        <div className="mt-10 divide-y divide-white/30 rounded-3xl border border-white/40 bg-card/40 px-6 shadow-lg shadow-black/5 backdrop-blur-xl dark:divide-white/10 dark:border-white/10">
+        <div className="mt-10 divide-y divide-white/30 rounded-3xl border border-white/40 bg-card/40 px-6 shadow-lg shadow-black/5 backdrop-blur-xl">
           {FAQS.map((faq) => (
             <details key={faq.question} className="group py-5">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-medium marker:content-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">

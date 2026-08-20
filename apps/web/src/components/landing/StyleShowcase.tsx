@@ -11,7 +11,7 @@ export function StyleShowcase() {
   return (
     <section
       id="styles"
-      className="border-y border-white/30 bg-muted/50 px-6 py-24 backdrop-blur-md dark:border-white/5 sm:px-8 sm:py-28"
+      className="border-y border-white/30 bg-muted/50 px-6 py-24 backdrop-blur-md sm:px-8 sm:py-28"
     >
       <div className="mx-auto w-full max-w-6xl">
         <div className="mx-auto max-w-xl text-center">
@@ -26,7 +26,7 @@ export function StyleShowcase() {
         <div className="mt-14 grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-7">
           {DESIGN_STYLES.map((style, index) => (
             <Parallax key={style} speed={index % 2 === 0 ? 0.045 : -0.045} max={26}>
-              <div className="group relative aspect-4/3 w-full overflow-hidden rounded-xl border border-white/30 dark:border-white/10">
+              <div className="group relative aspect-4/3 w-full overflow-hidden rounded-xl border border-white/30">
                 <Image
                   src={`/styles/${style.toLowerCase()}.jpg`}
                   alt={DESIGN_STYLE_LABELS[style]}
@@ -46,7 +46,7 @@ export function StyleShowcase() {
           {ROOM_TYPES.map((roomType) => (
             <span
               key={roomType}
-              className="rounded-full border border-white/40 bg-card/40 px-4 py-1.5 text-sm text-muted-foreground backdrop-blur-md dark:border-white/10"
+              className="rounded-full border border-white/40 bg-card/40 px-4 py-1.5 text-sm text-muted-foreground backdrop-blur-md"
             >
               {ROOM_TYPE_LABELS[roomType]}
             </span>

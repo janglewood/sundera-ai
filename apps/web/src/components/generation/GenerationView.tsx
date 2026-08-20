@@ -40,7 +40,7 @@ export function GenerationView({ id }: GenerationViewProps) {
     return (
       <div className="flex flex-col items-center gap-4 py-16 text-center">
         <p className="text-red-500">{error}</p>
-        <Link href="/" className="underline">
+        <Link href="/app" className="underline">
           Start over
         </Link>
       </div>
@@ -197,7 +197,7 @@ export function GenerationView({ id }: GenerationViewProps) {
             Undo last edit
           </Link>
         )}
-        <Link href="/" className="underline">
+        <Link href="/app" className="underline">
           Start over
         </Link>
       </div>

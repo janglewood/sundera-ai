@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Calistoga, Inter } from "next/font/google";
 import { AuthProvider } from "@/lib/auth/auth-context";
 import { PaywallProvider } from "@/lib/paywall/paywall-context";
@@ -19,6 +19,11 @@ export const metadata: Metadata = {
   title: "Sundera — AI Interior Design From One Photo",
   description:
     "Try AI interior design free: upload a room photo, pick a style, and get a photorealistic redesign in seconds.",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#faf6f1",
+  colorScheme: "light",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
