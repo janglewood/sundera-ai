@@ -1,7 +1,7 @@
 "use client";
 
 import { UploadSimple } from "@phosphor-icons/react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const MAX_DIMENSION = 2000;
 
@@ -50,8 +50,15 @@ interface PhotoDropzoneProps {
 export function PhotoDropzone({ onFileReady, disabled }: PhotoDropzoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
+  const [isChromeIOS, setIsChromeIOS] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // Chrome on iOS (CriOS) has a long-standing bug where camera capture
+    // via <input type="file"> shows a black screen; Safari is unaffected.
+    setIsChromeIOS(/CriOS/i.test(navigator.userAgent));
+  }, []);
 
   async function handleFile(file: File | undefined) {
     if (!file) return;
@@ -97,7 +104,9 @@ export function PhotoDropzone({ onFileReady, disabled }: PhotoDropzoneProps) {
             />
             <p className="min-w-0 truncate text-sm font-medium sm:w-auto sm:text-lg">
               <span className="sm:hidden">Upload a photo</span>
-              <span className="hidden sm:inline">Upload a photo of your room</span>
+              <span className="hidden sm:inline">
+                Upload a photo of your room
+              </span>
             </p>
             <p className="hidden text-sm text-foreground/60 sm:block">
               Drag and drop, or click to choose a file (JPEG, PNG, WebP, HEIC)
@@ -113,27 +122,29 @@ export function PhotoDropzone({ onFileReady, disabled }: PhotoDropzoneProps) {
         />
       </div>
 
-      <button
-        type="button"
-        aria-label="Take a photo"
-        disabled={disabled}
-        onClick={() => cameraInputRef.current?.click()}
-        className="flex sm:hidden aspect-square w-16 shrink-0 items-center justify-center self-center rounded-2xl bg-accent text-accent-foreground shadow-md transition-colors hover:bg-accent-hover disabled:pointer-events-none disabled:opacity-50"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={1.75}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="h-6 w-6"
+      {!isChromeIOS && (
+        <button
+          type="button"
+          aria-label="Take a photo"
+          disabled={disabled}
+          onClick={() => cameraInputRef.current?.click()}
+          className="flex sm:hidden aspect-square w-16 shrink-0 items-center justify-center self-center rounded-2xl bg-accent text-accent-foreground shadow-md transition-colors hover:bg-accent-hover disabled:pointer-events-none disabled:opacity-50"
         >
-          <path d="M4 8a2 2 0 0 1 2-2h1.5l1-1.5h7l1 1.5H18a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z" />
-          <circle cx="12" cy="13" r="3.5" />
-        </svg>
-      </button>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.75}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-6 w-6"
+          >
+            <path d="M4 8a2 2 0 0 1 2-2h1.5l1-1.5h7l1 1.5H18a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z" />
+            <circle cx="12" cy="13" r="3.5" />
+          </svg>
+        </button>
+      )}
       <input
         ref={cameraInputRef}
         type="file"
