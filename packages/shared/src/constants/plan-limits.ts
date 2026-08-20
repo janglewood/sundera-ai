@@ -53,3 +53,10 @@ export function isStyleAllowedForPlan(
 export const LOCKED_DESIGN_STYLES: readonly DesignStyle[] = DESIGN_STYLES.filter(
   (style) => !FREE_DESIGN_STYLES.includes(style),
 );
+
+export function getLockedStylesForPlan(
+  planTier: PlanTier,
+): readonly DesignStyle[] {
+  const allowedStyles = PLAN_LIMITS[planTier].allowedStyles as readonly DesignStyle[];
+  return DESIGN_STYLES.filter((style) => !allowedStyles.includes(style));
+}

@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
-import { LOCKED_DESIGN_STYLES } from "@sundera/shared";
+import { Suspense, useEffect, useState } from "react";
+import { LOCKED_DESIGN_STYLES, getLockedStylesForPlan } from "@sundera/shared";
 import type { DesignStyle, RoomType } from "@sundera/shared";
 import { RoomTypeGrid } from "@/components/select/RoomTypeGrid";
 import { StyleGrid } from "@/components/select/StyleGrid";
@@ -11,6 +11,7 @@ import { VoiceTextarea } from "@/components/shared/VoiceTextarea";
 import { GenerationGate } from "@/components/generation/GenerationGate";
 import { ApiError } from "@/lib/api-client";
 import { createGeneration } from "@/lib/generations";
+import { getMySubscription } from "@/lib/billing";
 import { useAuth } from "@/lib/auth/auth-context";
 import { usePaywall } from "@/lib/paywall/paywall-context";
 
@@ -26,6 +27,21 @@ function NewGenerationForm() {
   const [customPrompt, setCustomPrompt] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lockedStyles, setLockedStyles] =
+    useState<readonly DesignStyle[]>(LOCKED_DESIGN_STYLES);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    void getMySubscription().then((subscription) => {
+      if (!cancelled) {
+        setLockedStyles(getLockedStylesForPlan(subscription.planTier));
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   if (!photoId) {
     return (
@@ -104,7 +120,7 @@ function NewGenerationForm() {
         <StyleGrid
           value={style}
           onChange={setStyle}
-          lockedStyles={LOCKED_DESIGN_STYLES}
+          lockedStyles={lockedStyles}
           onLockedSelect={() => openPaywall("limit")}
         />
       </section>
