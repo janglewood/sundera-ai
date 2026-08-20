@@ -99,7 +99,7 @@ export function Hero() {
 
           <div
             id="upload"
-            className="w-full scroll-mt-24 rounded-3xl border border-white/40 bg-card/40 p-4 shadow-xl shadow-black/5 backdrop-blur-xl dark:border-white/10 sm:p-6 lg:max-w-md lg:shrink-0"
+            className="w-full scroll-mt-24 rounded-3xl border border-white/40 bg-card/40 p-4 shadow-xl shadow-black/5 backdrop-blur-xl sm:p-6 lg:max-w-md lg:shrink-0"
           >
             <PhotoDropzone onFileReady={handleFileReady} disabled={isUploading} />
             {isUploading && (

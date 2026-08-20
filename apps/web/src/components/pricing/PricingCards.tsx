@@ -85,7 +85,7 @@ export function PricingCards({
           role="switch"
           aria-checked={isAnnual}
           onClick={() => setCycle(isAnnual ? "monthly" : "annual")}
-          className="relative h-7 w-12 shrink-0 rounded-full bg-accent-soft transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent dark:bg-white/10"
+          className="relative h-7 w-12 shrink-0 rounded-full bg-accent-soft transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           <span
             className={`absolute top-1 left-1 h-5 w-5 rounded-full bg-accent shadow transition-transform ${isAnnual ? "translate-x-5" : "translate-x-0"}`}
@@ -114,7 +114,7 @@ export function PricingCards({
               } ${
                 plan.highlighted
                   ? "border-accent/60 bg-card/60 ring-2 ring-accent"
-                  : "border-white/40 bg-card/40 dark:border-white/10"
+                  : "border-white/40 bg-card/40"
               }`}
             >
               {plan.highlighted && (

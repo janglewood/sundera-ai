@@ -28,7 +28,7 @@ export function HowItWorks() {
   return (
     <section
       id="how-it-works"
-      className="border-y border-white/30 bg-muted/50 px-6 py-24 backdrop-blur-md dark:border-white/5 sm:px-8 sm:py-28"
+      className="border-y border-white/30 bg-muted/50 px-6 py-24 backdrop-blur-md sm:px-8 sm:py-28"
     >
       <div className="mx-auto w-full max-w-6xl">
         <div className="mx-auto max-w-xl text-center">
@@ -43,7 +43,7 @@ export function HowItWorks() {
         <div className="mt-16 grid gap-12 sm:grid-cols-3 sm:gap-8">
           {STEPS.map((step) => (
             <div key={step.number} className="text-center sm:text-left">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-white/40 bg-accent-soft/60 text-accent-hover backdrop-blur-md dark:border-white/10 sm:mx-0">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-white/40 bg-accent-soft/60 text-accent-hover backdrop-blur-md sm:mx-0">
                 <step.icon size={22} weight="bold" />
               </div>
               <span className="mt-4 block text-xs font-semibold tracking-widest text-muted-foreground">

@@ -47,7 +47,7 @@ function AccountControls() {
 
 export function Header() {
   return (
-    <header className="sticky top-0 z-30 border-b border-white/30 bg-card/40 backdrop-blur-xl dark:border-white/10">
+    <header className="sticky top-0 z-30 border-b border-white/30 bg-card/40 backdrop-blur-xl">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-3 sm:px-8">
         <a href="#top" className="flex items-center">
           <Image

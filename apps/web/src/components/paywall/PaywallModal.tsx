@@ -67,7 +67,7 @@ export function PaywallModal({ isOpen, reason, onClose }: PaywallModalProps) {
       aria-label="Upgrade your plan"
     >
       <div
-        className="relative flex h-full w-full flex-col overflow-y-auto bg-card p-4 sm:h-auto sm:max-h-[90vh] sm:max-w-4xl sm:rounded-3xl sm:border sm:border-white/40 sm:p-10 sm:shadow-2xl dark:sm:border-white/10"
+        className="relative flex h-full w-full flex-col overflow-y-auto bg-card p-4 sm:h-auto sm:max-h-[90vh] sm:max-w-4xl sm:rounded-3xl sm:border sm:border-white/40 sm:p-10 sm:shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <button
