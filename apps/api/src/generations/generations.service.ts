@@ -129,12 +129,47 @@ export class GenerationsService {
       orderBy: { createdAt: 'desc' },
       include: {
         roomPhoto: true,
-        results: { orderBy: { index: 'asc' }, take: 1 },
+        results: { orderBy: { index: 'asc' } },
       },
     });
 
+    // Edits create their own Generation row (sourceResultId pointing at the
+    // result they were edited from) so the async pipeline can process them
+    // independently. For the sidebar we want one entry per edit chain rather
+    // than one per row, so collapse each chain down to its most recent
+    // generation and show that.
+    const generationByResultId = new Map<string, (typeof generations)[number]>();
+    for (const generation of generations) {
+      for (const result of generation.results) {
+        generationByResultId.set(result.id, generation);
+      }
+    }
+
+    const findRootId = (generation: (typeof generations)[number]): string => {
+      let current = generation;
+      while (current.sourceResultId) {
+        const parent = generationByResultId.get(current.sourceResultId);
+        if (!parent) break;
+        current = parent;
+      }
+      return current.id;
+    };
+
+    const latestByRootId = new Map<string, (typeof generations)[number]>();
+    for (const generation of generations) {
+      const rootId = findRootId(generation);
+      const latest = latestByRootId.get(rootId);
+      if (!latest || generation.createdAt > latest.createdAt) {
+        latestByRootId.set(rootId, generation);
+      }
+    }
+
+    const latestGenerations = [...latestByRootId.values()].sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+    );
+
     return Promise.all(
-      generations.map(async (generation) => ({
+      latestGenerations.map(async (generation) => ({
         id: generation.id,
         status: generation.status,
         roomType: generation.roomType,
