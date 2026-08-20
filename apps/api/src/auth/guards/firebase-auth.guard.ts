@@ -2,6 +2,7 @@ import {
   CanActivate,
   ExecutionContext,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import type { Request } from 'express';
@@ -11,6 +12,8 @@ import { FirebaseAdminService } from '../firebase-admin.service';
 
 @Injectable()
 export class FirebaseAuthGuard implements CanActivate {
+  private readonly logger = new Logger(FirebaseAuthGuard.name);
+
   constructor(
     private readonly firebaseAdmin: FirebaseAdminService,
     private readonly authService: AuthService,
@@ -26,7 +29,8 @@ export class FirebaseAuthGuard implements CanActivate {
     try {
       const decoded = await this.firebaseAdmin.verifyIdToken(token);
       request.user = await this.authService.syncUser(decoded);
-    } catch {
+    } catch (err) {
+      this.logger.error('Firebase auth failed', err);
       throw new UnauthorizedException('Invalid or expired token');
     }
 
