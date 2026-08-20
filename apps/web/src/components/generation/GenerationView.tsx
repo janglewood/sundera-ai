@@ -26,6 +26,30 @@ function extensionFromUrl(url: string): string {
   return match ? match[1] : "jpg";
 }
 
+function BackLink() {
+  return (
+    <Link
+      href="/app"
+      className="flex items-center gap-1 self-start text-sm text-foreground/60 transition-colors hover:text-foreground"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="m15 18-6-6 6-6" />
+      </svg>
+      Back
+    </Link>
+  );
+}
+
 export function GenerationView({ id }: GenerationViewProps) {
   const router = useRouter();
   const { openPaywall } = usePaywall();
@@ -38,12 +62,15 @@ export function GenerationView({ id }: GenerationViewProps) {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center gap-4 py-16 text-center">
-        <p className="text-red-500">{error}</p>
-        <Link href="/app" className="underline">
-          Start over
-        </Link>
-      </div>
+      <>
+        <BackLink />
+        <div className="flex flex-col items-center gap-4 py-16 text-center">
+          <p className="text-red-500">{error}</p>
+          <Link href="/app" className="underline">
+            Start over
+          </Link>
+        </div>
+      </>
     );
   }
 
@@ -57,15 +84,19 @@ export function GenerationView({ id }: GenerationViewProps) {
 
   if (generation.status === "FAILED") {
     return (
-      <div className="flex flex-col items-center gap-4 py-16 text-center">
-        <p className="text-lg font-medium">Generation failed</p>
-        <p className="text-sm text-foreground/60">
-          {generation.errorMessage ?? "Something went wrong. Please try again."}
-        </p>
-        <Link href="/" className="underline">
-          Try again
-        </Link>
-      </div>
+      <>
+        <BackLink />
+        <div className="flex flex-col items-center gap-4 py-16 text-center">
+          <p className="text-lg font-medium">Generation failed</p>
+          <p className="text-sm text-foreground/60">
+            {generation.errorMessage ??
+              "Something went wrong. Please try again."}
+          </p>
+          <Link href="/" className="underline">
+            Try again
+          </Link>
+        </div>
+      </>
     );
   }
 
@@ -115,92 +146,95 @@ export function GenerationView({ id }: GenerationViewProps) {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="text-center">
-        <h1 className="text-2xl font-semibold">
-          {ROOM_TYPE_LABELS[generation.roomType as RoomType]} in{" "}
-          {DESIGN_STYLE_LABELS[generation.style as DesignStyle]} style
-        </h1>
-        {generation.isEdit && generation.customPrompt && (
-          <p className="mt-1 text-sm text-foreground/60">
-            Edited: {generation.customPrompt}
-          </p>
-        )}
-      </div>
+    <>
+      <BackLink />
+      <div className="flex flex-col gap-6">
+        <div className="text-center">
+          <h1 className="text-2xl font-semibold">
+            {ROOM_TYPE_LABELS[generation.roomType as RoomType]} in{" "}
+            {DESIGN_STYLE_LABELS[generation.style as DesignStyle]} style
+          </h1>
+          {generation.isEdit && generation.customPrompt && (
+            <p className="mt-1 text-sm text-foreground/60">
+              Edited: {generation.customPrompt}
+            </p>
+          )}
+        </div>
 
-      {activeResult && (
-        <>
-          <BeforeAfterSlider
-            beforeUrl={generation.sourceImageUrl}
-            afterUrl={activeResult.url}
-          />
-          <button
-            type="button"
-            onClick={() => void handleDownload()}
-            disabled={isDownloading}
-            className="mx-auto flex items-center gap-2 rounded-full border border-foreground/20 px-6 py-3 font-medium transition-opacity hover:opacity-70 disabled:opacity-40"
-          >
-            <DownloadSimple size={18} weight="bold" />
-            {isDownloading ? "Preparing…" : "Download image"}
-          </button>
-        </>
-      )}
-
-      {results.length > 1 && (
-        <div className="flex justify-center gap-3">
-          {results.map((result) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              key={result.index}
-              src={result.url}
-              alt={`Variant ${result.index + 1}`}
-              onClick={() => setSelectedVariant(result.index)}
-              className={`h-16 w-16 cursor-pointer rounded-lg object-cover ring-2 transition-opacity ${
-                result.index === selectedVariant
-                  ? "ring-foreground"
-                  : "ring-transparent opacity-60"
-              }`}
+        {activeResult && (
+          <>
+            <BeforeAfterSlider
+              beforeUrl={generation.sourceImageUrl}
+              afterUrl={activeResult.url}
             />
-          ))}
-        </div>
-      )}
-
-      {activeResult && (
-        <div className="flex flex-col gap-3">
-          <label className="text-sm font-medium">
-            Want to tweak this result?
-          </label>
-          <VoiceTextarea
-            value={editPrompt}
-            onChange={setEditPrompt}
-            placeholder="e.g. change the sofa to leather"
-            rows={3}
-          />
-          {editError && <p className="text-sm text-red-500">{editError}</p>}
-          <button
-            type="button"
-            disabled={!editPrompt.trim() || isEditSubmitting}
-            onClick={() => void handleEditSubmit()}
-            className="rounded-full bg-foreground px-6 py-3 font-medium text-background transition-opacity disabled:opacity-40"
-          >
-            {isEditSubmitting ? "Starting…" : "Edit"}
-          </button>
-        </div>
-      )}
-
-      <div className="flex justify-center gap-4 text-sm">
-        {generation.isEdit && generation.parentGenerationId && (
-          <Link
-            href={`/generations/${generation.parentGenerationId}`}
-            className="underline"
-          >
-            Undo last edit
-          </Link>
+            <button
+              type="button"
+              onClick={() => void handleDownload()}
+              disabled={isDownloading}
+              className="mx-auto flex items-center gap-2 rounded-full border border-foreground/20 px-6 py-3 font-medium transition-opacity hover:opacity-70 disabled:opacity-40"
+            >
+              <DownloadSimple size={18} weight="bold" />
+              {isDownloading ? "Preparing…" : "Download image"}
+            </button>
+          </>
         )}
-        <Link href="/app" className="underline">
-          Start over
-        </Link>
+
+        {results.length > 1 && (
+          <div className="flex justify-center gap-3">
+            {results.map((result) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={result.index}
+                src={result.url}
+                alt={`Variant ${result.index + 1}`}
+                onClick={() => setSelectedVariant(result.index)}
+                className={`h-16 w-16 cursor-pointer rounded-lg object-cover ring-2 transition-opacity ${
+                  result.index === selectedVariant
+                    ? "ring-foreground"
+                    : "ring-transparent opacity-60"
+                }`}
+              />
+            ))}
+          </div>
+        )}
+
+        {activeResult && (
+          <div className="flex flex-col gap-3">
+            <label className="text-sm font-medium">
+              Want to tweak this result?
+            </label>
+            <VoiceTextarea
+              value={editPrompt}
+              onChange={setEditPrompt}
+              placeholder="e.g. change the sofa to leather"
+              rows={3}
+            />
+            {editError && <p className="text-sm text-red-500">{editError}</p>}
+            <button
+              type="button"
+              disabled={!editPrompt.trim() || isEditSubmitting}
+              onClick={() => void handleEditSubmit()}
+              className="rounded-full bg-foreground px-6 py-3 font-medium text-background transition-opacity disabled:opacity-40"
+            >
+              {isEditSubmitting ? "Starting…" : "Edit"}
+            </button>
+          </div>
+        )}
+
+        <div className="flex justify-center gap-4 text-sm">
+          {generation.isEdit && generation.parentGenerationId && (
+            <Link
+              href={`/generations/${generation.parentGenerationId}`}
+              className="underline"
+            >
+              Undo last edit
+            </Link>
+          )}
+          <Link href="/app" className="underline">
+            Start over
+          </Link>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
