@@ -97,7 +97,7 @@ export function PricingCards({
           Annual
         </span>
         <span className="rounded-full bg-accent-soft px-2.5 py-1 text-xs font-semibold text-accent-hover">
-          Save up to 17%
+          Save up to 30%
         </span>
       </div>
 
@@ -169,7 +169,9 @@ export function PricingCards({
                   </p>
 
                   {compactOnMobile && (
-                    <div className="mt-2 sm:hidden">{renderCta(plan, cycle)}</div>
+                    <div className="mt-2 sm:hidden">
+                      {renderCta(plan, cycle)}
+                    </div>
                   )}
                 </div>
 
