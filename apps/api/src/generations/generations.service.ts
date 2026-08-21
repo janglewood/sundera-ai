@@ -96,9 +96,7 @@ export class GenerationsService {
 
     if (userId) {
       const planTier = await this.payments.resolvePlanTier(userId);
-      const editCount = await this.prisma.generation.count({
-        where: { userId, sourceResultId: { not: null } },
-      });
+      const editCount = await this.countChainEdits(userId, parentGenerationId);
       if (editCount >= PLAN_LIMITS[planTier].maxEdits) {
         throw new PaywallRequiredException(
           planTier === 'FREE'
@@ -123,7 +121,12 @@ export class GenerationsService {
     return { id: generation.id, status: generation.status };
   }
 
-  async findByUser(userId: string) {
+  // Edits create their own Generation row (sourceResultId pointing at the
+  // result they were edited from), so a "chain" is a tree of Generation rows
+  // linked one hop at a time via sourceResultId -> GenerationResult.generationId.
+  // There's no flat root/chain-id column, so callers that need the whole
+  // chain (sidebar collapsing, per-generation edit limits) walk it in memory.
+  private async loadGenerationGraph(userId: string) {
     const generations = await this.prisma.generation.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
@@ -133,11 +136,6 @@ export class GenerationsService {
       },
     });
 
-    // Edits create their own Generation row (sourceResultId pointing at the
-    // result they were edited from) so the async pipeline can process them
-    // independently. For the sidebar we want one entry per edit chain rather
-    // than one per row, so collapse each chain down to its most recent
-    // generation and show that.
     const generationByResultId = new Map<string, (typeof generations)[number]>();
     for (const generation of generations) {
       for (const result of generation.results) {
@@ -145,19 +143,70 @@ export class GenerationsService {
       }
     }
 
-    const findRootId = (generation: (typeof generations)[number]): string => {
-      let current = generation;
-      while (current.sourceResultId) {
-        const parent = generationByResultId.get(current.sourceResultId);
-        if (!parent) break;
-        current = parent;
-      }
-      return current.id;
-    };
+    return { generations, generationByResultId };
+  }
 
+  private findRootId(
+    generation: { id: string; sourceResultId: string | null },
+    generationByResultId: Map<string, { id: string; sourceResultId: string | null }>,
+  ): string {
+    let current = generation;
+    while (current.sourceResultId) {
+      const parent = generationByResultId.get(current.sourceResultId);
+      if (!parent) break;
+      current = parent;
+    }
+    return current.id;
+  }
+
+  private async countChainEdits(
+    userId: string,
+    generationId: string,
+  ): Promise<number> {
+    const { generations, generationByResultId } =
+      await this.loadGenerationGraph(userId);
+
+    const generation = generations.find((g) => g.id === generationId);
+    if (!generation) return 0;
+    const rootId = this.findRootId(generation, generationByResultId);
+
+    // Count every descendant in the tree rooted at rootId: BFS down via
+    // each generation's results, following sourceResultId edges to children.
+    const childrenByResultId = new Map<string, (typeof generations)[number][]>();
+    for (const candidate of generations) {
+      if (!candidate.sourceResultId) continue;
+      const siblings = childrenByResultId.get(candidate.sourceResultId) ?? [];
+      siblings.push(candidate);
+      childrenByResultId.set(candidate.sourceResultId, siblings);
+    }
+    const generationById = new Map(generations.map((g) => [g.id, g]));
+
+    let count = 0;
+    const queue = [rootId];
+    while (queue.length) {
+      const currentId = queue.shift()!;
+      const current = generationById.get(currentId);
+      if (!current) continue;
+      for (const result of current.results) {
+        const children = childrenByResultId.get(result.id) ?? [];
+        for (const child of children) {
+          count++;
+          queue.push(child.id);
+        }
+      }
+    }
+    return count;
+  }
+
+  async findByUser(userId: string) {
+    const { generations, generationByResultId } =
+      await this.loadGenerationGraph(userId);
+
+    // For the sidebar we want one entry per edit chain rather than one per
+    // row, so collapse each chain down to its most recent generation.
     const latestByRootId = new Map<string, (typeof generations)[number]>();
     for (const generation of generations) {
-      const rootId = findRootId(generation);
+      const rootId = this.findRootId(generation, generationByResultId);
       const latest = latestByRootId.get(rootId);
       if (!latest || generation.createdAt > latest.createdAt) {
         latestByRootId.set(rootId, generation);

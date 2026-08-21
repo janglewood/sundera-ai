@@ -9,7 +9,7 @@ import { getMySubscription } from "@/lib/billing";
 export function AccountMenu() {
   const { user } = useAuth();
   const { openPaywall } = usePaywall();
-  const [isFreePlan, setIsFreePlan] = useState(false);
+  const [isFreePlan, setIsFreePlan] = useState(true);
 
   useEffect(() => {
     if (!user) return;
@@ -23,24 +23,24 @@ export function AccountMenu() {
   }, [user]);
 
   return (
-    <div className="flex items-center gap-3 text-sm">
+    <div className="flex min-w-0 items-center gap-2 text-sm sm:gap-3">
       {isFreePlan && (
         <button
           type="button"
           onClick={() => openPaywall("browse")}
-          className="mr-2 shrink-0 rounded-full bg-foreground px-3 py-1.5 font-medium text-background transition-opacity hover:opacity-70"
+          className="mr-1 shrink-0 rounded-full bg-foreground px-2.5 py-1 text-xs font-medium text-background transition-opacity hover:opacity-70 sm:mr-2 sm:px-3 sm:py-1.5 sm:text-sm"
         >
           Upgrade
         </button>
       )}
-      <span className="max-w-[12rem] truncate text-foreground/60">
-        {user?.displayName ?? user?.email}
+      <span className="hidden min-w-0 truncate text-foreground/60 sm:inline sm:max-w-48">
+        {user?.displayName ?? user?.email ?? "alexandra.designer@example.com"}
       </span>
 
       <button
         type="button"
         onClick={() => void signOutUser()}
-        className="shrink-0 font-medium text-foreground/60 hover:text-foreground"
+        className="shrink-0 whitespace-nowrap font-medium text-foreground/60 hover:text-foreground"
       >
         • Sign out
       </button>

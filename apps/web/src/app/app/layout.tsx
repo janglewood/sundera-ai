@@ -19,7 +19,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [loading, user, router]);
 
-  if (loading || !user) {
+  if (loading) {
     return null;
   }
 
@@ -40,7 +40,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <List className="size-5" />
         </button>
       )}
-      <div className="absolute top-4 right-4 z-10">
+      <div className="absolute inset-x-4 top-4 z-10 flex justify-end">
         <AccountMenu />
       </div>
       <main className="flex-1 overflow-y-auto">{children}</main>
