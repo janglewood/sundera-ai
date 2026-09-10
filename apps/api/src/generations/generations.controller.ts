@@ -38,8 +38,9 @@ export class GenerationsController {
   }
 
   @Get(':id')
-  getById(@Param('id') id: string) {
-    return this.generationsService.getById(id);
+  @UseGuards(OptionalFirebaseAuthGuard)
+  getById(@Param('id') id: string, @CurrentUser() user?: User) {
+    return this.generationsService.getById(id, user?.id);
   }
 
   @Patch(':id/title')

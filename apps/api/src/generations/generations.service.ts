@@ -296,7 +296,7 @@ export class GenerationsService {
     );
   }
 
-  async getById(id: string) {
+  async getById(id: string, userId?: string) {
     const generation = await this.prisma.generation.findUnique({
       where: { id },
       include: {
@@ -307,6 +307,9 @@ export class GenerationsService {
     });
     if (!generation) {
       throw new NotFoundException(`Generation not found: ${id}`);
+    }
+    if (generation.userId && generation.userId !== userId) {
+      throw new ForbiddenException('You do not own this generation');
     }
 
     const sourceImageUrl = await this.storage.getPresignedGetUrl(
