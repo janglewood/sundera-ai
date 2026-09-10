@@ -22,6 +22,7 @@ export interface GenerationResultImage {
 
 export interface GenerationResponse {
   id: string;
+  title: string | null;
   status: GenerationStatus;
   roomType: RoomType;
   style: DesignStyle;
@@ -35,9 +36,20 @@ export interface GenerationResponse {
   parentGenerationId: string | null;
 }
 
+export interface RegionMaskPoint {
+  x: number;
+  y: number;
+}
+
+export interface RegionMask {
+  shape: "freehand" | "rectangle";
+  points: RegionMaskPoint[];
+}
+
 export interface CreateEditRequest {
   sourceResultId: string;
   prompt: string;
+  regionMask?: RegionMask;
 }
 
 export interface CreateUploadResponse {
@@ -47,9 +59,14 @@ export interface CreateUploadResponse {
 
 export interface GenerationSummary {
   id: string;
+  title: string | null;
   status: GenerationStatus;
   roomType: RoomType;
   style: DesignStyle;
   createdAt: string;
   thumbnailUrl: string;
+}
+
+export interface RenameGenerationRequest {
+  title: string;
 }

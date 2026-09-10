@@ -48,6 +48,15 @@ export async function apiPostJson<T>(path: string, body: unknown): Promise<T> {
   return handleResponse<T>(response);
 }
 
+export async function apiPatchJson<T>(path: string, body: unknown): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...(await getAuthHeader()) },
+    body: JSON.stringify(body),
+  });
+  return handleResponse<T>(response);
+}
+
 export async function apiGetBlob(path: string): Promise<Blob> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: await getAuthHeader(),

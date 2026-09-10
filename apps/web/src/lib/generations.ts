@@ -5,8 +5,15 @@ import type {
   CreateUploadResponse,
   GenerationResponse,
   GenerationSummary,
+  RenameGenerationRequest,
 } from "@sundera/shared";
-import { apiGet, apiGetBlob, apiPostForm, apiPostJson } from "./api-client";
+import {
+  apiGet,
+  apiGetBlob,
+  apiPatchJson,
+  apiPostForm,
+  apiPostJson,
+} from "./api-client";
 
 export function createUpload(file: File): Promise<CreateUploadResponse> {
   const formData = new FormData();
@@ -34,6 +41,16 @@ export function createGenerationEdit(
 ): Promise<CreateGenerationResponse> {
   return apiPostJson<CreateGenerationResponse>(
     `/generations/${id}/edit`,
+    request,
+  );
+}
+
+export function renameGeneration(
+  id: string,
+  request: RenameGenerationRequest,
+): Promise<{ id: string; title: string | null }> {
+  return apiPatchJson<{ id: string; title: string | null }>(
+    `/generations/${id}/title`,
     request,
   );
 }

@@ -79,6 +79,11 @@ model Generation {
   roomType     RoomType
   style        DesignStyle
   customPrompt String?
+  regionMask   Json?
+  // Set only on the root Generation of an edit chain (sourceResultId == null) —
+  // renaming resolves to the chain root so a custom name survives further edits.
+  // See GenerationsService.findRootGenerationId / renameGeneration.
+  title        String?
   status       GenerationStatus  @default(PENDING)
   model        String
   errorMessage String?

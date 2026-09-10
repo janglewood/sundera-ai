@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Post,
   Res,
   UseGuards,
@@ -17,6 +18,7 @@ import type { User } from '../../generated/prisma';
 import { GenerationsService } from './generations.service';
 import { CreateGenerationDto } from './dto/create-generation.dto';
 import { CreateEditGenerationDto } from './dto/create-edit-generation.dto';
+import { RenameGenerationDto } from './dto/rename-generation.dto';
 
 @Controller('generations')
 export class GenerationsController {
@@ -38,6 +40,16 @@ export class GenerationsController {
   @Get(':id')
   getById(@Param('id') id: string) {
     return this.generationsService.getById(id);
+  }
+
+  @Patch(':id/title')
+  @UseGuards(OptionalFirebaseAuthGuard)
+  renameGeneration(
+    @Param('id') id: string,
+    @Body() dto: RenameGenerationDto,
+    @CurrentUser() user?: User,
+  ) {
+    return this.generationsService.renameGeneration(id, dto.title, user?.id);
   }
 
   @Get(':id/results/:resultId/download')

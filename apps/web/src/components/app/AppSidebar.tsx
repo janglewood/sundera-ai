@@ -34,8 +34,8 @@ function GenerationRow({
       />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">
-          {ROOM_TYPE_LABELS[generation.roomType]} ·{" "}
-          {DESIGN_STYLE_LABELS[generation.style]}
+          {generation.title ??
+            `${ROOM_TYPE_LABELS[generation.roomType]} · ${DESIGN_STYLE_LABELS[generation.style]}`}
         </p>
         <p className="text-xs text-foreground/60">
           {generation.status === "COMPLETED"
