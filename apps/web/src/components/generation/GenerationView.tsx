@@ -3,19 +3,20 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { DownloadSimple } from "@phosphor-icons/react/dist/ssr";
+import { ArrowUUpLeft, PencilSimple } from "@phosphor-icons/react/dist/ssr";
 import { ROOM_TYPE_LABELS, DESIGN_STYLE_LABELS } from "@sundera/shared";
-import type { RoomType, DesignStyle } from "@sundera/shared";
+import type { RoomType, DesignStyle, RegionMask } from "@sundera/shared";
 import { usePollGeneration } from "@/lib/use-poll-generation";
 import {
   createGenerationEdit,
   downloadGenerationResult,
+  renameGeneration,
 } from "@/lib/generations";
 import { ApiError } from "@/lib/api-client";
 import { usePaywall } from "@/lib/paywall/paywall-context";
 import { VoiceTextarea } from "@/components/shared/VoiceTextarea";
 import { GenerationProgress } from "./GenerationProgress";
-import { BeforeAfterSlider } from "./BeforeAfterSlider";
+import { RegionMaskEditor } from "./RegionMaskEditor";
 
 interface GenerationViewProps {
   id: string;
@@ -45,8 +46,22 @@ function BackLink() {
       >
         <path d="m15 18-6-6 6-6" />
       </svg>
-      Back
+      My projects
     </Link>
+  );
+}
+
+function HeaderActions() {
+  return (
+    <div className="flex items-center justify-between">
+      <BackLink />
+      <Link
+        href="/app"
+        className="rounded-full border border-foreground/20 px-3 py-1.5 text-sm font-medium transition-colors hover:bg-foreground/5"
+      >
+        Start over
+      </Link>
+    </div>
   );
 }
 
@@ -55,10 +70,15 @@ export function GenerationView({ id }: GenerationViewProps) {
   const { openPaywall } = usePaywall();
   const { generation, error } = usePollGeneration(id);
   const [selectedVariant, setSelectedVariant] = useState(0);
+  const [isDrawingRegion, setIsDrawingRegion] = useState(false);
   const [editPrompt, setEditPrompt] = useState("");
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [titleOverride, setTitleOverride] = useState<string | null>(null);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState("");
+  const [isSavingTitle, setIsSavingTitle] = useState(false);
 
   if (error) {
     return (
@@ -102,6 +122,8 @@ export function GenerationView({ id }: GenerationViewProps) {
 
   const results = generation.resultImages ?? [];
   const activeResult = results[selectedVariant] ?? results[0];
+  const defaultTitle = `${ROOM_TYPE_LABELS[generation.roomType as RoomType]} in ${DESIGN_STYLE_LABELS[generation.style as DesignStyle]} style`;
+  const displayTitle = titleOverride ?? generation.title ?? defaultTitle;
 
   async function handleEditSubmit() {
     if (!activeResult || !editPrompt.trim()) return;
@@ -122,6 +144,49 @@ export function GenerationView({ id }: GenerationViewProps) {
         );
       }
       setIsEditSubmitting(false);
+    }
+  }
+
+  async function handleRegionEditSubmit(regionMask: RegionMask, prompt: string) {
+    if (!activeResult) return;
+    setIsEditSubmitting(true);
+    setEditError(null);
+    try {
+      const edit = await createGenerationEdit(id, {
+        sourceResultId: activeResult.id,
+        prompt,
+        regionMask,
+      });
+      router.push(`/generations/${edit.id}`);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 402) {
+        openPaywall("limit");
+      } else {
+        setEditError(
+          err instanceof Error ? err.message : "Failed to start edit",
+        );
+      }
+      setIsEditSubmitting(false);
+    }
+  }
+
+  function startEditingTitle() {
+    setTitleDraft(displayTitle);
+    setIsEditingTitle(true);
+  }
+
+  async function handleRenameSubmit() {
+    const trimmed = titleDraft.trim();
+    if (!trimmed || isSavingTitle) return;
+    setIsSavingTitle(true);
+    try {
+      const updated = await renameGeneration(id, { title: trimmed });
+      setTitleOverride(updated.title);
+      setIsEditingTitle(false);
+    } catch {
+      // leave the editor open so the user can retry
+    } finally {
+      setIsSavingTitle(false);
     }
   }
 
@@ -147,36 +212,76 @@ export function GenerationView({ id }: GenerationViewProps) {
 
   return (
     <>
-      <BackLink />
+      <HeaderActions />
       <div className="flex flex-col gap-6">
         <div className="text-center">
-          <h1 className="text-2xl font-semibold">
-            {ROOM_TYPE_LABELS[generation.roomType as RoomType]} in{" "}
-            {DESIGN_STYLE_LABELS[generation.style as DesignStyle]} style
-          </h1>
+          {isEditingTitle ? (
+            <div className="mx-auto flex max-w-md items-center justify-center gap-2">
+              <input
+                autoFocus
+                type="text"
+                value={titleDraft}
+                onChange={(e) => setTitleDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void handleRenameSubmit();
+                  if (e.key === "Escape") setIsEditingTitle(false);
+                }}
+                maxLength={80}
+                className="w-full rounded-lg border border-foreground/20 bg-transparent px-3 py-1.5 text-center text-2xl font-semibold outline-none focus:border-foreground/40"
+              />
+              <button
+                type="button"
+                disabled={!titleDraft.trim() || isSavingTitle}
+                onClick={() => void handleRenameSubmit()}
+                className="shrink-0 rounded-full bg-foreground px-3 py-1.5 text-sm font-medium text-background disabled:opacity-40"
+              >
+                {isSavingTitle ? "Saving…" : "Save"}
+              </button>
+            </div>
+          ) : (
+            <h1 className="group flex items-center justify-center gap-2 text-2xl font-semibold">
+              {displayTitle}
+              <button
+                type="button"
+                onClick={startEditingTitle}
+                aria-label="Rename"
+                className="text-foreground/40 transition-colors hover:text-foreground"
+              >
+                <PencilSimple size={16} weight="bold" />
+              </button>
+            </h1>
+          )}
           {generation.isEdit && generation.customPrompt && (
-            <p className="mt-1 text-sm text-foreground/60">
-              Edited: {generation.customPrompt}
-            </p>
+            <div className="mt-1 flex items-center justify-center gap-2">
+              <p className="text-sm text-foreground/60">
+                Edited: {generation.customPrompt}
+              </p>
+              {generation.parentGenerationId && (
+                <Link
+                  href={`/generations/${generation.parentGenerationId}`}
+                  className="flex shrink-0 items-center gap-1 text-sm font-semibold text-foreground underline underline-offset-2 transition-opacity hover:opacity-70"
+                >
+                  <ArrowUUpLeft size={14} weight="bold" />
+                  Undo
+                </Link>
+              )}
+            </div>
           )}
         </div>
 
         {activeResult && (
-          <>
-            <BeforeAfterSlider
-              beforeUrl={generation.sourceImageUrl}
-              afterUrl={activeResult.url}
-            />
-            <button
-              type="button"
-              onClick={() => void handleDownload()}
-              disabled={isDownloading}
-              className="mx-auto flex items-center gap-2 rounded-full border border-foreground/20 px-6 py-3 font-medium transition-opacity hover:opacity-70 disabled:opacity-40"
-            >
-              <DownloadSimple size={18} weight="bold" />
-              {isDownloading ? "Preparing…" : "Download image"}
-            </button>
-          </>
+          <RegionMaskEditor
+            beforeUrl={generation.sourceImageUrl}
+            afterUrl={activeResult.url}
+            onApply={(regionMask, prompt) =>
+              void handleRegionEditSubmit(regionMask, prompt)
+            }
+            isSubmitting={isEditSubmitting}
+            error={editError}
+            onDrawModeChange={setIsDrawingRegion}
+            onDownload={() => void handleDownload()}
+            isDownloading={isDownloading}
+          />
         )}
 
         {results.length > 1 && (
@@ -198,7 +303,7 @@ export function GenerationView({ id }: GenerationViewProps) {
           </div>
         )}
 
-        {activeResult && (
+        {activeResult && !isDrawingRegion && (
           <div className="flex flex-col gap-3">
             <label className="text-sm font-medium">
               Want to tweak this result?
@@ -220,20 +325,6 @@ export function GenerationView({ id }: GenerationViewProps) {
             </button>
           </div>
         )}
-
-        <div className="flex justify-center gap-4 text-sm">
-          {generation.isEdit && generation.parentGenerationId && (
-            <Link
-              href={`/generations/${generation.parentGenerationId}`}
-              className="underline"
-            >
-              Undo last edit
-            </Link>
-          )}
-          <Link href="/app" className="underline">
-            Start over
-          </Link>
-        </div>
       </div>
     </>
   );

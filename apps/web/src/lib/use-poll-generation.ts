@@ -2,12 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { GenerationResponse } from "@sundera/shared";
+import { useAuth } from "@/lib/auth/auth-context";
 import { getGeneration } from "./generations";
 
 const POLL_INTERVAL_MS = 2000;
 const TERMINAL_STATUSES = new Set(["COMPLETED", "FAILED"]);
 
 export function usePollGeneration(id: string) {
+  const { loading: authLoading } = useAuth();
   const [generation, setGeneration] = useState<GenerationResponse | null>(
     null,
   );
@@ -15,6 +17,12 @@ export function usePollGeneration(id: string) {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
+    // Wait for Firebase to finish restoring the session before the first
+    // request — otherwise a hard refresh sends it unauthenticated (Firebase's
+    // currentUser hydrates asynchronously) and the API 403s a generation the
+    // user actually owns.
+    if (authLoading) return;
+
     let cancelled = false;
 
     async function poll() {
@@ -45,7 +53,7 @@ export function usePollGeneration(id: string) {
         clearInterval(intervalRef.current);
       }
     };
-  }, [id]);
+  }, [id, authLoading]);
 
   return {
     generation,

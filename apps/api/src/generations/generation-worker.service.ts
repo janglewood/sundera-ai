@@ -1,11 +1,22 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
+import sharp from 'sharp';
 import { ROOM_TYPE_LABELS, DESIGN_STYLE_LABELS } from '@sundera/shared';
 import type { RoomType, DesignStyle } from '@sundera/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { IMAGE_GENERATION_PROVIDER } from '../image-generation/image-generation.interface';
 import type { ImageGenerationProvider } from '../image-generation/image-generation.interface';
+
+interface RegionMaskPoint {
+  x: number;
+  y: number;
+}
+
+interface RegionMask {
+  shape: 'freehand' | 'rectangle';
+  points: RegionMaskPoint[];
+}
 
 interface ClaimedGeneration {
   id: string;
@@ -14,6 +25,7 @@ interface ClaimedGeneration {
   style: string;
   customPrompt: string | null;
   sourceResultId: string | null;
+  regionMask: RegionMask | null;
 }
 
 const MIME_TO_EXT: Record<string, string> = {
@@ -42,6 +54,45 @@ function buildPrompt(
 
 function buildEditPrompt(prompt: string): string {
   return `Apply this edit to the image: ${prompt}. Preserve everything else exactly as is.`;
+}
+
+function buildRegionEditPrompt(prompt: string): string {
+  return (
+    `Apply this edit only within the area outlined in red and filled with a translucent red overlay: ${prompt}. ` +
+    'Do not change anything outside that area — preserve it exactly, pixel for pixel. ' +
+    'The red overlay and outline are only a guide for where to edit; remove them from the final output — they must not appear in the result.'
+  );
+}
+
+// The configured model has no literal pixel-mask API — masking here means
+// burning a visible marker onto the source image and instructing the model
+// (via buildRegionEditPrompt) to only edit what's inside it.
+async function compositeRegionMask(
+  buffer: Buffer,
+  mask: RegionMask,
+): Promise<Buffer> {
+  const { width, height } = await sharp(buffer).metadata();
+  if (!width || !height) {
+    throw new Error('Could not read source image dimensions for region mask');
+  }
+
+  const strokeWidth = Math.max(2, Math.round(Math.max(width, height) * 0.006));
+  const polygonPoints = mask.points
+    .map(
+      (point) =>
+        `${(point.x * width).toFixed(1)},${(point.y * height).toFixed(1)}`,
+    )
+    .join(' ');
+  const svg =
+    `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">` +
+    `<polygon points="${polygonPoints}" fill="rgba(255,0,0,0.28)" ` +
+    `stroke="#ff0000" stroke-width="${strokeWidth}" stroke-linejoin="round" />` +
+    '</svg>';
+
+  return sharp(buffer)
+    .composite([{ input: Buffer.from(svg) }])
+    .png()
+    .toBuffer();
 }
 
 @Injectable()
@@ -88,7 +139,7 @@ export class GenerationWorkerService {
         FOR UPDATE SKIP LOCKED
         LIMIT 1
       )
-      RETURNING id, "roomPhotoId", "roomType", style, "customPrompt", "sourceResultId"
+      RETURNING id, "roomPhotoId", "roomType", style, "customPrompt", "sourceResultId", "regionMask"
     `;
     return rows[0] ?? null;
   }
@@ -106,10 +157,20 @@ export class GenerationWorkerService {
       const sourceBuffer = await this.storage.getObjectBuffer(
         sourceResult.storageKey,
       );
-      const ext = sourceResult.storageKey.split('.').pop() ?? 'png';
-      const mimeType = EXT_TO_MIME[ext] ?? 'image/png';
-      sourceImageDataUrl = `data:${mimeType};base64,${sourceBuffer.toString('base64')}`;
-      prompt = buildEditPrompt(claimed.customPrompt ?? '');
+
+      if (claimed.regionMask) {
+        const maskedBuffer = await compositeRegionMask(
+          sourceBuffer,
+          claimed.regionMask,
+        );
+        sourceImageDataUrl = `data:image/png;base64,${maskedBuffer.toString('base64')}`;
+        prompt = buildRegionEditPrompt(claimed.customPrompt ?? '');
+      } else {
+        const ext = sourceResult.storageKey.split('.').pop() ?? 'png';
+        const mimeType = EXT_TO_MIME[ext] ?? 'image/png';
+        sourceImageDataUrl = `data:${mimeType};base64,${sourceBuffer.toString('base64')}`;
+        prompt = buildEditPrompt(claimed.customPrompt ?? '');
+      }
     } else {
       const roomPhoto = await this.prisma.roomPhoto.findUniqueOrThrow({
         where: { id: claimed.roomPhotoId },

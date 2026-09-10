@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -113,6 +114,15 @@ export class GenerationsService {
         roomType: parent.roomType,
         style: parent.style,
         customPrompt: dto.prompt,
+        regionMask: dto.regionMask
+          ? {
+              shape: dto.regionMask.shape,
+              points: dto.regionMask.points.map((point) => ({
+                x: point.x,
+                y: point.y,
+              })),
+            }
+          : undefined,
         sourceResultId: sourceResult.id,
         model: this.configService.getOrThrow<string>('OPENROUTER_MODEL'),
       },
@@ -159,6 +169,54 @@ export class GenerationsService {
     return current.id;
   }
 
+  // Standalone version of findRootId that doesn't need a preloaded user
+  // graph — walks sourceResultId -> GenerationResult.generationId one hop
+  // at a time via direct queries. Used for rename, where the target chain
+  // may belong to an anonymous (userId === null) generation.
+  private async findRootGenerationId(generationId: string): Promise<string> {
+    type Node = { id: string; sourceResultId: string | null };
+    let current: Node | null = await this.prisma.generation.findUnique({
+      where: { id: generationId },
+      select: { id: true, sourceResultId: true },
+    });
+    if (!current) {
+      throw new NotFoundException(`Generation not found: ${generationId}`);
+    }
+    let rootId = current.id;
+    while (current?.sourceResultId) {
+      const parentResult = await this.prisma.generationResult.findUnique({
+        where: { id: current.sourceResultId },
+        select: { generationId: true },
+      });
+      if (!parentResult) break;
+      current = await this.prisma.generation.findUnique({
+        where: { id: parentResult.generationId },
+        select: { id: true, sourceResultId: true },
+      });
+      if (current) rootId = current.id;
+    }
+    return rootId;
+  }
+
+  async renameGeneration(generationId: string, title: string, userId?: string) {
+    const generation = await this.prisma.generation.findUnique({
+      where: { id: generationId },
+    });
+    if (!generation) {
+      throw new NotFoundException(`Generation not found: ${generationId}`);
+    }
+    if (generation.userId && generation.userId !== userId) {
+      throw new ForbiddenException('You do not own this generation');
+    }
+
+    const rootId = await this.findRootGenerationId(generationId);
+    const root = await this.prisma.generation.update({
+      where: { id: rootId },
+      data: { title },
+    });
+    return { id: root.id, title: root.title };
+  }
+
   private async countChainEdits(
     userId: string,
     generationId: string,
@@ -203,23 +261,30 @@ export class GenerationsService {
       await this.loadGenerationGraph(userId);
 
     // For the sidebar we want one entry per edit chain rather than one per
-    // row, so collapse each chain down to its most recent generation.
-    const latestByRootId = new Map<string, (typeof generations)[number]>();
+    // row, so collapse each chain down to its most recent generation. The
+    // custom title (if any) always lives on the chain's root row, so it
+    // survives further edits creating new "latest" rows.
+    const generationById = new Map(generations.map((g) => [g.id, g]));
+    const latestByRootId = new Map<
+      string,
+      { rootId: string; generation: (typeof generations)[number] }
+    >();
     for (const generation of generations) {
       const rootId = this.findRootId(generation, generationByResultId);
       const latest = latestByRootId.get(rootId);
-      if (!latest || generation.createdAt > latest.createdAt) {
-        latestByRootId.set(rootId, generation);
+      if (!latest || generation.createdAt > latest.generation.createdAt) {
+        latestByRootId.set(rootId, { rootId, generation });
       }
     }
 
-    const latestGenerations = [...latestByRootId.values()].sort(
-      (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+    const latestEntries = [...latestByRootId.values()].sort(
+      (a, b) => b.generation.createdAt.getTime() - a.generation.createdAt.getTime(),
     );
 
     return Promise.all(
-      latestGenerations.map(async (generation) => ({
+      latestEntries.map(async ({ rootId, generation }) => ({
         id: generation.id,
+        title: generationById.get(rootId)?.title ?? null,
         status: generation.status,
         roomType: generation.roomType,
         style: generation.style,
@@ -231,7 +296,7 @@ export class GenerationsService {
     );
   }
 
-  async getById(id: string) {
+  async getById(id: string, userId?: string) {
     const generation = await this.prisma.generation.findUnique({
       where: { id },
       include: {
@@ -242,6 +307,9 @@ export class GenerationsService {
     });
     if (!generation) {
       throw new NotFoundException(`Generation not found: ${id}`);
+    }
+    if (generation.userId && generation.userId !== userId) {
+      throw new ForbiddenException('You do not own this generation');
     }
 
     const sourceImageUrl = await this.storage.getPresignedGetUrl(
@@ -259,8 +327,20 @@ export class GenerationsService {
           )
         : null;
 
+    // The custom title always lives on the chain's root row (see
+    // renameGeneration) — resolve it even when viewing a downstream edit.
+    const title = generation.sourceResultId
+      ? (
+          await this.prisma.generation.findUnique({
+            where: { id: await this.findRootGenerationId(id) },
+            select: { title: true },
+          })
+        )?.title ?? null
+      : generation.title;
+
     return {
       id: generation.id,
+      title,
       status: generation.status,
       roomType: generation.roomType,
       style: generation.style,
