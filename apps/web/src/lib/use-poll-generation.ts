@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { GenerationResponse } from "@sundera/shared";
 import { useAuth } from "@/lib/auth/auth-context";
 import { getGeneration } from "./generations";
+import { track } from "@/lib/analytics/posthog";
 
 const POLL_INTERVAL_MS = 2000;
 const TERMINAL_STATUSES = new Set(["COMPLETED", "FAILED"]);
@@ -33,6 +34,13 @@ export function usePollGeneration(id: string) {
         if (TERMINAL_STATUSES.has(result.status) && intervalRef.current) {
           clearInterval(intervalRef.current);
           intervalRef.current = null;
+          if (result.status === "FAILED") {
+            track("generation_failed", {
+              generationId: id,
+              roomType: result.roomType,
+              style: result.style,
+            });
+          }
         }
       } catch (err) {
         if (cancelled) return;

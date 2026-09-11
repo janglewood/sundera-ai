@@ -5,6 +5,7 @@ import { Suspense, useEffect, useState } from "react";
 import { PhotoDropzone } from "@/components/upload/PhotoDropzone";
 import { createUpload } from "@/lib/generations";
 import { usePaywall } from "@/lib/paywall/paywall-context";
+import { track } from "@/lib/analytics/posthog";
 
 function AppHome() {
   const router = useRouter();
@@ -25,6 +26,7 @@ function AppHome() {
     setError(null);
     try {
       const upload = await createUpload(file);
+      track("photo_uploaded", { source: "app_home" });
       router.push(`/new?photoId=${upload.id}`);
     } catch (err) {
       setError(

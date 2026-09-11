@@ -33,9 +33,11 @@ export function AccountMenu() {
           Upgrade
         </button>
       )}
-      <span className="hidden min-w-0 truncate text-foreground/60 sm:inline sm:max-w-48">
-        {user?.displayName ?? user?.email ?? "alexandra.designer@example.com"}
-      </span>
+      {(user?.displayName ?? user?.email) && (
+        <span className="hidden min-w-0 truncate text-foreground/60 sm:inline sm:max-w-48">
+          {user?.displayName ?? user?.email}
+        </span>
+      )}
 
       <button
         type="button"

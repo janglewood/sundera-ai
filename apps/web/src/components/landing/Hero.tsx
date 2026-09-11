@@ -6,6 +6,7 @@ import { BeforeAfterSlider } from "@/components/generation/BeforeAfterSlider";
 import { PhotoDropzone } from "@/components/upload/PhotoDropzone";
 import { createUpload } from "@/lib/generations";
 import { Parallax } from "@/components/landing/Parallax";
+import { track } from "@/lib/analytics/posthog";
 
 const HERO_VIDEO_ALT =
   "AI-generated preview of a room redesign from photo to finished style";
@@ -27,6 +28,7 @@ export function Hero() {
     setError(null);
     try {
       const upload = await createUpload(file);
+      track("photo_uploaded", { source: "landing" });
       router.push(`/new?photoId=${upload.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to upload photo");
