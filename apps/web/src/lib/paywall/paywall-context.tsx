@@ -3,6 +3,7 @@
 import { createContext, useContext, useState } from "react";
 import type { ReactNode } from "react";
 import { PaywallModal } from "@/components/paywall/PaywallModal";
+import { track } from "@/lib/analytics/posthog";
 
 export type PaywallReason = "limit" | "browse";
 
@@ -23,6 +24,7 @@ export function PaywallProvider({ children }: { children: ReactNode }) {
         openPaywall: (nextReason = "browse") => {
           setReason(nextReason);
           setIsOpen(true);
+          track("paywall_viewed", { reason: nextReason });
         },
         closePaywall: () => setIsOpen(false),
       }}

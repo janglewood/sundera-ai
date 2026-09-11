@@ -11,6 +11,7 @@ import {
 import type { PaywallReason } from "@/lib/paywall/paywall-context";
 import { useIsMobile } from "@/lib/useIsMobile";
 import { createCheckout } from "@/lib/billing";
+import { track } from "@/lib/analytics/posthog";
 
 const COPY: Record<PaywallReason, { heading: string; subtext: string }> = {
   limit: {
@@ -46,6 +47,7 @@ export function PaywallModal({ isOpen, reason, onClose }: PaywallModalProps) {
   ) {
     setCheckoutError(null);
     setLoadingPlan(plan.name);
+    track("upgrade_clicked", { plan: plan.name, cycle, reason });
     try {
       const { paymentUrl } = await createCheckout({
         planTier: plan.name.toUpperCase() as PaidPlanTier,

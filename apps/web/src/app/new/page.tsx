@@ -14,6 +14,7 @@ import { createGeneration } from "@/lib/generations";
 import { getMySubscription } from "@/lib/billing";
 import { useAuth } from "@/lib/auth/auth-context";
 import { usePaywall } from "@/lib/paywall/paywall-context";
+import { track } from "@/lib/analytics/posthog";
 
 function NewGenerationForm() {
   const router = useRouter();
@@ -73,6 +74,12 @@ function NewGenerationForm() {
         roomType,
         style,
         customPrompt: customPrompt.trim() || undefined,
+      });
+      track("generation_started", {
+        generationId: generation.id,
+        roomType,
+        style,
+        hasCustomPrompt: customPrompt.trim().length > 0,
       });
       router.push(`/generations/${generation.id}`);
     } catch (err) {

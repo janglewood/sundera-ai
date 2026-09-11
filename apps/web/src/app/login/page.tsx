@@ -1,6 +1,7 @@
 "use client";
 
 import { GoogleLogo } from "@phosphor-icons/react";
+import { getAdditionalUserInfo } from "firebase/auth";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -10,6 +11,7 @@ import {
   signInWithGoogle,
   signUpWithEmail,
 } from "@/lib/auth/auth-actions";
+import { track } from "@/lib/analytics/posthog";
 
 type Mode = "signin" | "signup";
 
@@ -39,8 +41,10 @@ function LoginForm() {
     try {
       if (mode === "signup") {
         await signUpWithEmail(email, password);
+        track("signed_up", { method: "email" });
       } else {
         await signInWithEmail(email, password);
+        track("signed_in", { method: "email" });
       }
       router.push(destination);
     } catch (err) {
@@ -53,7 +57,9 @@ function LoginForm() {
     setIsSubmitting(true);
     setError(null);
     try {
-      await signInWithGoogle();
+      const credential = await signInWithGoogle();
+      const isNewUser = getAdditionalUserInfo(credential)?.isNewUser ?? false;
+      track(isNewUser ? "signed_up" : "signed_in", { method: "google" });
       router.push(destination);
     } catch (err) {
       setError(getAuthErrorMessage(err));

@@ -3,6 +3,7 @@
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { createContext, useContext, useEffect, useState } from "react";
 import { getFirebaseAuth, isFirebaseConfigured } from "@/lib/firebase";
+import { identifyUser, resetUser } from "@/lib/analytics/posthog";
 
 interface AuthContextValue {
   user: User | null;
@@ -23,6 +24,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return onAuthStateChanged(getFirebaseAuth(), (nextUser) => {
       setUser(nextUser);
       setLoading(false);
+      if (nextUser) {
+        identifyUser(nextUser.uid, { email: nextUser.email });
+      } else {
+        resetUser();
+      }
     });
   }, []);
 
