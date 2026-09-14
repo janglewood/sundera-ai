@@ -8,7 +8,7 @@ import { signOutUser } from "@/lib/auth/auth-actions";
 
 const NAV_LINKS = [
   { href: "#how-it-works", label: "How it works" },
-  { href: "#styles", label: "Styles" },
+  { href: "#reviews", label: "Reviews" },
   { href: "#pricing", label: "Pricing" },
   { href: "#faq", label: "FAQ" },
 ];

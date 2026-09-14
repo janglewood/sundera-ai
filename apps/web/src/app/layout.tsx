@@ -3,6 +3,7 @@ import { Calistoga, Inter } from "next/font/google";
 import { AuthProvider } from "@/lib/auth/auth-context";
 import { PaywallProvider } from "@/lib/paywall/paywall-context";
 import { PostHogProvider } from "@/lib/analytics/PostHogProvider";
+import { FeedbackWidget } from "@/components/shared/FeedbackWidget";
 import "./globals.css";
 
 const inter = Inter({
@@ -37,6 +38,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <PostHogProvider>
           <AuthProvider>
             <PaywallProvider>{children}</PaywallProvider>
+            <FeedbackWidget />
           </AuthProvider>
         </PostHogProvider>
       </body>

@@ -9,6 +9,7 @@ import { UploadsModule } from './uploads/uploads.module';
 import { GenerationsModule } from './generations/generations.module';
 import { AuthModule } from './auth/auth.module';
 import { PaymentsModule } from './payments/payments.module';
+import { FeedbackModule } from './feedback/feedback.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { PaymentsModule } from './payments/payments.module';
     UploadsModule,
     GenerationsModule,
     PaymentsModule,
+    FeedbackModule,
   ],
   controllers: [AppController],
   providers: [AppService],

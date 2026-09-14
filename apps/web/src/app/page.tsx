@@ -8,7 +8,7 @@ import { Hero } from "@/components/landing/Hero";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { Pricing } from "@/components/landing/Pricing";
 import { Reveal } from "@/components/landing/Reveal";
-import { StyleShowcase } from "@/components/landing/StyleShowcase";
+import { Reviews } from "@/components/landing/Reviews";
 
 export default function Home() {
   return (
@@ -21,7 +21,7 @@ export default function Home() {
           <HowItWorks />
         </Reveal>
         <Reveal>
-          <StyleShowcase />
+          <Reviews />
         </Reveal>
         <Reveal>
           <Features />
