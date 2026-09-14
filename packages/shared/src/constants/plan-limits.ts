@@ -17,24 +17,26 @@ export const FREE_DESIGN_STYLES: readonly DesignStyle[] = [
 // has no billing period, so its cap is a one-time lifetime grant instead.
 // maxEdits stays a lifetime-per-redesign-chain cap regardless of plan — the
 // "up to N edits per redesign" copy was never a time-boxed limit.
+// Downloads are allowed on every plan (once signed in) — FREE just gets a
+// "sundera.app" watermark baked into the file; paid plans download clean.
 export const PLAN_LIMITS = {
   FREE: {
     maxGenerations: 1,
     maxEdits: 1,
     allowedStyles: FREE_DESIGN_STYLES,
-    downloadsAllowed: false,
+    watermarkOnDownload: true,
   },
   STARTER: {
     maxGenerations: 30,
     maxEdits: 5,
     allowedStyles: DESIGN_STYLES,
-    downloadsAllowed: true,
+    watermarkOnDownload: false,
   },
   PRO: {
     maxGenerations: Infinity,
     maxEdits: Infinity,
     allowedStyles: DESIGN_STYLES,
-    downloadsAllowed: true,
+    watermarkOnDownload: false,
   },
 } as const;
 

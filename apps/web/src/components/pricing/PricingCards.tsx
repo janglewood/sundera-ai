@@ -12,7 +12,12 @@ export const PRICING_PLANS = [
     tagline: "Try it out",
     monthlyPrice: 0,
     annualPrice: 0,
-    features: ["1 room redesign", "1 edit", "A few design styles"],
+    features: [
+      "1 room redesign",
+      "1 edit",
+      "A few design styles",
+      "Download with watermark",
+    ],
     cta: "Start free",
     highlighted: false,
   },
@@ -24,7 +29,7 @@ export const PRICING_PLANS = [
     features: [
       "30 room redesigns a month",
       "Up to 5 edits per redesign",
-      "Download your redesigns",
+      "Download without watermark",
       "Every design style",
     ],
     cta: "Get started",
@@ -38,7 +43,7 @@ export const PRICING_PLANS = [
     features: [
       "Unlimited room redesigns",
       "Unlimited edits per redesign",
-      "Download your redesigns",
+      "Download without watermark",
       "Every design style",
     ],
     cta: "Get started",

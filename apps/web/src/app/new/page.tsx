@@ -8,7 +8,6 @@ import type { DesignStyle, RoomType } from "@sundera/shared";
 import { RoomTypeGrid } from "@/components/select/RoomTypeGrid";
 import { StyleGrid } from "@/components/select/StyleGrid";
 import { VoiceTextarea } from "@/components/shared/VoiceTextarea";
-import { GenerationGate } from "@/components/generation/GenerationGate";
 import { ApiError } from "@/lib/api-client";
 import { createGeneration } from "@/lib/generations";
 import { getMySubscription } from "@/lib/billing";
@@ -58,10 +57,6 @@ function NewGenerationForm() {
 
   if (loading) {
     return null;
-  }
-
-  if (!user) {
-    return <GenerationGate />;
   }
 
   async function handleSubmit() {

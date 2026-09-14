@@ -29,7 +29,7 @@ const FAQS = [
   {
     question: "Is it free?",
     answer:
-      "Yes — the free plan includes 1 redesign and 1 edit with limited styles, no card required (just a free account to reveal your redesign). Paid plans unlock more redesigns, edits, downloads, and every style.",
+      "Yes — the free plan includes 1 redesign and 1 edit with limited styles, no card required (just a free account to reveal and download your redesign, with a watermark). Paid plans unlock more redesigns, edits, every style, and watermark-free downloads.",
   },
   {
     question: "What happens to my photos?",

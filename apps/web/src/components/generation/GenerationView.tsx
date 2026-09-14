@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowUUpLeft, PencilSimple } from "@phosphor-icons/react/dist/ssr";
 import { ROOM_TYPE_LABELS, DESIGN_STYLE_LABELS } from "@sundera/shared";
 import type { RoomType, DesignStyle, RegionMask } from "@sundera/shared";
@@ -14,6 +14,12 @@ import {
 } from "@/lib/generations";
 import { ApiError } from "@/lib/api-client";
 import { usePaywall } from "@/lib/paywall/paywall-context";
+import { useAuth } from "@/lib/auth/auth-context";
+import { rememberAnonGeneration } from "@/lib/anon-generations";
+import {
+  AuthGateModal,
+  type AuthGateReason,
+} from "@/components/auth/AuthGateModal";
 import { VoiceTextarea } from "@/components/shared/VoiceTextarea";
 import { GenerationProgress } from "./GenerationProgress";
 import { RegionMaskEditor } from "./RegionMaskEditor";
@@ -28,6 +34,9 @@ function extensionFromUrl(url: string): string {
 }
 
 function BackLink() {
+  const { user } = useAuth();
+  if (!user) return null;
+
   return (
     <Link
       href="/app"
@@ -51,16 +60,28 @@ function BackLink() {
   );
 }
 
-function HeaderActions() {
+function HeaderActions({ onSignUp }: { onSignUp: () => void }) {
+  const { user } = useAuth();
+
   return (
     <div className="flex items-center justify-between">
       <BackLink />
-      <Link
-        href="/app"
-        className="rounded-full border border-foreground/20 px-3 py-1.5 text-sm font-medium transition-colors hover:bg-foreground/5"
-      >
-        Start over
-      </Link>
+      {user ? (
+        <Link
+          href="/app"
+          className="rounded-full border border-foreground/20 px-3 py-1.5 text-sm font-medium transition-colors hover:bg-foreground/5"
+        >
+          Start over
+        </Link>
+      ) : (
+        <button
+          type="button"
+          onClick={onSignUp}
+          className="ml-auto rounded-full border border-foreground/20 px-3 py-1.5 text-sm font-medium transition-colors hover:bg-foreground/5"
+        >
+          Sign up
+        </button>
+      )}
     </div>
   );
 }
@@ -68,6 +89,7 @@ function HeaderActions() {
 export function GenerationView({ id }: GenerationViewProps) {
   const router = useRouter();
   const { openPaywall } = usePaywall();
+  const { user } = useAuth();
   const { generation, error } = usePollGeneration(id);
   const [selectedVariant, setSelectedVariant] = useState(0);
   const [isDrawingRegion, setIsDrawingRegion] = useState(false);
@@ -79,6 +101,19 @@ export function GenerationView({ id }: GenerationViewProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
   const [isSavingTitle, setIsSavingTitle] = useState(false);
+  const [authGate, setAuthGate] = useState<AuthGateReason | null>(null);
+  const [pendingAction, setPendingAction] = useState<
+    "edit" | "regionEdit" | "rename" | "download" | "drawMode" | null
+  >(null);
+  const [drawModeSignal, setDrawModeSignal] = useState(0);
+  const [pendingRegionEdit, setPendingRegionEdit] = useState<{
+    regionMask: RegionMask;
+    prompt: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!user) rememberAnonGeneration(id);
+  }, [user, id]);
 
   if (error) {
     return (
@@ -125,7 +160,7 @@ export function GenerationView({ id }: GenerationViewProps) {
   const defaultTitle = `${ROOM_TYPE_LABELS[generation.roomType as RoomType]} in ${DESIGN_STYLE_LABELS[generation.style as DesignStyle]} style`;
   const displayTitle = titleOverride ?? generation.title ?? defaultTitle;
 
-  async function handleEditSubmit() {
+  async function performEditSubmit() {
     if (!activeResult || !editPrompt.trim()) return;
     setIsEditSubmitting(true);
     setEditError(null);
@@ -136,7 +171,9 @@ export function GenerationView({ id }: GenerationViewProps) {
       });
       router.push(`/generations/${edit.id}`);
     } catch (err) {
-      if (err instanceof ApiError && err.status === 402) {
+      if (err instanceof ApiError && err.status === 401) {
+        setAuthGate("edit");
+      } else if (err instanceof ApiError && err.status === 402) {
         openPaywall("limit");
       } else {
         setEditError(
@@ -147,7 +184,16 @@ export function GenerationView({ id }: GenerationViewProps) {
     }
   }
 
-  async function handleRegionEditSubmit(regionMask: RegionMask, prompt: string) {
+  async function handleEditSubmit() {
+    if (!user) {
+      setPendingAction("edit");
+      setAuthGate("edit");
+      return;
+    }
+    await performEditSubmit();
+  }
+
+  async function performRegionEditSubmit(regionMask: RegionMask, prompt: string) {
     if (!activeResult) return;
     setIsEditSubmitting(true);
     setEditError(null);
@@ -159,7 +205,9 @@ export function GenerationView({ id }: GenerationViewProps) {
       });
       router.push(`/generations/${edit.id}`);
     } catch (err) {
-      if (err instanceof ApiError && err.status === 402) {
+      if (err instanceof ApiError && err.status === 401) {
+        setAuthGate("edit");
+      } else if (err instanceof ApiError && err.status === 402) {
         openPaywall("limit");
       } else {
         setEditError(
@@ -170,9 +218,28 @@ export function GenerationView({ id }: GenerationViewProps) {
     }
   }
 
-  function startEditingTitle() {
+  async function handleRegionEditSubmit(regionMask: RegionMask, prompt: string) {
+    if (!user) {
+      setPendingRegionEdit({ regionMask, prompt });
+      setPendingAction("regionEdit");
+      setAuthGate("edit");
+      return;
+    }
+    await performRegionEditSubmit(regionMask, prompt);
+  }
+
+  function performStartEditingTitle() {
     setTitleDraft(displayTitle);
     setIsEditingTitle(true);
+  }
+
+  function startEditingTitle() {
+    if (!user) {
+      setPendingAction("rename");
+      setAuthGate("edit");
+      return;
+    }
+    performStartEditingTitle();
   }
 
   async function handleRenameSubmit() {
@@ -183,14 +250,18 @@ export function GenerationView({ id }: GenerationViewProps) {
       const updated = await renameGeneration(id, { title: trimmed });
       setTitleOverride(updated.title);
       setIsEditingTitle(false);
-    } catch {
-      // leave the editor open so the user can retry
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        setIsEditingTitle(false);
+        setAuthGate("edit");
+      }
+      // otherwise leave the editor open so the user can retry
     } finally {
       setIsSavingTitle(false);
     }
   }
 
-  async function handleDownload() {
+  async function performDownload() {
     if (!activeResult) return;
     setIsDownloading(true);
     try {
@@ -202,7 +273,9 @@ export function GenerationView({ id }: GenerationViewProps) {
       link.click();
       URL.revokeObjectURL(blobUrl);
     } catch (err) {
-      if (err instanceof ApiError && err.status === 402) {
+      if (err instanceof ApiError && err.status === 401) {
+        setAuthGate("download");
+      } else if (err instanceof ApiError && err.status === 402) {
         openPaywall("limit");
       }
     } finally {
@@ -210,9 +283,18 @@ export function GenerationView({ id }: GenerationViewProps) {
     }
   }
 
+  async function handleDownload() {
+    if (!user) {
+      setPendingAction("download");
+      setAuthGate("download");
+      return;
+    }
+    await performDownload();
+  }
+
   return (
     <>
-      <HeaderActions />
+      <HeaderActions onSignUp={() => setAuthGate("account")} />
       <div className="flex flex-col gap-6">
         <div className="text-center">
           {isEditingTitle ? (
@@ -281,6 +363,12 @@ export function GenerationView({ id }: GenerationViewProps) {
             onDrawModeChange={setIsDrawingRegion}
             onDownload={() => void handleDownload()}
             isDownloading={isDownloading}
+            canEdit={!!user}
+            onRequestSignUp={() => {
+              setPendingAction("drawMode");
+              setAuthGate("edit");
+            }}
+            autoEnterDrawModeSignal={drawModeSignal}
           />
         )}
 
@@ -326,6 +414,35 @@ export function GenerationView({ id }: GenerationViewProps) {
           </div>
         )}
       </div>
+
+      {authGate && (
+        <AuthGateModal
+          reason={authGate}
+          onClose={() => {
+            setAuthGate(null);
+            setPendingAction(null);
+            setPendingRegionEdit(null);
+          }}
+          onSuccess={() => {
+            const action = pendingAction;
+            const regionEdit = pendingRegionEdit;
+            setAuthGate(null);
+            setPendingAction(null);
+            setPendingRegionEdit(null);
+            if (action === "download") {
+              void performDownload();
+            } else if (action === "edit") {
+              void performEditSubmit();
+            } else if (action === "regionEdit" && regionEdit) {
+              void performRegionEditSubmit(regionEdit.regionMask, regionEdit.prompt);
+            } else if (action === "rename") {
+              performStartEditingTitle();
+            } else if (action === "drawMode") {
+              setDrawModeSignal((n) => n + 1);
+            }
+          }}
+        />
+      )}
     </>
   );
 }

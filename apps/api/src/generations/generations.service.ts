@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import sharp from 'sharp';
 import { PLAN_LIMITS, isStyleAllowedForPlan } from '@sundera/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
@@ -12,6 +13,41 @@ import { PaymentsService } from '../payments/payments.service';
 import { CreateGenerationDto } from './dto/create-generation.dto';
 import { CreateEditGenerationDto } from './dto/create-edit-generation.dto';
 import { PaywallRequiredException } from './paywall-required.exception';
+import { SignUpRequiredException } from './signup-required.exception';
+
+// "sundera.app" badge pinned to the bottom-right corner for FREE-plan
+// downloads. A dark pill behind bold white text keeps it clearly legible
+// over any part of a room photo, light or dark.
+async function applyWatermark(buffer: Buffer): Promise<Buffer> {
+  const { width, height } = await sharp(buffer).metadata();
+  if (!width || !height) {
+    throw new Error('Could not read result image dimensions for watermark');
+  }
+
+  const fontSize = Math.max(20, Math.round(Math.min(width, height) * 0.045));
+  const paddingX = Math.round(fontSize * 0.7);
+  const paddingY = Math.round(fontSize * 0.5);
+  const margin = Math.round(fontSize * 0.8);
+  const textWidth = Math.round(fontSize * 5.6); // approx. width of "sundera.app"
+  const pillWidth = textWidth + paddingX * 2;
+  const pillHeight = fontSize + paddingY * 2;
+  const pillX = width - margin - pillWidth;
+  const pillY = height - margin - pillHeight;
+  const pillRadius = Math.round(pillHeight / 2);
+
+  const svg =
+    `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">` +
+    `<rect x="${pillX}" y="${pillY}" width="${pillWidth}" height="${pillHeight}" ` +
+    `rx="${pillRadius}" ry="${pillRadius}" fill="rgba(0,0,0,0.55)" />` +
+    `<text x="${pillX + pillWidth / 2}" y="${pillY + pillHeight / 2}" ` +
+    `text-anchor="middle" dominant-baseline="central" ` +
+    `font-family="sans-serif" font-size="${fontSize}" font-weight="700" ` +
+    `fill="#ffffff">sundera.app</text></svg>`;
+
+  return sharp(buffer)
+    .composite([{ input: Buffer.from(svg) }])
+    .toBuffer();
+}
 
 @Injectable()
 export class GenerationsService {
@@ -80,6 +116,10 @@ export class GenerationsService {
     dto: CreateEditGenerationDto,
     userId?: string,
   ) {
+    if (!userId) {
+      throw new SignUpRequiredException('Sign up to edit this result.');
+    }
+
     const parent = await this.prisma.generation.findUnique({
       where: { id: parentGenerationId },
       include: { results: true },
@@ -264,6 +304,23 @@ export class GenerationsService {
     return count;
   }
 
+  // Anonymous generations have userId=null. When that visitor later signs
+  // up, the frontend hands back every generation id it saw them create
+  // (tracked client-side, since there's no anonymous session concept
+  // server-side) so they land in "My projects" instead of vanishing. The
+  // userId: null filter means this can only attach currently-unclaimed
+  // rows — it can't be used to steal someone else's generation by id.
+  async claimAnonymousGenerations(generationIds: string[], userId: string) {
+    if (generationIds.length === 0) {
+      return { claimed: 0 };
+    }
+    const result = await this.prisma.generation.updateMany({
+      where: { id: { in: generationIds }, userId: null },
+      data: { userId },
+    });
+    return { claimed: result.count };
+  }
+
   async findByUser(userId: string) {
     const { generations, generationByResultId } =
       await this.loadGenerationGraph(userId);
@@ -368,10 +425,11 @@ export class GenerationsService {
     resultId: string,
     userId?: string,
   ) {
-    const planTier = await this.payments.resolvePlanTier(userId);
-    if (!PLAN_LIMITS[planTier].downloadsAllowed) {
-      throw new PaywallRequiredException('Downloads are available on paid plans.');
+    if (!userId) {
+      throw new SignUpRequiredException('Sign up to download this result.');
     }
+
+    const planTier = await this.payments.resolvePlanTier(userId);
 
     const result = await this.prisma.generationResult.findUnique({
       where: { id: resultId },
@@ -383,9 +441,12 @@ export class GenerationsService {
     const { buffer, contentType } = await this.storage.getObject(
       result.storageKey,
     );
+    const finalBuffer = PLAN_LIMITS[planTier].watermarkOnDownload
+      ? await applyWatermark(buffer)
+      : buffer;
     const ext = result.storageKey.split('.').pop() ?? 'jpg';
     return {
-      buffer,
+      buffer: finalBuffer,
       contentType,
       filename: `sundera-redesign-${result.index + 1}.${ext}`,
     };
