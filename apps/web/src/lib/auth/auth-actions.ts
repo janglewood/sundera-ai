@@ -23,12 +23,29 @@ export function getAuthErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Something went wrong.";
 }
 
-export function signUpWithEmail(email: string, password: string) {
-  return createUserWithEmailAndPassword(getFirebaseAuth(), email, password);
-}
-
-export function signInWithEmail(email: string, password: string) {
-  return signInWithEmailAndPassword(getFirebaseAuth(), email, password);
+// Single "continue" flow: create the account if it doesn't exist yet, or
+// sign in if it does. Tries create() first rather than signIn() first
+// because Firebase's email-enumeration protection can make a nonexistent
+// account and a wrong password return the same auth/invalid-credential code
+// on sign-in, while auth/email-already-in-use from create() is unambiguous.
+export async function continueWithEmail(email: string, password: string) {
+  try {
+    return await createUserWithEmailAndPassword(
+      getFirebaseAuth(),
+      email,
+      password,
+    );
+  } catch (err) {
+    if (
+      err &&
+      typeof err === "object" &&
+      "code" in err &&
+      (err as { code: string }).code === "auth/email-already-in-use"
+    ) {
+      return signInWithEmailAndPassword(getFirebaseAuth(), email, password);
+    }
+    throw err;
+  }
 }
 
 export function signInWithGoogle() {

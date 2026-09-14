@@ -1,4 +1,5 @@
 import type {
+  ClaimGenerationsResponse,
   CreateEditRequest,
   CreateGenerationRequest,
   CreateGenerationResponse,
@@ -53,6 +54,14 @@ export function renameGeneration(
     `/generations/${id}/title`,
     request,
   );
+}
+
+export function claimGenerations(
+  generationIds: string[],
+): Promise<ClaimGenerationsResponse> {
+  return apiPostJson<ClaimGenerationsResponse>("/generations/claim", {
+    generationIds,
+  });
 }
 
 export function downloadGenerationResult(

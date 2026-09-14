@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DownloadSimple, PencilSimple, X } from "@phosphor-icons/react/dist/ssr";
 import type { RegionMask, RegionMaskPoint } from "@sundera/shared";
 import { VoiceTextarea } from "@/components/shared/VoiceTextarea";
@@ -15,6 +15,11 @@ interface RegionMaskEditorProps {
   onDrawModeChange?: (isDrawing: boolean) => void;
   onDownload: () => void;
   isDownloading: boolean;
+  canEdit: boolean;
+  onRequestSignUp: () => void;
+  // Bumped by the parent right after a sign-up gated on this pencil button
+  // succeeds, so the user lands back in draw mode instead of re-clicking.
+  autoEnterDrawModeSignal?: number;
 }
 
 // Selections smaller than this (in rendered px) are treated as accidental
@@ -74,6 +79,9 @@ export function RegionMaskEditor({
   onDrawModeChange,
   onDownload,
   isDownloading,
+  canEdit,
+  onRequestSignUp,
+  autoEnterDrawModeSignal,
 }: RegionMaskEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const polygonElRef = useRef<SVGPolygonElement>(null);
@@ -108,6 +116,12 @@ export function RegionMaskEditor({
     setIsDrawMode(true);
     onDrawModeChange?.(true);
   }
+
+  useEffect(() => {
+    if (autoEnterDrawModeSignal) enterDrawMode();
+    // Only reacts to the signal changing, not to enterDrawMode identity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoEnterDrawModeSignal]);
 
   function exitDrawMode() {
     isDrawingRef.current = false;
@@ -178,6 +192,10 @@ export function RegionMaskEditor({
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
+                if (!canEdit) {
+                  onRequestSignUp();
+                  return;
+                }
                 enterDrawMode();
               }}
               onMouseDown={(e) => e.stopPropagation()}
