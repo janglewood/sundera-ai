@@ -12,10 +12,11 @@ export const FREE_DESIGN_STYLES: readonly DesignStyle[] = [
   "PROVENCE",
 ];
 
-// maxGenerations/maxEdits are lifetime totals per user, not per-billing-period
-// or per-redesign counters — there's no usage-period reset infra yet, so
-// STARTER's "30 a month" and "5 edits per redesign" marketing copy is
-// enforced here as flat lifetime caps until that's built.
+// maxGenerations resets each billing period for paid plans (see
+// PaymentsService.getCurrentPeriodStart), matching the "N a month" copy; FREE
+// has no billing period, so its cap is a one-time lifetime grant instead.
+// maxEdits stays a lifetime-per-redesign-chain cap regardless of plan — the
+// "up to N edits per redesign" copy was never a time-boxed limit.
 export const PLAN_LIMITS = {
   FREE: {
     maxGenerations: 1,

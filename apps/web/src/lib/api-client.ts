@@ -57,6 +57,14 @@ export async function apiPatchJson<T>(path: string, body: unknown): Promise<T> {
   return handleResponse<T>(response);
 }
 
+export async function apiDelete<T>(path: string): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "DELETE",
+    headers: await getAuthHeader(),
+  });
+  return handleResponse<T>(response);
+}
+
 export async function apiGetBlob(path: string): Promise<Blob> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: await getAuthHeader(),

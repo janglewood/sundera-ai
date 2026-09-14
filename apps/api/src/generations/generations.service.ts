@@ -41,8 +41,16 @@ export class GenerationsService {
         );
       }
 
+      // Paid plans reset their generation count each billing period; FREE
+      // has no period to anchor to, so its single generation stays a
+      // lifetime cap (matches the "1 room redesign" copy, not "per month").
+      const periodStart = await this.payments.getCurrentPeriodStart(userId);
       const generationCount = await this.prisma.generation.count({
-        where: { userId, sourceResultId: null },
+        where: {
+          userId,
+          sourceResultId: null,
+          ...(periodStart ? { createdAt: { gte: periodStart } } : {}),
+        },
       });
       if (generationCount >= limits.maxGenerations) {
         throw new PaywallRequiredException(

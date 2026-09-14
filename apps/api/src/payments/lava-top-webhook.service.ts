@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import type { LavaTopWebhookPayload } from './types/lava-top-api.types';
+import { addBillingPeriod } from './billing-period.util';
 
 @Injectable()
 export class LavaTopWebhookService {
@@ -25,12 +26,24 @@ export class LavaTopWebhookService {
 
     switch (payload.eventType) {
       case 'payment.success':
-      case 'subscription.recurring.payment.success':
+      case 'subscription.recurring.payment.success': {
+        // Each successful payment (initial or renewal) opens a fresh usage
+        // window — this is what generation/edit counts reset against, see
+        // GenerationsService.create().
+        const periodStart = new Date(payload.timestamp);
         await this.prisma.subscription.update({
           where: { id: subscription.id },
-          data: { status: 'ACTIVE' },
+          data: {
+            status: 'ACTIVE',
+            currentPeriodStart: periodStart,
+            currentPeriodEnd: addBillingPeriod(
+              periodStart,
+              subscription.periodicity,
+            ),
+          },
         });
         return;
+      }
 
       case 'payment.failed':
       case 'subscription.recurring.payment.failed':
