@@ -3,7 +3,7 @@ import type {
   CreateCheckoutResponse,
   SubscriptionResponse,
 } from "@sundera/shared";
-import { apiGet, apiPostJson } from "./api-client";
+import { apiDelete, apiGet, apiPostJson } from "./api-client";
 
 export function createCheckout(
   request: CreateCheckoutRequest,
@@ -13,4 +13,8 @@ export function createCheckout(
 
 export function getMySubscription(): Promise<SubscriptionResponse> {
   return apiGet<SubscriptionResponse>("/payments/subscription");
+}
+
+export function cancelSubscription(): Promise<SubscriptionResponse> {
+  return apiDelete<SubscriptionResponse>("/payments/subscription");
 }

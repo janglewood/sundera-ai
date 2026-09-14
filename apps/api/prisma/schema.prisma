@@ -141,6 +141,7 @@ model Subscription {
   periodicity       String
   lavaOfferId       String
   lavaContractId    String             @unique
+  currentPeriodStart DateTime?
   currentPeriodEnd  DateTime?
   cancelledAt       DateTime?
   createdAt         DateTime           @default(now())

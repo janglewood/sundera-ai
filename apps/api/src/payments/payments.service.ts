@@ -13,7 +13,7 @@ import type {
   SubscriptionResponse,
 } from '@sundera/shared';
 import { PrismaService } from '../prisma/prisma.service';
-import type { User } from '../../generated/prisma';
+import type { Subscription, User } from '../../generated/prisma';
 import { LavaTopClientService } from './lava-top-client.service';
 import type {
   LavaTopCurrency,
@@ -157,16 +157,43 @@ export class PaymentsService {
     };
   }
 
-  // Anonymous requests and users who never subscribed are FREE; a
-  // subscription row only grants its tier while lava.top considers it ACTIVE
-  // (PENDING checkouts, FAILED payments, and CANCELLED/EXPIRED subs all fall
-  // back to FREE limits).
+  // A cancelled subscription was already paid for through currentPeriodEnd —
+  // lava.top stops future renewals but doesn't refund the current period, so
+  // the user keeps their plan tier until that date passes. PENDING checkouts,
+  // FAILED payments, and EXPIRED subs (or a CANCELLED one past its period
+  // end) grant nothing.
+  private isEntitled(subscription: Subscription): boolean {
+    if (subscription.status === 'ACTIVE') return true;
+    if (subscription.status === 'CANCELLED') {
+      return (
+        subscription.currentPeriodEnd !== null &&
+        subscription.currentPeriodEnd.getTime() > Date.now()
+      );
+    }
+    return false;
+  }
+
+  // Anonymous requests and users who never subscribed are FREE.
   async resolvePlanTier(userId?: string): Promise<PlanTier> {
     if (!userId) return 'FREE';
     const subscription = await this.prisma.subscription.findUnique({
       where: { userId },
     });
-    if (!subscription || subscription.status !== 'ACTIVE') return 'FREE';
+    if (!subscription || !this.isEntitled(subscription)) return 'FREE';
     return subscription.planTier;
+  }
+
+  // Start of the paid plan's current billing window, used to reset
+  // generation counts monthly/annually instead of counting lifetime usage.
+  // Null for FREE users and for entitled subscriptions whose first payment
+  // webhook hasn't landed yet — callers should fall back to a lifetime count
+  // in that case rather than letting usage through unchecked.
+  async getCurrentPeriodStart(userId?: string): Promise<Date | null> {
+    if (!userId) return null;
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { userId },
+    });
+    if (!subscription || !this.isEntitled(subscription)) return null;
+    return subscription.currentPeriodStart;
   }
 }

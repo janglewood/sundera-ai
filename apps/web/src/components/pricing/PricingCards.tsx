@@ -171,6 +171,11 @@ export function PricingCards({
                   {compactOnMobile && (
                     <div className="mt-2 sm:hidden">
                       {renderCta(plan, cycle)}
+                      {plan.monthlyPrice > 0 && (
+                        <p className="mt-1.5 text-center text-[10px] text-muted-foreground">
+                          Cancel anytime
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -200,6 +205,11 @@ export function PricingCards({
 
               <div className={compactOnMobile ? "hidden sm:block" : ""}>
                 {renderCta(plan, cycle)}
+                {plan.monthlyPrice > 0 && (
+                  <p className="mt-2 text-center text-xs text-muted-foreground">
+                    Cancel anytime
+                  </p>
+                )}
               </div>
             </div>
           );
