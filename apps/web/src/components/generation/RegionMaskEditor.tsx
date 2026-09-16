@@ -237,6 +237,12 @@ export function RegionMaskEditor({
 
   return (
     <div className="relative">
+      {!finalizedMask && (
+        <p className="mb-2 text-center text-xs text-foreground/50">
+          Draw around the area you want to change.
+        </p>
+      )}
+
       <div
         ref={containerRef}
         className="relative w-full touch-none select-none overflow-hidden rounded-2xl"
@@ -279,12 +285,6 @@ export function RegionMaskEditor({
       >
         <X size={18} weight="bold" />
       </button>
-
-      {!finalizedMask && (
-        <p className="mt-2 text-center text-xs text-foreground/50">
-          Draw around the area you want to change.
-        </p>
-      )}
 
       {finalizedMask && (
         <div

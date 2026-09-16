@@ -56,8 +56,7 @@ export function Reviews() {
             Real rooms, redesigned
           </h2>
           <p className="mt-4 text-muted-foreground">
-            Drag the slider on each result to see what changed — and what stayed
-            exactly the same.
+            Drag the slider to see what changed.
           </p>
         </div>
 
