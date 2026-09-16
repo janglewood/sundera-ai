@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Calistoga, Inter } from "next/font/google";
+import Script from "next/script";
 import { AuthProvider } from "@/lib/auth/auth-context";
 import { PaywallProvider } from "@/lib/paywall/paywall-context";
 import { PostHogProvider } from "@/lib/analytics/PostHogProvider";
@@ -35,6 +36,18 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${inter.variable} ${calistoga.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <Script
+          async
+          src="https://www.googletagmanager.com/gtag/js?id=AW-18454618871"
+        />
+        <Script id="gtag-init">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'AW-18454618871');
+          `}
+        </Script>
         <PostHogProvider>
           <AuthProvider>
             <PaywallProvider>{children}</PaywallProvider>
