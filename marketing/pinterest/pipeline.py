@@ -226,7 +226,7 @@ BADGE_PAD_Y = 10
 BADGE_MARGIN = 16
 
 
-def draw_badge(draw, font, canvas_width, text, *, align, dot=False):
+def draw_badge(draw, font, canvas_width, text, *, align, dot=False, top=BADGE_MARGIN):
     text_bbox = draw.textbbox((0, 0), text, font=font)
     text_w = text_bbox[2] - text_bbox[0]
     text_h = text_bbox[3] - text_bbox[1]
@@ -237,7 +237,7 @@ def draw_badge(draw, font, canvas_width, text, *, align, dot=False):
     badge_w = content_w + 2 * BADGE_PAD_X
     badge_h = text_h + 2 * BADGE_PAD_Y
     x0 = BADGE_MARGIN if align == "left" else canvas_width - BADGE_MARGIN - badge_w
-    y0 = BADGE_MARGIN
+    y0 = top
     draw.rounded_rectangle([x0, y0, x0 + badge_w, y0 + badge_h], radius=badge_h / 2, fill=BADGE_FILL)
 
     cx = x0 + BADGE_PAD_X
@@ -248,24 +248,36 @@ def draw_badge(draw, font, canvas_width, text, *, align, dot=False):
     draw.text((cx, cy - text_h / 2 - text_bbox[1]), text, fill=BADGE_TEXT, font=font)
 
 
+COLLAGE_WIDTH = 1000
+COLLAGE_HEIGHT = 1500  # 2:3, e.g. for Pinterest pins
+
+
+def cover_crop(img, target_w, target_h):
+    """Resize to fully cover target_w x target_h, then center-crop the excess."""
+    scale = max(target_w / img.width, target_h / img.height)
+    img = img.resize((round(img.width * scale), round(img.height * scale)))
+    left = (img.width - target_w) // 2
+    top = (img.height - target_h) // 2
+    return img.crop((left, top, left + target_w, top + target_h))
+
+
 def make_collage_bytes(before_bytes, after_bytes):
     before = Image.open(io.BytesIO(before_bytes)).convert("RGB")
     after = Image.open(io.BytesIO(after_bytes)).convert("RGB")
 
-    panel_h = 800
-    gap = 6
-    before = before.resize((round(panel_h * before.width / before.height), panel_h))
-    after = after.resize((round(panel_h * after.width / after.height), panel_h))
+    panel_h = COLLAGE_HEIGHT // 2
+    before = cover_crop(before, COLLAGE_WIDTH, panel_h)
+    after = cover_crop(after, COLLAGE_WIDTH, panel_h)
 
-    canvas = Image.new("RGB", (before.width + gap + after.width, panel_h), "white")
+    canvas = Image.new("RGB", (COLLAGE_WIDTH, COLLAGE_HEIGHT), "white")
     canvas.paste(before, (0, 0))
-    canvas.paste(after, (before.width + gap, 0))
+    canvas.paste(after, (0, panel_h))
 
     overlay = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
     odraw = ImageDraw.Draw(overlay)
     font = load_font(26)
-    draw_badge(odraw, font, canvas.width, "BEFORE", align="left")
-    draw_badge(odraw, font, canvas.width, "AFTER", align="right", dot=True)
+    draw_badge(odraw, font, canvas.width, "BEFORE", align="left", top=BADGE_MARGIN)
+    draw_badge(odraw, font, canvas.width, "AFTER", align="left", dot=True, top=panel_h + BADGE_MARGIN)
 
     canvas = Image.alpha_composite(canvas.convert("RGBA"), overlay).convert("RGB")
     out = io.BytesIO()
