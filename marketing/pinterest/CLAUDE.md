@@ -4,7 +4,8 @@ Parent project context: see the repo root `CLAUDE.md` and `docs/` (Sundera = AI 
 
 ## Goal
 
-Autonomous system that produces ~5 Pinterest pins per day promoting Sundera, with Anton approving each one in Telegram:
+Autonomous system that produces a batch of Pinterest pins per day (`BATCH_SIZE` in `.env`, currently 3)
+promoting Sundera, with Anton approving each one in Telegram:
 
 1. Pick an unused "before" room photo from `photos/` (see `manifest.json`).
 2. Generate a redesign (random design style) with the existing OpenRouter-based generation service
@@ -61,7 +62,7 @@ Autonomous system that produces ~5 Pinterest pins per day promoting Sundera, wit
   daemon): env loading, manifest/photo picking, `build_prompt`/`edit_image` (OpenRouter), collage building.
 - **`bot.py` — the daily Telegram approval daemon — works**, run with `./.venv/bin/python bot.py`. Long-running
   process (not a cron job): once a day at `SCHEDULE_TIME`/`SCHEDULE_UTC_OFFSET` (`.env`, default 11:00 UTC+3)
-  it runs a two-stage, strictly-one-at-a-time approval flow for `BATCH_SIZE` (default 5) pins:
+  it runs a two-stage, strictly-one-at-a-time approval flow for `BATCH_SIZE` (default 3) pins:
   1. **Candidates**: sends an unused before-photo; Approve/Reject (inline button or typed "approve"/"reject").
      Reject swaps in a different photo for the same slot (never fewer than `BATCH_SIZE` — keeps pulling
      replacements). Repeats until `BATCH_SIZE` are approved.
@@ -76,10 +77,16 @@ Autonomous system that produces ~5 Pinterest pins per day promoting Sundera, wit
   bot ignores any chat other than `TELEGRAM_CHAT_ID`. **Fully tested end-to-end locally** (real Telegram bot,
   real R2 bucket): candidate approve, candidate reject-and-replace, collage approve, collage reject-and-
   regenerate, and a full 3-pin batch completion all verified working in one live run.
+  Chat commands: `/status` (stage/slot/next-run-time), `/run` (start a batch immediately, ignoring the
+  schedule — replies with a warning instead of double-starting if one's already in progress).
 - **`photos/` is fetched from Pexels at runtime, not committed or baked into the Docker image.**
-  `bot.py`'s `refresh_photo_pool()` calls `pexels_collect.collect()` once per process start (in `post_init`,
-  before anything else) to top `photos/` up to `PHOTO_POOL_SIZE` (default 100) — requires `PEXELS_API_KEY` in
-  `.env`. This sidesteps `photos/` being gitignored (hundreds of MB) mattering at all for deployment: nothing
+  `bot.py`'s `refresh_photo_pool()` calls `pexels_collect.collect()` to top `photos/` up to `PHOTO_POOL_SIZE`
+  (default 100) — requires `PEXELS_API_KEY` in `.env`. Runs at the start of `start_new_cycle()` (once per
+  batch, whether triggered by the schedule or `/run`), **not** in `post_init()` — it takes ~1-2 minutes, and
+  awaiting it in `post_init()` blocked `run_polling()` from starting, i.e. made the bot fully unresponsive to
+  Telegram (no `/status`, no resuming a pending decision) for that whole time on every single boot. Caught by
+  testing `/run` locally: nothing happened for ~90s, then all three queued responses fired at once. This
+  sidesteps `photos/` being gitignored (hundreds of MB) mattering at all for deployment: nothing
   needs it to be in git or in the image. Consequence: the container's filesystem can be fully ephemeral —
   a lost `bot_state.db` or `photos/` on redeploy just looks like a fresh boot (self-healing; see `post_init()`
   and the module docstring in `bot.py` for the one edge case — a mid-batch restart where the in-progress

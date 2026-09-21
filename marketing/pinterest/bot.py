@@ -2,7 +2,7 @@
 """Daily Telegram-approval daemon for the Sundera Pinterest pipeline.
 
 Runs forever. Once a day (SCHEDULE_TIME, in a fixed UTC+SCHEDULE_UTC_OFFSET
-timezone) it starts a batch of BATCH_SIZE (default 5) pins, in two stages,
+timezone) it starts a batch of BATCH_SIZE (default 3) pins, in two stages,
 strictly one item at a time:
 
   Stage 1 — candidates: send an unused "before" photo, wait for Approve/
@@ -17,6 +17,9 @@ strictly one item at a time:
   different style and sends again.
 
 After BATCH_SIZE approved collages, sleeps until the next scheduled run.
+Send /run in the chat to start a batch immediately instead of waiting for
+the schedule (no-op with a warning if one is already in progress); /status
+reports the current stage/slot/next-run-time.
 
 All progress is persisted to SQLite (state.py) after every step, so a
 restart (e.g. a Railway redeploy) resumes mid-batch instead of losing
@@ -31,7 +34,7 @@ exists after a fresh Pexels fetch; see the existence check in post_init().
 Config: marketing/pinterest/.env — TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID,
 PEXELS_API_KEY required; OPENROUTER_*/R2_* per pipeline.py/storage_r2.py;
 SCHEDULE_TIME (default "11:00"), SCHEDULE_UTC_OFFSET (default "3"),
-BATCH_SIZE (default "5"), PHOTO_POOL_SIZE (default "100") optional. See
+BATCH_SIZE (default "3"), PHOTO_POOL_SIZE (default "100") optional. See
 .env.example.
 
 Run: ./.venv/bin/python bot.py
@@ -73,7 +76,7 @@ def load_bot_env():
         sys.exit(f"Missing {', '.join(missing)} in marketing/pinterest/.env — see .env.example")
     env["SCHEDULE_TIME"] = os.environ.get("SCHEDULE_TIME", env.get("SCHEDULE_TIME") or "11:00")
     env["SCHEDULE_UTC_OFFSET"] = os.environ.get("SCHEDULE_UTC_OFFSET", env.get("SCHEDULE_UTC_OFFSET") or "3")
-    env["BATCH_SIZE"] = os.environ.get("BATCH_SIZE", env.get("BATCH_SIZE") or "5")
+    env["BATCH_SIZE"] = os.environ.get("BATCH_SIZE", env.get("BATCH_SIZE") or "3")
     env["PHOTO_POOL_SIZE"] = os.environ.get("PHOTO_POOL_SIZE", env.get("PHOTO_POOL_SIZE") or "100")
     return env
 
@@ -314,6 +317,7 @@ async def handle_decision(app, approved):
 
 
 async def start_new_cycle(app):
+    await refresh_photo_pool(app)
     today = datetime.now(TZ).strftime("%Y-%m-%d")
     st = dict(state.DEFAULT_STATE)
     st["date"] = today
@@ -388,8 +392,26 @@ async def on_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("\n".join(lines))
 
 
+async def on_run(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_chat.id != CHAT_ID:
+        return
+    st = state.load()
+    if st["stage"] in ("candidates", "generating"):
+        await update.message.reply_text(
+            f"A batch is already in progress (stage: {st['stage']}, "
+            f"slot {st['slot_index'] + 1}/{BATCH_SIZE}) — nothing to start."
+        )
+        return
+    await update.message.reply_text("Starting a batch now, ignoring the schedule…")
+    await start_new_cycle(context.application)
+
+
 async def post_init(app: Application):
-    await refresh_photo_pool(app)
+    # Note: refresh_photo_pool() is NOT called here — it takes ~1-2 minutes to top up
+    # PHOTO_POOL_SIZE, and post_init blocks run_polling() from starting until it
+    # returns, which made the bot fully unresponsive to Telegram at every boot. It
+    # runs inside start_new_cycle() instead, so only starting a batch waits on it,
+    # not the bot's ability to answer /status, /run, or resume a pending decision.
     st = state.load()
     today = datetime.now(TZ).strftime("%Y-%m-%d")
     if st["stage"] in ("candidates", "generating") and st["current"]:
@@ -452,6 +474,7 @@ def main():
 
     app = Application.builder().token(ENV["TELEGRAM_BOT_TOKEN"]).post_init(post_init).build()
     app.add_handler(CommandHandler("status", on_status))
+    app.add_handler(CommandHandler("run", on_run))
     app.add_handler(CallbackQueryHandler(on_callback))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))
     logger.info(
