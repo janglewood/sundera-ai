@@ -22,6 +22,9 @@ export const metadata: Metadata = {
   title: "Sundera — AI Interior Design From One Photo",
   description:
     "Try AI interior design free: upload a room photo, pick a style, and get a photorealistic redesign in seconds.",
+  other: {
+    "p:domain_verify": "cb53bedef7cd255eef5b0d97cc4575c1",
+  },
 };
 
 export const viewport: Viewport = {
