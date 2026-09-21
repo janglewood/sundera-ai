@@ -11,3 +11,10 @@ build/
 apps/api/generated/
 apps/api/*.tsbuildinfo
 apps/web/next-env.d.ts
+marketing/pinterest/photos
+marketing/pinterest/output
+marketing/pinterest/.venv
+marketing/pinterest/.env
+marketing/pinterest/bot_state.db
+__pycache__/
+*.pyc

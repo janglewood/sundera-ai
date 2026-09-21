@@ -1,0 +1,8 @@
+.venv
+.env
+output
+bot_state.db
+photos
+__pycache__
+*.pyc
+.git
