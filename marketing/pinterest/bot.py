@@ -21,6 +21,12 @@ Send /run in the chat to start a batch immediately instead of waiting for
 the schedule (no-op with a warning if one is already in progress); /status
 reports the current stage/slot/next-run-time.
 
+Every stage-1 candidate approve/reject is logged (state.log_decision) with
+the photo's search query and Pexels alt text, and future candidate picks are
+weighted (not filtered) toward whatever's historically been approved — see
+pipeline.build_preference_model/score_photo/weighted_choice. /prefs shows
+what's been learned so far.
+
 All progress is persisted to SQLite (state.py) after every step, so a
 restart (e.g. a Railway redeploy) resumes mid-batch instead of losing
 progress or re-spending an OpenRouter call on an already-generated image.
@@ -123,7 +129,8 @@ def pick_next_candidate(st):
     used = pipeline.load_used()
     excluded = used | set(st["excluded_ids"])
     room_types_in_batch = {s["room_type"] for s in st["approved_slots"]}
-    return pipeline.pick_one(manifest, excluded, avoid_room_types=room_types_in_batch)
+    model = pipeline.build_preference_model(state.load_decisions())
+    return pipeline.pick_one(manifest, excluded, avoid_room_types=room_types_in_batch, model=model)
 
 
 async def out_of_photos(app, st):
@@ -261,6 +268,9 @@ async def handle_decision(app, approved):
     current = st["current"]
 
     if st["stage"] == "candidates":
+        state.log_decision(
+            current["photo_id"], current["room_type"], current.get("query"), current.get("alt"), approved
+        )
         if approved:
             st["approved_slots"].append({
                 "photo_id": current["photo_id"],
@@ -281,7 +291,13 @@ async def handle_decision(app, approved):
             await out_of_photos(app, st)
             return None
         st["excluded_ids"].append(photo["id"])
-        st["current"] = {"photo_id": photo["id"], "photo_file": photo["file"], "room_type": photo["room_type"]}
+        st["current"] = {
+            "photo_id": photo["id"],
+            "photo_file": photo["file"],
+            "room_type": photo["room_type"],
+            "query": photo.get("query"),
+            "alt": photo.get("alt"),
+        }
         state.save(st)
         await send_candidate(app, st["current"])
         return None
@@ -324,12 +340,19 @@ async def start_new_cycle(app):
     st["stage"] = "candidates"
     manifest = pipeline.load_manifest()
     used = pipeline.load_used()
-    photo = pipeline.pick_one(manifest, used)
+    model = pipeline.build_preference_model(state.load_decisions())
+    photo = pipeline.pick_one(manifest, used, model=model)
     if photo is None:
         await out_of_photos(app, st)
         return
     st["excluded_ids"] = [photo["id"]]
-    st["current"] = {"photo_id": photo["id"], "photo_file": photo["file"], "room_type": photo["room_type"]}
+    st["current"] = {
+        "photo_id": photo["id"],
+        "photo_file": photo["file"],
+        "room_type": photo["room_type"],
+        "query": photo.get("query"),
+        "alt": photo.get("alt"),
+    }
     state.save(st)
     await send_candidate(app, st["current"])
 
@@ -389,6 +412,38 @@ async def on_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lines = [f"stage: {st['stage']}", f"date: {st['date']}", f"slot: {st['slot_index'] + 1}/{BATCH_SIZE}"]
     if st.get("next_run_at"):
         lines.append(f"next run: {st['next_run_at']}")
+    await update.message.reply_text("\n".join(lines))
+
+
+def _pref_lines(counts, min_evidence, label, n=4):
+    scored = [(key, a, r, a / (a + r)) for key, (a, r) in counts.items() if key and a + r >= min_evidence]
+    if not scored:
+        return []
+    scored.sort(key=lambda x: x[3], reverse=True)
+    lines = [f"{label} — leans approved:"]
+    lines += [f"  {key!r}: {a}/{a + r} approved ({rate:.0%})" for key, a, r, rate in scored[:n]]
+    lines.append(f"{label} — leans rejected:")
+    lines += [f"  {key!r}: {a}/{a + r} approved ({rate:.0%})" for key, a, r, rate in scored[-n:][::-1]]
+    return lines
+
+
+async def on_prefs(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_chat.id != CHAT_ID:
+        return
+    decisions = state.load_decisions()
+    if not decisions:
+        await update.message.reply_text("No candidate decisions logged yet — picks are still uniform random.")
+        return
+    model = pipeline.build_preference_model(decisions)
+    approved = sum(d["approved"] for d in decisions)
+    lines = [
+        f"{len(decisions)} candidate decisions logged, {approved} approved ({model['global_rate']:.0%}).",
+        "Picks are weighted toward these, not filtered to them — the rest of the pool still shows up sometimes.",
+        "",
+    ]
+    lines += _pref_lines(model["query"], 2, "Search query")
+    lines.append("")
+    lines += _pref_lines(model["token"], pipeline.PREF_MIN_TOKEN_EVIDENCE, "Alt-text word")
     await update.message.reply_text("\n".join(lines))
 
 
@@ -475,6 +530,7 @@ def main():
     app = Application.builder().token(ENV["TELEGRAM_BOT_TOKEN"]).post_init(post_init).build()
     app.add_handler(CommandHandler("status", on_status))
     app.add_handler(CommandHandler("run", on_run))
+    app.add_handler(CommandHandler("prefs", on_prefs))
     app.add_handler(CallbackQueryHandler(on_callback))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))
     logger.info(

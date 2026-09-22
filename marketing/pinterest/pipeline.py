@@ -9,6 +9,7 @@ DB-backed Generation/RoomPhoto record for these photos.
 import base64
 import io
 import json
+import math
 import mimetypes
 import os
 import random
@@ -179,11 +180,15 @@ def pick_photos(manifest, used_ids, count):
     return picked
 
 
-def pick_one(manifest, excluded_ids, avoid_room_types=None):
+def pick_one(manifest, excluded_ids, avoid_room_types=None, model=None):
     """Single-photo pick for bot.py's stage-1 candidate/replacement flow.
 
     avoid_room_types, if given, is steered away from (e.g. to avoid duplicating
     a room type already in today's batch) — used only if it doesn't empty the pool.
+
+    model, if given (see build_preference_model), biases the pick toward photos
+    whose query/alt-text resemble ones Anton has approved before, via weighted
+    random sampling rather than a hard filter — see weighted_choice.
     """
     available = [m for m in manifest if m["id"] not in excluded_ids]
     if not available:
@@ -192,7 +197,90 @@ def pick_one(manifest, excluded_ids, avoid_room_types=None):
         preferred = [m for m in available if m["room_type"] not in avoid_room_types]
         if preferred:
             available = preferred
-    return random.choice(available)
+    return weighted_choice(available, model)
+
+
+# --- Self-learning candidate picking -----------------------------------------
+#
+# bot.py logs every stage-1 candidate approve/reject to state.py's `decisions`
+# table (photo_id, room_type, query, alt, approved). build_preference_model()
+# turns that log into per-query and per-alt-text-token approval rates; score_photo
+# scores a manifest entry against it; weighted_choice samples candidates
+# proportional to exp(score) instead of uniformly, so picks drift toward what's
+# historically been approved (e.g. "full room" real-estate-style shots vs tight
+# lifestyle crops) without ever fully excluding the rest of the pool — there's
+# no explicit "full room" label in Pexels metadata, so the search query and alt
+# text are the only proxies available for what a photo actually looks like.
+
+PREF_ALPHA = 2.0  # additive smoothing: keeps low-evidence buckets close to neutral
+PREF_MIN_TOKEN_EVIDENCE = 3  # ignore alt-text words seen fewer than this many times total
+PREF_TOKEN_WEIGHT = 0.3  # alt-text tokens count for less than the query bucket (noisier signal)
+PREF_SCORE_CLAMP = 4.0  # bounds exp(score) to ~[0.02x, 55x] so no bucket fully starves the pool
+
+_PREF_STOPWORDS = {"a", "an", "the", "with", "and", "in", "of", "for", "on", "at", "to"}
+
+
+def _pref_tokens(text):
+    return [t for t in re.findall(r"[a-z]+", (text or "").lower()) if len(t) > 2 and t not in _PREF_STOPWORDS]
+
+
+def _pref_rate(approved, rejected, prior):
+    """Laplace-smoothed approval rate, pulled toward the global approval rate
+    (prior) when a bucket has little or no evidence yet."""
+    return (approved + PREF_ALPHA * prior) / (approved + rejected + PREF_ALPHA)
+
+
+def build_preference_model(decisions):
+    """decisions: list of dicts from state.load_decisions(). Returns None if there's
+    no history yet (pick_one/weighted_choice then fall back to uniform random)."""
+    if not decisions:
+        return None
+    global_rate = sum(d["approved"] for d in decisions) / len(decisions)
+
+    query_counts = {}
+    token_counts = {}
+    for d in decisions:
+        qa, qr = query_counts.get(d["query"], (0, 0))
+        query_counts[d["query"]] = (qa + d["approved"], qr + (not d["approved"]))
+        for tok in _pref_tokens(d["alt"]):
+            ta, tr = token_counts.get(tok, (0, 0))
+            token_counts[tok] = (ta + d["approved"], tr + (not d["approved"]))
+
+    return {"global_rate": global_rate, "query": query_counts, "token": token_counts}
+
+
+def score_photo(photo, model):
+    """Log-odds-style score: >0 leans toward historically-approved features, <0
+    toward historically-rejected ones, 0 when there's no signal either way."""
+    if not model:
+        return 0.0
+    global_rate = model["global_rate"]
+
+    def log_odds(rate):
+        return math.log(rate / (1 - rate + 1e-9) + 1e-9)
+
+    score = 0.0
+    qa, qr = model["query"].get(photo.get("query"), (0, 0))
+    if qa + qr > 0:
+        score += log_odds(_pref_rate(qa, qr, global_rate))
+
+    for tok in _pref_tokens(photo.get("alt")):
+        ta, tr = model["token"].get(tok, (0, 0))
+        if ta + tr >= PREF_MIN_TOKEN_EVIDENCE:
+            score += log_odds(_pref_rate(ta, tr, global_rate)) * PREF_TOKEN_WEIGHT
+
+    return score
+
+
+def weighted_choice(candidates, model):
+    """random.choice, but sampled proportional to exp(score_photo(...)) once a
+    preference model exists — falls back to plain uniform choice otherwise."""
+    if not candidates:
+        return None
+    if not model or len(candidates) == 1:
+        return random.choice(candidates)
+    weights = [math.exp(max(min(score_photo(c, model), PREF_SCORE_CLAMP), -PREF_SCORE_CLAMP)) for c in candidates]
+    return random.choices(candidates, weights=weights, k=1)[0]
 
 
 FONT_CANDIDATES = [

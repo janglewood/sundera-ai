@@ -79,7 +79,21 @@ promoting Sundera, with Anton approving each one in Telegram:
   real R2 bucket): candidate approve, candidate reject-and-replace, collage approve, collage reject-and-
   regenerate, and a full 3-pin batch completion all verified working in one live run.
   Chat commands: `/status` (stage/slot/next-run-time), `/run` (start a batch immediately, ignoring the
-  schedule — replies with a warning instead of double-starting if one's already in progress).
+  schedule — replies with a warning instead of double-starting if one's already in progress), `/prefs`
+  (see below).
+- **Self-learning candidate picking.** Every stage-1 candidate approve/reject is logged to a `decisions`
+  table in `bot_state.db` (`state.log_decision`/`load_decisions`) with the photo's Pexels search query and
+  alt text — the only two content-descriptive fields Pexels gives us (no "full room shot" tag exists), so
+  they're the proxy for whatever Anton is actually reacting to (e.g. full-room real-estate-style shots vs.
+  tighter/simpler lifestyle crops). `pipeline.build_preference_model()` turns the log into Laplace-smoothed
+  approval rates per query and per alt-text word; `score_photo`/`weighted_choice` sample future candidates
+  proportional to `exp(score)` instead of uniformly (`pipeline.pick_one`'s `model=` param) — a soft bias, not
+  a filter: a clamp (`PREF_SCORE_CLAMP`) keeps even historically-rejected-leaning photos pickable sometimes,
+  so the pool never fully starves and a bad early signal isn't permanent. `/prefs` in Telegram shows the
+  current approval rate and the top/bottom queries and alt-text words by evidence. No history yet -> `model`
+  is `None` -> falls back to the original uniform `random.choice`. Only stage-1 (which before-photo)
+  learns this way; stage-2 (which `DesignStyle`) is still uniform random — not asked for, and style
+  preference is a separate signal from photo/framing preference.
 - **`photos/` is fetched from Pexels at runtime, not committed or baked into the Docker image.**
   `bot.py`'s `refresh_photo_pool()` calls `pexels_collect.collect()` to top `photos/` up to `PHOTO_POOL_SIZE`
   (default 100) — requires `PEXELS_API_KEY` in `.env`. Runs at the start of `start_new_cycle()` (once per
