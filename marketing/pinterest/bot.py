@@ -261,6 +261,15 @@ async def upload_and_reply(app, current, date, idx):
     )
 
 
+async def delete_message(app, message_id):
+    if not message_id:
+        return
+    try:
+        await app.bot.delete_message(CHAT_ID, message_id)
+    except Exception:
+        pass
+
+
 async def handle_decision(app, approved):
     st = state.load()
     if st["stage"] not in ("candidates", "generating") or not st["current"]:
@@ -268,6 +277,9 @@ async def handle_decision(app, approved):
     current = st["current"]
 
     if st["stage"] == "candidates":
+        # Candidate photos are throwaway once decided — only approved collages
+        # should remain visible in the chat, per Anton's request.
+        await delete_message(app, current.get("message_id"))
         state.log_decision(
             current["photo_id"], current["room_type"], current.get("query"), current.get("alt"), approved
         )
@@ -304,6 +316,13 @@ async def handle_decision(app, approved):
 
     # stage == "generating"
     if approved:
+        # Keep the approved collage visible; just drop its Approve/Reject buttons
+        # (redundant here since on_callback already does this, but on_text — a typed
+        # "approve" — doesn't, so this covers both paths).
+        try:
+            await app.bot.edit_message_reply_markup(CHAT_ID, current.get("message_id"), reply_markup=None)
+        except Exception:
+            pass
         await upload_and_reply(app, current, st["date"], st["slot_index"] + 1)
         st = state.load()
         st["slot_index"] += 1
@@ -321,6 +340,7 @@ async def handle_decision(app, approved):
             state.save(st)
             await generate_and_send(app, st["approved_slots"][st["slot_index"]])
     else:
+        await delete_message(app, current.get("message_id"))
         base_slot = {
             "photo_id": current["photo_id"],
             "photo_file": current["photo_file"],

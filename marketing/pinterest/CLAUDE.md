@@ -70,6 +70,13 @@ promoting Sundera, with Anton approving each one in Telegram:
   2. **Generation**: for each approved candidate in order, picks a random `DesignStyle`, calls OpenRouter,
      builds the collage, sends it for approval. Approve uploads before/after/collage to R2 and replies with
      the link. Reject regenerates the same candidate with a different style.
+  **The chat is kept clean of everything except approved collages**: a stage-1 candidate photo is deleted
+  the moment it's approved or rejected (it's throwaway either way — the real result is the stage-2 collage),
+  and a rejected stage-2 collage is deleted right before its regenerated replacement is sent. An approved
+  collage is left in place (buttons stripped) as the permanent record — see `delete_message()` and
+  `handle_decision()` in `bot.py`. Deletion only works within Telegram's 48h window, a non-issue since
+  decisions happen live, and it's not retroactive (candidate photos sent before this was added stay in
+  history).
   Sleeps until the next scheduled run once `BATCH_SIZE` pins are saved. State persists to SQLite
   (`bot_state.db`, gitignored, one JSON blob — see `state.py`) after every step, including in-flight
   OpenRouter results (base64 in the blob), so a restart (Railway redeploy, crash) resumes mid-batch instead
