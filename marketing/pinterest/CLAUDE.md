@@ -74,8 +74,11 @@ promoting Sundera, with Anton approving each one in Telegram:
      Reject swaps in a different photo for the same slot (never fewer than `BATCH_SIZE` — keeps pulling
      replacements). Repeats until `BATCH_SIZE` are approved.
   2. **Generation**: for each approved candidate in order, picks a random `DesignStyle`, calls OpenRouter,
-     builds the collage, sends it for approval. Approve uploads before/after/collage to R2 and replies with
-     the link. Reject regenerates the same candidate with a different style.
+     builds the collage, sends it for approval. Title/description are **not** generated at this stage — only
+     after Approve, so a Reject never pays for a text-generation call that just gets discarded (see
+     "Title/description generation" below). Approve uploads before/after/collage to R2, then generates the
+     copy and replies with the link plus title/description. Reject regenerates the same candidate with a
+     different style.
   **The chat is kept clean of everything except approved collages**: a stage-1 candidate photo is deleted
   the moment it's approved or rejected (it's throwaway either way — the real result is the stage-2 collage),
   and a rejected stage-2 collage is deleted right before its regenerated replacement is sent. An approved
@@ -121,8 +124,8 @@ promoting Sundera, with Anton approving each one in Telegram:
   photo no longer exists after a fresh fetch — and how it degrades gracefully instead of crashing). **No
   Railway Volume is required.**
 - **Title/description generation is done** (`pipeline.generate_copy`, called from `bot.py`'s
-  `generate_and_send()`) — alt-text generation and the Pinterest publisher/landing pages below are still not
-  built.
+  `upload_and_reply()`, only after Anton approves a collage) — alt-text generation and the Pinterest
+  publisher/landing pages below are still not built.
 
 ## Title/description generation
 
@@ -138,13 +141,12 @@ promoting Sundera, with Anton approving each one in Telegram:
   to their length limits as a safety net.
 - `pipeline.utm_link(date, slot_num)` builds the link: `https://sundera.app/?utm_source=pinterest&utm_medium=social&utm_content=<date>-<slot_num>`
   (date = the batch's `YYYY-MM-DD`, slot_num = 1-based position in the batch) — built in code, never by the model.
-- In `bot.py`, copy is generated right after the collage in `generate_and_send()` and sent as a second
-  Telegram message (title + description) immediately after the collage photo, so Anton reviews both together
-  before Approve/Reject — Telegram photo captions have a 1024-char limit which title+description could
-  exceed, hence the separate message rather than folding it into the collage caption. Reject deletes both
-  the collage and copy messages and regenerates (new style -> new copy to match); Approve leaves both as the
-  permanent record, and the final "Saved" confirmation also includes title/description for Anton to copy
-  into Pinterest manually during Phase 0.
+- In `bot.py`, copy is generated **only after Anton approves the collage**, inside `upload_and_reply()` —
+  not alongside the collage in `generate_and_send()`. Reasoning: a rejected collage never had copy generated
+  for it, so rejects (which swap in a different style and regenerate the image anyway) don't also burn a
+  wasted text-generation call. The title/description are sent as part of the final "Saved" confirmation
+  message (which already includes the R2 link) rather than as a separate message before the decision —
+  there's no longer a "review copy alongside the image before deciding" step, by design.
 - Not yet done: alt-text generation (Pinterest API field, separate from title/description).
 
 ## Suggested next steps (posting automation — later, not now)
