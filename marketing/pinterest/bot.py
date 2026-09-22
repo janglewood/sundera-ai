@@ -11,10 +11,16 @@ strictly one item at a time:
   Repeat until BATCH_SIZE candidates are approved.
 
   Stage 2 — generation: for each approved candidate in order, pick a random
-  DesignStyle, call OpenRouter, build the before/after collage, send it for
-  approval. Approve uploads before/after/collage to R2 (see storage_r2.py)
-  and replies with a link. Reject re-generates the same candidate with a
-  different style and sends again.
+  DesignStyle, call OpenRouter, build the before/after collage, and generate
+  a title/description (pipeline.generate_copy, a separate cheap text model —
+  see OPENROUTER_TEXT_MODEL) with a CTA at the start and end of the
+  description and a UTM-tagged link (pipeline.utm_link) swapped in after
+  generation, never written by the model itself. Sends the collage (with
+  Approve/Reject buttons) followed by the title/description as a second
+  message, for approval together. Approve uploads before/after/collage to R2
+  (see storage_r2.py) and replies with the link plus the title/description
+  for manual posting. Reject re-generates the same candidate with a
+  different style (and new copy to match) and sends again.
 
 After BATCH_SIZE approved collages, sleeps until the next scheduled run.
 Send /run in the chat to start a batch immediately instead of waiting for
@@ -183,6 +189,8 @@ async def generate_and_send(app, slot, exclude_style=None, attempt=0):
     # restart mid-call resumes by re-generating this slot instead of getting stuck
     # with current=None and stage="generating" forever (see post_init).
     st = state.load()
+    slot_num = st["slot_index"] + 1
+    date = st["date"]
     st["current"] = {**slot, "pending_generation": True}
     state.save(st)
 
@@ -193,6 +201,10 @@ async def generate_and_send(app, slot, exclude_style=None, attempt=0):
             pipeline.edit_image, env, before_bytes, mime_type, prompt
         )
         collage_bytes = pipeline.make_collage_bytes(before_bytes, after_bytes)
+        link = pipeline.utm_link(date, slot_num)
+        title, description = await asyncio.to_thread(
+            pipeline.generate_copy, env, room_label, style_label, link
+        )
     except Exception:
         logger.exception("Generation failed (attempt %d)", attempt + 1)
         wait = min(30 * 2 ** attempt, 300)
@@ -203,8 +215,6 @@ async def generate_and_send(app, slot, exclude_style=None, attempt=0):
         await generate_and_send(app, slot, exclude_style=style, attempt=attempt + 1)
         return
 
-    st = state.load()
-    slot_num = st["slot_index"] + 1
     msg = await app.bot.send_photo(
         CHAT_ID,
         io.BytesIO(collage_bytes),
@@ -214,6 +224,7 @@ async def generate_and_send(app, slot, exclude_style=None, attempt=0):
         ),
         reply_markup=decision_keyboard(),
     )
+    copy_msg = await app.bot.send_message(CHAT_ID, f"Title: {title}\n\n{description}")
     await status_msg.delete()
 
     st = state.load()
@@ -222,9 +233,12 @@ async def generate_and_send(app, slot, exclude_style=None, attempt=0):
         "style": style,
         "style_label": style_label,
         "message_id": msg.message_id,
+        "copy_message_id": copy_msg.message_id,
         "after_b64": base64.b64encode(after_bytes).decode(),
         "after_mime": after_mime,
         "collage_b64": base64.b64encode(collage_bytes).decode(),
+        "title": title,
+        "description": description,
     }
     state.save(st)
 
@@ -257,7 +271,8 @@ async def upload_and_reply(app, current, date, idx):
     room_label = pipeline.ROOM_LABELS.get(current["room_type"], current["room_type"])
     await app.bot.send_message(
         CHAT_ID,
-        f"Saved {idx}/{BATCH_SIZE}: {room_label} — {current['style_label']}\n{urls['collage']}",
+        f"Saved {idx}/{BATCH_SIZE}: {room_label} — {current['style_label']}\n{urls['collage']}\n\n"
+        f"Title: {current['title']}\n\n{current['description']}",
     )
 
 
@@ -341,6 +356,7 @@ async def handle_decision(app, approved):
             await generate_and_send(app, st["approved_slots"][st["slot_index"]])
     else:
         await delete_message(app, current.get("message_id"))
+        await delete_message(app, current.get("copy_message_id"))
         base_slot = {
             "photo_id": current["photo_id"],
             "photo_file": current["photo_file"],
@@ -533,8 +549,12 @@ async def post_init(app: Application):
                     ),
                     reply_markup=decision_keyboard(),
                 )
+                copy_msg = await app.bot.send_message(
+                    CHAT_ID, f"Title: {current['title']}\n\n{current['description']}"
+                )
                 st = state.load()
                 st["current"]["message_id"] = msg.message_id
+                st["current"]["copy_message_id"] = copy_msg.message_id
                 state.save(st)
     asyncio.create_task(scheduler_loop(app))
 

@@ -114,8 +114,32 @@ promoting Sundera, with Anton approving each one in Telegram:
   and the module docstring in `bot.py` for the one edge case — a mid-batch restart where the in-progress
   photo no longer exists after a fresh fetch — and how it degrades gracefully instead of crashing). **No
   Railway Volume is required.**
-- Title/description/alt-text generation, Pinterest OAuth + publish, and landing pages are still not built —
-  see "Suggested next steps" below.
+- **Title/description generation is done** (`pipeline.generate_copy`, called from `bot.py`'s
+  `generate_and_send()`) — alt-text generation and the Pinterest publisher/landing pages below are still not
+  built.
+
+## Title/description generation
+
+- `pipeline.generate_copy(env, room_label, style_label, link)` calls a separate, cheap OpenRouter **text**
+  model (`OPENROUTER_TEXT_MODEL`, default `pipeline.DEFAULT_TEXT_MODEL` = `google/gemini-2.5-flash-lite` —
+  chosen for cost: a few thousandths of a cent per pin at this volume — not `OPENROUTER_MODEL`, which is the
+  image-editing model) via `/chat/completions`, prompted for a title (<=100 chars) and a description
+  (300-500 chars) structured as: opening CTA sentence -> 1-2 sentences describing the specific
+  before/after -> closing CTA sentence. The model is told to end the closing CTA with a literal `{LINK}`
+  token rather than writing a URL itself; `generate_copy` swaps that token for the real link afterwards, so
+  the UTM URL is always exactly right regardless of what the model does with text. Response is parsed with a
+  `TITLE: ...\nDESCRIPTION: ...` regex (not JSON — more robust across models); both fields are hard-clipped
+  to their length limits as a safety net.
+- `pipeline.utm_link(date, slot_num)` builds the link: `https://sundera.app/?utm_source=pinterest&utm_medium=social&utm_content=<date>-<slot_num>`
+  (date = the batch's `YYYY-MM-DD`, slot_num = 1-based position in the batch) — built in code, never by the model.
+- In `bot.py`, copy is generated right after the collage in `generate_and_send()` and sent as a second
+  Telegram message (title + description) immediately after the collage photo, so Anton reviews both together
+  before Approve/Reject — Telegram photo captions have a 1024-char limit which title+description could
+  exceed, hence the separate message rather than folding it into the collage caption. Reject deletes both
+  the collage and copy messages and regenerates (new style -> new copy to match); Approve leaves both as the
+  permanent record, and the final "Saved" confirmation also includes title/description for Anton to copy
+  into Pinterest manually during Phase 0.
+- Not yet done: alt-text generation (Pinterest API field, separate from title/description).
 
 ## Suggested next steps (posting automation — later, not now)
 
@@ -123,11 +147,14 @@ promoting Sundera, with Anton approving each one in Telegram:
 2. ~~Collage builder.~~ done (Pillow, in `generate_pairs.py`).
 3. ~~Telegram bot with approve/reject.~~ done (`bot.py`, SQLite state) — **note: this is review-approval only,
    it doesn't publish to Pinterest.**
-4. Title/description/alt-text generation.
+4. ~~Title/description generation.~~ done (`pipeline.generate_copy`, see above). Alt-text generation still
+   not built.
 5. Pin queue and scheduler for spreading publishes over the day (today's `bot.py` already spreads
    *generation* over the day via the approval flow, but nothing publishes to Pinterest yet).
-6. Pinterest OAuth + publisher (start with Trial/sandbox, then apply for Standard).
-7. Landing pages per style with UTM tracking.
+6. Pinterest OAuth + publisher (start with Trial/sandbox, then apply for Standard) — publish will need
+   alt-text too, and should reuse the title/description already generated per pin rather than regenerating.
+7. Landing pages per style with UTM tracking (UTM params are already generated per pin via `pipeline.utm_link`,
+   pointing at `sundera.app/` — swap in real per-style landing page paths here once they exist).
 
 ## Deploying (Docker + Railway)
 

@@ -76,6 +76,9 @@ def read_env_file(path):
     return env
 
 
+DEFAULT_TEXT_MODEL = "google/gemini-2.5-flash-lite"  # cheap + reliable for short pin copy — see CLAUDE.md
+
+
 def load_api_env():
     """OPENROUTER_* — checks marketing/pinterest/.env first, then apps/api/.env, then the environment."""
     env = read_env_file(API_ENV_PATH)
@@ -87,6 +90,12 @@ def load_api_env():
         sys.exit(
             f"Missing {', '.join(missing)} (checked marketing/pinterest/.env, apps/api/.env, and the environment)"
         )
+    # Separate (cheaper) model for text copy, not the image-editing model above. Optional —
+    # falls back to DEFAULT_TEXT_MODEL rather than failing, so existing deployments don't
+    # need an .env change to pick this up.
+    env["OPENROUTER_TEXT_MODEL"] = os.environ.get(
+        "OPENROUTER_TEXT_MODEL", env.get("OPENROUTER_TEXT_MODEL") or DEFAULT_TEXT_MODEL
+    )
     return env
 
 
@@ -128,6 +137,82 @@ def edit_image(env, image_bytes, mime_type, prompt, retries=3):
         media_type = variant.get("media_type", "image/png")
         return base64.b64decode(variant["b64_json"]), media_type
     raise RuntimeError("OpenRouter request failed after retries")
+
+
+def utm_link(date, slot_num):
+    """date: 'YYYY-MM-DD' (schedule timezone), slot_num: 1-based slot in the batch.
+    Format matches Anton's spec: https://sundera.app/?utm_source=pinterest&utm_medium=social&utm_content=2026-09-21-1"""
+    return f"https://sundera.app/?utm_source=pinterest&utm_medium=social&utm_content={date}-{slot_num}"
+
+
+_COPY_RE = re.compile(r"TITLE:\s*(.+?)\s*\n+\s*DESCRIPTION:\s*(.+)", re.IGNORECASE | re.DOTALL)
+
+
+def _clip(text, limit):
+    text = text.strip()
+    if len(text) <= limit:
+        return text
+    return text[:limit].rsplit(" ", 1)[0].rstrip(".,;:")
+
+
+def generate_copy(env, room_label, style_label, link, retries=3):
+    """Title + description for a Pinterest pin, via a cheap OpenRouter text model
+    (OPENROUTER_TEXT_MODEL, see load_api_env). The model writes a {LINK} placeholder
+    rather than a literal URL — swapped in here — so the UTM link (built by utm_link,
+    not the model) can never be mistyped or hallucinated."""
+    system_prompt = (
+        "You write short, SEO-friendly Pinterest pin copy for Sundera, an AI interior redesign app: "
+        "upload a photo of your room, get back a photorealistic redesign in seconds. Audience is "
+        "home-decor Pinterest users searching for room inspiration."
+    )
+    user_prompt = (
+        f"This pin shows a real 'before' photo of a {room_label} next to an AI-generated 'after' "
+        f"redesign of the same room in {style_label} style.\n\n"
+        "Write:\n"
+        "1. TITLE — max 100 characters. SEO keywords (room type + style). No hashtags, no emoji, no quotes.\n"
+        "2. DESCRIPTION — 300-500 characters, three parts in order: "
+        "(a) one short CTA sentence inviting the reader to try Sundera on their own room; "
+        "(b) 1-2 sentences describing this specific transformation with concrete details "
+        "(colors, materials, furniture) as if describing a real before/after; "
+        "(c) one closing CTA sentence that ends with exactly the literal text {LINK} — "
+        "do not write a URL yourself, do not alter or explain that token, just place it at the end.\n\n"
+        "Respond in exactly this format and nothing else:\n"
+        "TITLE: <title>\n"
+        "DESCRIPTION: <description>"
+    )
+    body = {
+        "model": env["OPENROUTER_TEXT_MODEL"],
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        "temperature": 0.8,
+    }
+    for attempt in range(retries):
+        resp = requests.post(
+            f"{env['OPENROUTER_BASE_URL']}/chat/completions",
+            headers={
+                "Authorization": f"Bearer {env['OPENROUTER_API_KEY']}",
+                "Content-Type": "application/json",
+            },
+            json=body,
+            timeout=30,
+        )
+        if resp.status_code == 429 and attempt < retries - 1:
+            time.sleep(10 * (attempt + 1))
+            continue
+        resp.raise_for_status()
+        text = resp.json()["choices"][0]["message"]["content"]
+        match = _COPY_RE.search(text)
+        if not match:
+            if attempt < retries - 1:
+                continue
+            raise RuntimeError(f"Could not parse title/description from model output: {text!r}")
+        title = match.group(1).strip().strip('"').strip("*").strip()
+        description = match.group(2).strip().strip('"').strip()
+        description = description.replace("{LINK}", link)
+        return _clip(title, 100), _clip(description, 500)
+    raise RuntimeError("OpenRouter text request failed after retries")
 
 
 def load_manifest():
