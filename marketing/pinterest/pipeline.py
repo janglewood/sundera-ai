@@ -422,7 +422,66 @@ def draw_badge(draw, font, canvas_width, text, *, align, dot=False, top=BADGE_MA
 
 
 COLLAGE_WIDTH = 1000
-COLLAGE_HEIGHT = 1500  # 2:3, e.g. for Pinterest pins
+COLLAGE_HEIGHT = 1500  # before+after photo area, 2:3 on its own
+
+# CTA band appended below the before/after photo area (not overlaid on top of
+# a photo, so neither image gets covered) — see marketing/pinterest/CLAUDE.md.
+# Final canvas is COLLAGE_WIDTH x (COLLAGE_HEIGHT + CTA_BAND_HEIGHT), ~1:1.63,
+# still well inside Pinterest's supported aspect range (up to ~1:2.1) so it
+# won't get cropped in feed. Slightly translucent accent band (blends with the
+# white canvas behind it) so it reads as part of the design, not a hard sticker.
+CTA_BAND_HEIGHT = 130
+CTA_TEXT = "Redesign your room"
+CTA_BG = ACCENT[:3] + (225,)
+CTA_TEXT_COLOR = (255, 255, 255, 255)
+
+
+def draw_down_arrow(draw, cx, cy, size, color):
+    """Bold filled arrow — shaft + barbed/flared head, like the ➜ dingbat
+    rotated 90° to point down — rather than a thin outline stem+chevron."""
+    h = size
+    w = size * 0.85
+    top = cy - h / 2
+    bottom = cy + h / 2
+    head_top_y = top + h * 0.42
+
+    shaft_l = cx - w * 0.17
+    shaft_r = cx + w * 0.17
+    head_l = cx - w / 2
+    head_r = cx + w / 2
+
+    draw.polygon(
+        [
+            (shaft_l, top),
+            (shaft_r, top),
+            (shaft_r, head_top_y),
+            (head_r, head_top_y),
+            (cx, bottom),
+            (head_l, head_top_y),
+            (shaft_l, head_top_y),
+        ],
+        fill=color,
+    )
+
+
+def draw_cta_band(draw, font, canvas_width, canvas_height, band_height):
+    top = canvas_height - band_height
+    draw.rectangle([0, top, canvas_width, canvas_height], fill=CTA_BG)
+
+    text_bbox = draw.textbbox((0, 0), CTA_TEXT, font=font)
+    text_w = text_bbox[2] - text_bbox[0]
+    text_h = text_bbox[3] - text_bbox[1]
+
+    arrow_size = text_h * 1.3
+    arrow_gap = 16
+    content_w = text_w + arrow_gap + arrow_size
+
+    text_x = (canvas_width - content_w) / 2
+    center_y = top + band_height / 2
+    draw.text((text_x, center_y - text_h / 2 - text_bbox[1]), CTA_TEXT, fill=CTA_TEXT_COLOR, font=font)
+
+    arrow_cx = text_x + text_w + arrow_gap + arrow_size / 2
+    draw_down_arrow(draw, arrow_cx, center_y, arrow_size, CTA_TEXT_COLOR)
 
 
 def cover_crop(img, target_w, target_h):
@@ -442,7 +501,8 @@ def make_collage_bytes(before_bytes, after_bytes):
     before = cover_crop(before, COLLAGE_WIDTH, panel_h)
     after = cover_crop(after, COLLAGE_WIDTH, panel_h)
 
-    canvas = Image.new("RGB", (COLLAGE_WIDTH, COLLAGE_HEIGHT), "white")
+    canvas_height = COLLAGE_HEIGHT + CTA_BAND_HEIGHT
+    canvas = Image.new("RGB", (COLLAGE_WIDTH, canvas_height), "white")
     canvas.paste(before, (0, 0))
     canvas.paste(after, (0, panel_h))
 
@@ -451,6 +511,7 @@ def make_collage_bytes(before_bytes, after_bytes):
     font = load_font(26)
     draw_badge(odraw, font, canvas.width, "BEFORE", align="left", top=BADGE_MARGIN)
     draw_badge(odraw, font, canvas.width, "AFTER", align="left", dot=True, top=panel_h + BADGE_MARGIN)
+    draw_cta_band(odraw, load_font(38), canvas.width, canvas_height, CTA_BAND_HEIGHT)
 
     canvas = Image.alpha_composite(canvas.convert("RGBA"), overlay).convert("RGB")
     out = io.BytesIO()

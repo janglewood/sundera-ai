@@ -49,10 +49,16 @@ promoting Sundera, with Anton approving each one in Telegram:
   `.env` and fill in `OPENROUTER_*` (falls back to `apps/api/.env` if unset) and `R2_*`. Picks unused
   before-photos spread across room types, calls OpenRouter directly (same prompt shape as `buildPrompt()` in
   `apps/api/src/generations/generation-worker.service.ts`) with a random `DesignStyle`, and writes `before` /
-  `after` / a labeled vertical before-after `collage` per pair — fixed 1000×1500 (2:3), before on top / after
-  on bottom, each cover-cropped to fill its half (see `pipeline.py`'s `cover_crop`); badges match the app's
-  `BeforeAfterSlider` styling (see `draw_badge`). Tracks used photo ids in `output/used_photos.json` so
-  reruns don't repeat a before photo.
+  `after` / a labeled vertical before-after `collage` per pair — before on top / after on bottom (1000×1500,
+  2:3, the photo area), each cover-cropped to fill its half (see `pipeline.py`'s `cover_crop`); badges match
+  the app's `BeforeAfterSlider` styling (see `draw_badge`). An opaque accent-colored CTA band ("Redesign your
+  room" + a drawn downward chevron — no unicode arrow glyph, since the Docker fallback font may lack it) is
+  appended below the after panel rather than overlaid on it, growing the canvas to 1000×1630 — still well
+  inside Pinterest's supported aspect range (up to ~1:2.1) so it won't get cropped in feed. Bottom placement
+  is deliberate: Pinterest's save/"···" UI occupies the top-right corner on both grid and closeup view, and
+  the arrow doubles as a pointer toward the title/description Pinterest renders directly below the pin image.
+  See `draw_cta_band`/`CTA_BAND_HEIGHT` in `pipeline.py`. Tracks used photo ids in `output/used_photos.json`
+  so reruns don't repeat a before photo.
 - **Storage: Cloudflare R2** (`storage_r2.py`), same bucket the app uses in prod, under a `pinterest/` prefix
   — private, presigned GET URLs (~6 day expiry; `generate_pairs.py --presign <batch_id>` re-mints fresh ones
   for an older batch). Chosen over local-disk-only so a batch is reviewable without SSHing into wherever this
