@@ -140,7 +140,7 @@ export class GenerationsService {
       if (editCount >= PLAN_LIMITS[planTier].maxEdits) {
         throw new PaywallRequiredException(
           planTier === 'FREE'
-            ? "You've used your free edit. Upgrade for more edits."
+            ? 'Editing is available on the Lifetime plan. Upgrade to edit your redesign.'
             : "You've reached your plan's edit limit. Upgrade for more.",
         );
       }

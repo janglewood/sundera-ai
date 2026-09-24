@@ -22,7 +22,7 @@ export const FREE_DESIGN_STYLES: readonly DesignStyle[] = [
 export const PLAN_LIMITS = {
   FREE: {
     maxGenerations: 1,
-    maxEdits: 1,
+    maxEdits: 0,
     allowedStyles: FREE_DESIGN_STYLES,
     watermarkOnDownload: true,
   },

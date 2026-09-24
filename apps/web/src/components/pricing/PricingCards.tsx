@@ -10,7 +10,7 @@ export const PRICING_PLANS = [
     price: 0,
     features: [
       "1 room redesign",
-      "1 edit",
+      "No edits",
       "A few design styles",
       "Download with watermark",
     ],
