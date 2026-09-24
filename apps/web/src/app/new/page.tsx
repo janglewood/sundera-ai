@@ -3,7 +3,11 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { LOCKED_DESIGN_STYLES, getLockedStylesForPlan } from "@sundera/shared";
+import {
+  LOCKED_DESIGN_STYLES,
+  getLockedStylesForPlan,
+  resolveEntitledPlanTier,
+} from "@sundera/shared";
 import type { DesignStyle, RoomType } from "@sundera/shared";
 import { RoomTypeGrid } from "@/components/select/RoomTypeGrid";
 import { StyleGrid } from "@/components/select/StyleGrid";
@@ -35,7 +39,9 @@ function NewGenerationForm() {
     let cancelled = false;
     void getMySubscription().then((subscription) => {
       if (!cancelled) {
-        setLockedStyles(getLockedStylesForPlan(subscription.planTier));
+        setLockedStyles(
+          getLockedStylesForPlan(resolveEntitledPlanTier(subscription)),
+        );
       }
     });
     return () => {

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import type { SubscriptionResponse } from "@sundera/shared";
+import { resolveEntitledPlanTier, type SubscriptionResponse } from "@sundera/shared";
 import { CaretDown } from "@phosphor-icons/react/dist/ssr";
 import { useAuth } from "@/lib/auth/auth-context";
 import { signOutUser } from "@/lib/auth/auth-actions";
@@ -43,12 +43,13 @@ export function AccountMenu() {
     return () => document.removeEventListener("mousedown", handlePointerDown);
   }, [isOpen]);
 
-  const isFreePlan = subscription === null || subscription.planTier === "FREE";
+  const entitledPlanTier = subscription
+    ? resolveEntitledPlanTier(subscription)
+    : "FREE";
+  const isFreePlan = entitledPlanTier === "FREE";
   const isActiveSubscriber = subscription?.status === "ACTIVE";
-  const planLabel = subscription
-    ? subscription.planTier.charAt(0) +
-      subscription.planTier.slice(1).toLowerCase()
-    : "Free";
+  const planLabel =
+    entitledPlanTier.charAt(0) + entitledPlanTier.slice(1).toLowerCase();
   // Cancelled but still paid through the current period — resolvePlanTier
   // keeps the paid tier active until currentPeriodEnd passes, so reflect
   // that here instead of implying access already ended.
