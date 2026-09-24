@@ -12,13 +12,13 @@ export const FREE_DESIGN_STYLES: readonly DesignStyle[] = [
   "PROVENCE",
 ];
 
-// maxGenerations resets each billing period for paid plans (see
-// PaymentsService.getCurrentPeriodStart), matching the "N a month" copy; FREE
-// has no billing period, so its cap is a one-time lifetime grant instead.
+// maxGenerations is a lifetime total for every plan — there's no billing
+// period to reset against now that LIFETIME is a one-time purchase, not a
+// subscription (matches FREE, which was always a one-time grant).
 // maxEdits stays a lifetime-per-redesign-chain cap regardless of plan — the
 // "up to N edits per redesign" copy was never a time-boxed limit.
 // Downloads are allowed on every plan (once signed in) — FREE just gets a
-// "sundera.app" watermark baked into the file; paid plans download clean.
+// "sundera.app" watermark baked into the file; LIFETIME downloads clean.
 export const PLAN_LIMITS = {
   FREE: {
     maxGenerations: 1,
@@ -26,15 +26,9 @@ export const PLAN_LIMITS = {
     allowedStyles: FREE_DESIGN_STYLES,
     watermarkOnDownload: true,
   },
-  STARTER: {
+  LIFETIME: {
     maxGenerations: 30,
     maxEdits: 5,
-    allowedStyles: DESIGN_STYLES,
-    watermarkOnDownload: false,
-  },
-  PRO: {
-    maxGenerations: Infinity,
-    maxEdits: Infinity,
     allowedStyles: DESIGN_STYLES,
     watermarkOnDownload: false,
   },

@@ -15,7 +15,7 @@ import { VoiceTextarea } from "@/components/shared/VoiceTextarea";
 import { AuthGateModal } from "@/components/auth/AuthGateModal";
 import { ApiError } from "@/lib/api-client";
 import { createGeneration } from "@/lib/generations";
-import { getMySubscription } from "@/lib/billing";
+import { getMyPurchase } from "@/lib/billing";
 import { useAuth } from "@/lib/auth/auth-context";
 import { usePaywall } from "@/lib/paywall/paywall-context";
 import { track } from "@/lib/analytics/posthog";
@@ -39,10 +39,10 @@ function NewGenerationForm() {
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
-    void getMySubscription().then((subscription) => {
+    void getMyPurchase().then((purchase) => {
       if (!cancelled) {
         setLockedStyles(
-          getLockedStylesForPlan(resolveEntitledPlanTier(subscription)),
+          getLockedStylesForPlan(resolveEntitledPlanTier(purchase)),
         );
       }
     });

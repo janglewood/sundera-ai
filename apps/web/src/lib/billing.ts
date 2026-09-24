@@ -1,20 +1,10 @@
-import type {
-  CreateCheckoutRequest,
-  CreateCheckoutResponse,
-  SubscriptionResponse,
-} from "@sundera/shared";
-import { apiDelete, apiGet, apiPostJson } from "./api-client";
+import type { CreateCheckoutResponse, PurchaseResponse } from "@sundera/shared";
+import { apiGet, apiPostJson } from "./api-client";
 
-export function createCheckout(
-  request: CreateCheckoutRequest,
-): Promise<CreateCheckoutResponse> {
-  return apiPostJson<CreateCheckoutResponse>("/payments/checkout", request);
+export function createCheckout(): Promise<CreateCheckoutResponse> {
+  return apiPostJson<CreateCheckoutResponse>("/payments/checkout", {});
 }
 
-export function getMySubscription(): Promise<SubscriptionResponse> {
-  return apiGet<SubscriptionResponse>("/payments/subscription");
-}
-
-export function cancelSubscription(): Promise<SubscriptionResponse> {
-  return apiDelete<SubscriptionResponse>("/payments/subscription");
+export function getMyPurchase(): Promise<PurchaseResponse> {
+  return apiGet<PurchaseResponse>("/payments/purchase");
 }

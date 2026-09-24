@@ -17,9 +17,9 @@ model User {
   provider      String?
   createdAt     DateTime @default(now())
 
-  roomPhotos   RoomPhoto[]
-  generations  Generation[]
-  subscription Subscription?
+  roomPhotos  RoomPhoto[]
+  generations Generation[]
+  purchase    Purchase?
 }
 
 model RoomPhoto {
@@ -115,35 +115,27 @@ model GenerationResult {
 }
 
 enum PlanTier {
-  STARTER
-  PRO
+  LIFETIME
 }
 
-enum SubscriptionStatus {
+enum PurchaseStatus {
   PENDING
-  ACTIVE
-  CANCELLED
-  EXPIRED
+  COMPLETED
   FAILED
 }
 
-// Absence of a row means the user is on the FREE tier. lavaContractId is the
-// lava.top *parent* contract id (the id returned from the first invoice) —
-// renewals create separate child contracts but reference this one via
-// parentContractId, and it's the id lava.top's cancel-subscription endpoint
-// expects, so it must stay pinned to the original purchase, never a renewal.
-model Subscription {
-  id                String             @id @default(cuid())
-  userId            String             @unique
-  user              User               @relation(fields: [userId], references: [id])
-  planTier          PlanTier
-  status            SubscriptionStatus @default(PENDING)
-  periodicity       String
-  lavaOfferId       String
-  lavaContractId    String             @unique
-  currentPeriodStart DateTime?
-  currentPeriodEnd  DateTime?
-  cancelledAt       DateTime?
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
+// Absence of a row means the user is on the FREE tier. A one-time purchase,
+// so once status is COMPLETED the plan tier is entitled permanently — no
+// period, cancellation, or expiry to track.
+model Purchase {
+  id             String         @id @default(cuid())
+  userId         String         @unique
+  user           User           @relation(fields: [userId], references: [id])
+  planTier       PlanTier
+  status         PurchaseStatus @default(PENDING)
+  lavaOfferId    String
+  lavaContractId String         @unique
+  purchasedAt    DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 }
