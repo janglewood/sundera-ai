@@ -24,6 +24,11 @@ const COPY: Record<PaywallReason, { heading: string; subtext: string }> = {
     subtext:
       "Get more redesigns, more edits, downloads, and every design style.",
   },
+  style: {
+    heading: "Upgrade to use all the features",
+    subtext:
+      "This style is part of a paid plan — upgrade to unlock every design style, plus more generations and edits.",
+  },
 };
 
 interface PaywallModalProps {

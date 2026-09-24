@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import {
   LOCKED_DESIGN_STYLES,
   getLockedStylesForPlan,
@@ -35,6 +35,18 @@ function NewGenerationForm() {
   const [showAuthGate, setShowAuthGate] = useState(false);
   const [lockedStyles, setLockedStyles] =
     useState<readonly DesignStyle[]>(LOCKED_DESIGN_STYLES);
+  const generateStepRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!roomType || !style) return;
+    const frame = requestAnimationFrame(() => {
+      generateStepRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "end",
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [roomType, style]);
 
   useEffect(() => {
     if (!user) return;
@@ -131,41 +143,56 @@ function NewGenerationForm() {
 
       <section>
         <h2 className="mb-4 text-lg font-semibold">What room is this?</h2>
-        <RoomTypeGrid value={roomType} onChange={setRoomType} />
-      </section>
-
-      <section>
-        <h2 className="mb-4 text-lg font-semibold">Pick a style</h2>
-        <StyleGrid
-          value={style}
-          onChange={setStyle}
-          lockedStyles={lockedStyles}
-          onLockedSelect={() => openPaywall("limit")}
+        <RoomTypeGrid
+          value={roomType}
+          onChange={(nextRoomType) => {
+            setRoomType(nextRoomType);
+            setStyle(null);
+          }}
         />
       </section>
 
-      <section>
-        <label className="mb-2 block text-sm font-medium">
-          Anything else? (optional)
-        </label>
-        <VoiceTextarea
-          value={customPrompt}
-          onChange={setCustomPrompt}
-          placeholder="e.g. add more plants, keep the wooden floor"
-          rows={3}
-        />
-      </section>
+      {roomType && (
+        <section className="wizard-step-enter">
+          <h2 className="mb-4 text-lg font-semibold">Pick a style</h2>
+          <StyleGrid
+            value={style}
+            onChange={setStyle}
+            lockedStyles={lockedStyles}
+            onLockedSelect={() => openPaywall("style")}
+          />
+        </section>
+      )}
 
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {roomType && style && (
+        <div
+          ref={generateStepRef}
+          className="wizard-step-enter flex flex-col gap-10"
+        >
+          <section>
+            <label className="mb-2 block text-sm font-medium">
+              Anything else? (optional)
+            </label>
+            <VoiceTextarea
+              value={customPrompt}
+              onChange={setCustomPrompt}
+              placeholder="e.g. add more plants, keep the wooden floor"
+              rows={3}
+            />
+          </section>
 
-      <button
-        type="button"
-        disabled={!roomType || !style || isSubmitting}
-        onClick={() => void handleSubmit()}
-        className="rounded-full bg-foreground px-6 py-3 font-medium text-background transition-opacity disabled:opacity-40"
-      >
-        {isSubmitting ? "Starting…" : "Generate redesign"}
-      </button>
+          {error && <p className="text-sm text-red-500">{error}</p>}
+
+          <button
+            type="button"
+            disabled={isSubmitting}
+            onClick={() => void handleSubmit()}
+            className="rounded-full bg-foreground px-6 py-3 font-medium text-background transition-opacity disabled:opacity-40"
+          >
+            {isSubmitting ? "Starting…" : "Generate redesign"}
+          </button>
+        </div>
+      )}
 
       {showAuthGate && (
         <AuthGateModal
