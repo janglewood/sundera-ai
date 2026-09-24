@@ -58,7 +58,7 @@ export class GenerationsService {
     private readonly payments: PaymentsService,
   ) {}
 
-  async create(dto: CreateGenerationDto, userId?: string) {
+  async create(dto: CreateGenerationDto, userId: string) {
     const roomPhoto = await this.prisma.roomPhoto.findUnique({
       where: { id: dto.roomPhotoId },
     });
@@ -66,35 +66,32 @@ export class GenerationsService {
       throw new NotFoundException(`RoomPhoto not found: ${dto.roomPhotoId}`);
     }
 
-    // Anonymous (no userId) requests are left unlimited for now.
-    if (userId) {
-      const planTier = await this.payments.resolvePlanTier(userId);
-      const limits = PLAN_LIMITS[planTier];
+    const planTier = await this.payments.resolvePlanTier(userId);
+    const limits = PLAN_LIMITS[planTier];
 
-      if (!isStyleAllowedForPlan(dto.style, planTier)) {
-        throw new PaywallRequiredException(
-          'This style is available on paid plans.',
-        );
-      }
+    if (!isStyleAllowedForPlan(dto.style, planTier)) {
+      throw new PaywallRequiredException(
+        'This style is available on paid plans.',
+      );
+    }
 
-      // Paid plans reset their generation count each billing period; FREE
-      // has no period to anchor to, so its single generation stays a
-      // lifetime cap (matches the "1 room redesign" copy, not "per month").
-      const periodStart = await this.payments.getCurrentPeriodStart(userId);
-      const generationCount = await this.prisma.generation.count({
-        where: {
-          userId,
-          sourceResultId: null,
-          ...(periodStart ? { createdAt: { gte: periodStart } } : {}),
-        },
-      });
-      if (generationCount >= limits.maxGenerations) {
-        throw new PaywallRequiredException(
-          planTier === 'FREE'
-            ? "You've used your free redesign. Upgrade to create more."
-            : "You've reached your plan's redesign limit. Upgrade for more.",
-        );
-      }
+    // Paid plans reset their generation count each billing period; FREE
+    // has no period to anchor to, so its single generation stays a
+    // lifetime cap (matches the "1 room redesign" copy, not "per month").
+    const periodStart = await this.payments.getCurrentPeriodStart(userId);
+    const generationCount = await this.prisma.generation.count({
+      where: {
+        userId,
+        sourceResultId: null,
+        ...(periodStart ? { createdAt: { gte: periodStart } } : {}),
+      },
+    });
+    if (generationCount >= limits.maxGenerations) {
+      throw new PaywallRequiredException(
+        planTier === 'FREE'
+          ? "You've used your free redesign. Upgrade to create more."
+          : "You've reached your plan's redesign limit. Upgrade for more.",
+      );
     }
 
     const generation = await this.prisma.generation.create({
@@ -302,23 +299,6 @@ export class GenerationsService {
       }
     }
     return count;
-  }
-
-  // Anonymous generations have userId=null. When that visitor later signs
-  // up, the frontend hands back every generation id it saw them create
-  // (tracked client-side, since there's no anonymous session concept
-  // server-side) so they land in "My projects" instead of vanishing. The
-  // userId: null filter means this can only attach currently-unclaimed
-  // rows — it can't be used to steal someone else's generation by id.
-  async claimAnonymousGenerations(generationIds: string[], userId: string) {
-    if (generationIds.length === 0) {
-      return { claimed: 0 };
-    }
-    const result = await this.prisma.generation.updateMany({
-      where: { id: { in: generationIds }, userId: null },
-      data: { userId },
-    });
-    return { claimed: result.count };
   }
 
   async findByUser(userId: string) {

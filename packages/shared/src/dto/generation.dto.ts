@@ -71,10 +71,3 @@ export interface RenameGenerationRequest {
   title: string;
 }
 
-export interface ClaimGenerationsRequest {
-  generationIds: string[];
-}
-
-export interface ClaimGenerationsResponse {
-  claimed: number;
-}

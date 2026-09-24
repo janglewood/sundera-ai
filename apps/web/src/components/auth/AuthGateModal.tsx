@@ -4,9 +4,13 @@ import { X } from "@phosphor-icons/react/dist/ssr";
 import type { UserCredential } from "firebase/auth";
 import { AuthForm } from "./AuthForm";
 
-export type AuthGateReason = "edit" | "download" | "account";
+export type AuthGateReason = "generate" | "edit" | "download" | "account";
 
 const COPY: Record<AuthGateReason, { title: string; subtitle: string }> = {
+  generate: {
+    title: "We're starting to generate your design",
+    subtitle: "Sign up to see the result once it's ready.",
+  },
   edit: {
     title: "Sign up to edit this result",
     subtitle: "Create a free account to tweak and refine your redesign.",

@@ -19,7 +19,6 @@ import { GenerationsService } from './generations.service';
 import { CreateGenerationDto } from './dto/create-generation.dto';
 import { CreateEditGenerationDto } from './dto/create-edit-generation.dto';
 import { RenameGenerationDto } from './dto/rename-generation.dto';
-import { ClaimGenerationsDto } from './dto/claim-generations.dto';
 
 @Controller('generations')
 export class GenerationsController {
@@ -27,24 +26,15 @@ export class GenerationsController {
 
   @Post()
   @HttpCode(HttpStatus.ACCEPTED)
-  @UseGuards(OptionalFirebaseAuthGuard)
-  create(@Body() dto: CreateGenerationDto, @CurrentUser() user?: User) {
-    return this.generationsService.create(dto, user?.id);
+  @UseGuards(FirebaseAuthGuard)
+  create(@Body() dto: CreateGenerationDto, @CurrentUser() user: User) {
+    return this.generationsService.create(dto, user.id);
   }
 
   @Get('mine')
   @UseGuards(FirebaseAuthGuard)
   listMine(@CurrentUser() user: User) {
     return this.generationsService.findByUser(user.id);
-  }
-
-  @Post('claim')
-  @UseGuards(FirebaseAuthGuard)
-  claim(@Body() dto: ClaimGenerationsDto, @CurrentUser() user: User) {
-    return this.generationsService.claimAnonymousGenerations(
-      dto.generationIds,
-      user.id,
-    );
   }
 
   @Get(':id')

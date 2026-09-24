@@ -12,6 +12,7 @@ import type { DesignStyle, RoomType } from "@sundera/shared";
 import { RoomTypeGrid } from "@/components/select/RoomTypeGrid";
 import { StyleGrid } from "@/components/select/StyleGrid";
 import { VoiceTextarea } from "@/components/shared/VoiceTextarea";
+import { AuthGateModal } from "@/components/auth/AuthGateModal";
 import { ApiError } from "@/lib/api-client";
 import { createGeneration } from "@/lib/generations";
 import { getMySubscription } from "@/lib/billing";
@@ -31,6 +32,7 @@ function NewGenerationForm() {
   const [customPrompt, setCustomPrompt] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showAuthGate, setShowAuthGate] = useState(false);
   const [lockedStyles, setLockedStyles] =
     useState<readonly DesignStyle[]>(LOCKED_DESIGN_STYLES);
 
@@ -65,7 +67,7 @@ function NewGenerationForm() {
     return null;
   }
 
-  async function handleSubmit() {
+  async function startGeneration() {
     if (!photoId || !roomType || !style) return;
     setIsSubmitting(true);
     setError(null);
@@ -93,6 +95,15 @@ function NewGenerationForm() {
       }
       setIsSubmitting(false);
     }
+  }
+
+  async function handleSubmit() {
+    if (!photoId || !roomType || !style) return;
+    if (!user) {
+      setShowAuthGate(true);
+      return;
+    }
+    await startGeneration();
   }
 
   return (
@@ -155,6 +166,17 @@ function NewGenerationForm() {
       >
         {isSubmitting ? "Starting…" : "Generate redesign"}
       </button>
+
+      {showAuthGate && (
+        <AuthGateModal
+          reason="generate"
+          onClose={() => setShowAuthGate(false)}
+          onSuccess={() => {
+            setShowAuthGate(false);
+            void startGeneration();
+          }}
+        />
+      )}
     </div>
   );
 }

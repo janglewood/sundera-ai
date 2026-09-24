@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ArrowUUpLeft, PencilSimple } from "@phosphor-icons/react/dist/ssr";
 import { ROOM_TYPE_LABELS, DESIGN_STYLE_LABELS } from "@sundera/shared";
 import type { RoomType, DesignStyle, RegionMask } from "@sundera/shared";
@@ -15,7 +15,6 @@ import {
 import { ApiError } from "@/lib/api-client";
 import { usePaywall } from "@/lib/paywall/paywall-context";
 import { useAuth } from "@/lib/auth/auth-context";
-import { rememberAnonGeneration } from "@/lib/anon-generations";
 import {
   AuthGateModal,
   type AuthGateReason,
@@ -110,10 +109,6 @@ export function GenerationView({ id }: GenerationViewProps) {
     regionMask: RegionMask;
     prompt: string;
   } | null>(null);
-
-  useEffect(() => {
-    if (!user) rememberAnonGeneration(id);
-  }, [user, id]);
 
   if (error) {
     return (
