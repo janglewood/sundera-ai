@@ -1,7 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { PricingCards, ctaClassName } from "@/components/pricing/PricingCards";
+import {
+  CtaLabel,
+  PricingCards,
+  ctaClassName,
+} from "@/components/pricing/PricingCards";
 import { highlightUpload } from "@/lib/highlightUpload";
 
 export function Pricing() {
@@ -10,11 +14,11 @@ export function Pricing() {
       <div className="mx-auto w-full max-w-6xl">
         <div className="mx-auto max-w-xl text-center">
           <h2 className="font-display text-3xl tracking-tight sm:text-4xl">
-            Simple pricing, cancel anytime
+            Simple pricing, pay once
           </h2>
           <p className="mt-4 text-muted-foreground">
-            Start free. Upgrade when you want more generations, edits, and
-            styles.
+            Start free. Upgrade with a one-time payment for more generations,
+            edits, and styles.
           </p>
         </div>
 
@@ -26,14 +30,14 @@ export function Pricing() {
                 onClick={highlightUpload}
                 className={ctaClassName(plan.highlighted)}
               >
-                {plan.cta}
+                <CtaLabel plan={plan} />
               </a>
             ) : (
               <Link
                 href="/login?next=paywall"
                 className={ctaClassName(plan.highlighted)}
               >
-                {plan.cta}
+                <CtaLabel plan={plan} />
               </Link>
             )
           }

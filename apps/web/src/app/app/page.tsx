@@ -2,17 +2,22 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { PLAN_LIMITS, resolveEntitledPlanTier } from "@sundera/shared";
 import { PhotoDropzone } from "@/components/upload/PhotoDropzone";
-import { createUpload } from "@/lib/generations";
+import { createUpload, listMyGenerations } from "@/lib/generations";
+import { getMyPurchase } from "@/lib/billing";
+import { useAuth } from "@/lib/auth/auth-context";
 import { usePaywall } from "@/lib/paywall/paywall-context";
 import { track } from "@/lib/analytics/posthog";
 
 function AppHome() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user } = useAuth();
   const { openPaywall } = usePaywall();
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isAtFreeLimit, setIsAtFreeLimit] = useState(false);
 
   useEffect(() => {
     if (searchParams.get("openPaywall") === "1") {
@@ -20,6 +25,32 @@ function AppHome() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    void Promise.all([getMyPurchase(), listMyGenerations()]).then(
+      ([purchase, generations]) => {
+        if (cancelled) return;
+        const planTier = resolveEntitledPlanTier(purchase);
+        setIsAtFreeLimit(
+          planTier === "FREE" &&
+            generations.length >= PLAN_LIMITS.FREE.maxGenerations,
+        );
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  function handleRequestSelect() {
+    if (isAtFreeLimit) {
+      openPaywall("limit");
+      return false;
+    }
+    return true;
+  }
 
   async function handleFileReady(file: File) {
     setIsUploading(true);
@@ -46,7 +77,11 @@ function AppHome() {
           </p>
         </div>
 
-        <PhotoDropzone onFileReady={(file) => void handleFileReady(file)} disabled={isUploading} />
+        <PhotoDropzone
+          onFileReady={(file) => void handleFileReady(file)}
+          onRequestSelect={handleRequestSelect}
+          disabled={isUploading}
+        />
 
         {error && <p className="text-sm text-red-500">{error}</p>}
       </div>

@@ -18,12 +18,7 @@ export type LavaTopContractStatus =
   | "subscription-cancelled"
   | "subscription-failed";
 
-export type LavaTopWebhookEventType =
-  | "payment.success"
-  | "payment.failed"
-  | "subscription.recurring.payment.success"
-  | "subscription.recurring.payment.failed"
-  | "subscription.cancelled";
+export type LavaTopWebhookEventType = "payment.success" | "payment.failed";
 
 export interface CreateInvoiceV3Request {
   email: string;
@@ -37,7 +32,7 @@ export interface InvoicePaymentParamsResponse {
   status: LavaTopContractStatus;
   amountTotal: { currency: LavaTopCurrency; amount: number };
   // null when the offer is free — we never hit that path since checkout is
-  // only ever created for the paid STARTER/PRO tiers.
+  // only ever created for the paid LIFETIME tier.
   paymentUrl: string | null;
 }
 
@@ -45,9 +40,6 @@ export interface LavaTopWebhookPayload {
   eventType: LavaTopWebhookEventType;
   product: { id: string; title: string };
   contractId: string;
-  // Set only on subscription.recurring.* events — points back at the
-  // contract id returned from the original checkout invoice.
-  parentContractId?: string | null;
   buyer: { email: string };
   amount: number;
   currency: LavaTopCurrency;

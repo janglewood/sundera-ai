@@ -60,26 +60,4 @@ export class LavaTopClientService {
 
     return response.json() as Promise<InvoicePaymentParamsResponse>;
   }
-
-  async cancelSubscription(contractId: string, email: string): Promise<void> {
-    const apiKey = this.requireApiKey();
-    const url = new URL(`${this.baseUrl}/api/v1/subscriptions`);
-    url.searchParams.set('contractId', contractId);
-    url.searchParams.set('email', email);
-
-    const response = await fetch(url, {
-      method: 'DELETE',
-      headers: { 'X-Api-Key': apiKey },
-    });
-
-    if (!response.ok && response.status !== 204) {
-      const body = await response.text();
-      this.logger.error(
-        `lava.top subscription cancellation failed (${response.status}): ${body}`,
-      );
-      throw new InternalServerErrorException(
-        'Failed to cancel the subscription with the payment provider.',
-      );
-    }
-  }
 }

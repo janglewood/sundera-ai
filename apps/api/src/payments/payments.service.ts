@@ -2,35 +2,21 @@ import {
   BadGatewayException,
   BadRequestException,
   Injectable,
-  NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type {
-  BillingPeriodicity,
-  PaidPlanTier,
-  PlanTier,
-  SubscriptionResponse,
-} from '@sundera/shared';
+import type { PlanTier, PurchaseResponse } from '@sundera/shared';
 import { PrismaService } from '../prisma/prisma.service';
-import type { Subscription, User } from '../../generated/prisma';
+import type { User } from '../../generated/prisma';
 import { LavaTopClientService } from './lava-top-client.service';
-import type {
-  LavaTopCurrency,
-  LavaTopPeriodicity,
-} from './types/lava-top-api.types';
-
-const PERIODICITY_MAP: Record<BillingPeriodicity, LavaTopPeriodicity> = {
-  MONTHLY: 'MONTHLY',
-  PERIOD_YEAR: 'PERIOD_YEAR',
-};
+import type { LavaTopCurrency } from './types/lava-top-api.types';
 
 @Injectable()
 export class PaymentsService {
-  // Read lazily so the API still boots before every paid tier has an offer
-  // configured on the lava.top dashboard — checkout for a specific tier
-  // fails with a clear error until its offer id is set.
-  private readonly offerIds: Partial<Record<PaidPlanTier, string>>;
+  // Read lazily so the API still boots before the lifetime offer is
+  // configured on the lava.top dashboard — checkout fails with a clear
+  // error until it's set.
+  private readonly offerId?: string;
   private readonly currency: LavaTopCurrency;
 
   constructor(
@@ -38,162 +24,81 @@ export class PaymentsService {
     private readonly lavaTopClient: LavaTopClientService,
     private readonly configService: ConfigService,
   ) {
-    this.offerIds = {
-      STARTER: this.configService.get<string>('LAVA_TOP_OFFER_ID_STARTER'),
-      PRO: this.configService.get<string>('LAVA_TOP_OFFER_ID_PRO'),
-    };
+    this.offerId = this.configService.get<string>('LAVA_TOP_OFFER_ID_LIFETIME');
     this.currency = (this.configService.get<string>('LAVA_TOP_CURRENCY') ??
       'USD') as LavaTopCurrency;
   }
 
-  async createCheckout(
-    user: User,
-    planTier: PaidPlanTier,
-    periodicity: BillingPeriodicity,
-  ): Promise<{ paymentUrl: string }> {
+  async createCheckout(user: User): Promise<{ paymentUrl: string }> {
     if (!user.email) {
       throw new BadRequestException(
-        'Your account has no email on file — add one before subscribing.',
+        'Your account has no email on file — add one before purchasing.',
       );
     }
 
-    const offerId = this.offerIds[planTier];
-    if (!offerId) {
+    if (!this.offerId) {
       throw new ServiceUnavailableException(
-        `The ${planTier} plan isn't set up for checkout yet (missing LAVA_TOP_OFFER_ID_${planTier}).`,
+        "The lifetime plan isn't set up for checkout yet (missing LAVA_TOP_OFFER_ID_LIFETIME).",
       );
     }
     const invoice = await this.lavaTopClient.createInvoice({
       email: user.email,
-      offerId,
+      offerId: this.offerId,
       currency: this.currency,
-      periodicity: PERIODICITY_MAP[periodicity],
+      periodicity: 'ONE_TIME',
     });
 
     if (!invoice.paymentUrl) {
       throw new BadGatewayException(
-        'The payment provider did not return a checkout link for this plan.',
+        'The payment provider did not return a checkout link.',
       );
     }
 
-    // upsert: re-checking out (e.g. retrying a failed payment, or switching
-    // tiers before ever completing one) replaces the pending row for this
-    // user rather than growing a history — there's one subscription slot
-    // per user for now, matching the product having no plan-switching UI yet.
-    await this.prisma.subscription.upsert({
+    // upsert: re-checking out (e.g. retrying a failed payment) replaces the
+    // pending row for this user rather than growing a history — there's one
+    // purchase slot per user, matching a single lifetime tier.
+    await this.prisma.purchase.upsert({
       where: { userId: user.id },
       create: {
         userId: user.id,
-        planTier,
-        periodicity,
-        lavaOfferId: offerId,
+        planTier: 'LIFETIME',
+        lavaOfferId: this.offerId,
         lavaContractId: invoice.id,
         status: 'PENDING',
       },
       update: {
-        planTier,
-        periodicity,
-        lavaOfferId: offerId,
+        lavaOfferId: this.offerId,
         lavaContractId: invoice.id,
         status: 'PENDING',
-        cancelledAt: null,
       },
     });
 
     return { paymentUrl: invoice.paymentUrl };
   }
 
-  async getMySubscription(userId: string): Promise<SubscriptionResponse> {
-    const subscription = await this.prisma.subscription.findUnique({
+  async getMyPurchase(userId: string): Promise<PurchaseResponse> {
+    const purchase = await this.prisma.purchase.findUnique({
       where: { userId },
     });
-    if (!subscription) {
-      return {
-        planTier: 'FREE',
-        status: null,
-        periodicity: null,
-        currentPeriodEnd: null,
-        cancelledAt: null,
-      };
+    if (!purchase) {
+      return { planTier: 'FREE', status: null, purchasedAt: null };
     }
 
     return {
-      planTier: subscription.planTier,
-      status: subscription.status,
-      periodicity: subscription.periodicity as BillingPeriodicity,
-      currentPeriodEnd: subscription.currentPeriodEnd?.toISOString() ?? null,
-      cancelledAt: subscription.cancelledAt?.toISOString() ?? null,
+      planTier: purchase.planTier,
+      status: purchase.status,
+      purchasedAt: purchase.purchasedAt?.toISOString() ?? null,
     };
   }
 
-  async cancelMySubscription(user: User): Promise<SubscriptionResponse> {
-    if (!user.email) {
-      throw new BadRequestException('Your account has no email on file.');
-    }
-
-    const subscription = await this.prisma.subscription.findUnique({
-      where: { userId: user.id },
-    });
-    if (!subscription || subscription.status === 'CANCELLED') {
-      throw new NotFoundException('No active subscription to cancel.');
-    }
-
-    await this.lavaTopClient.cancelSubscription(
-      subscription.lavaContractId,
-      user.email,
-    );
-
-    const updated = await this.prisma.subscription.update({
-      where: { userId: user.id },
-      data: { status: 'CANCELLED', cancelledAt: new Date() },
-    });
-
-    return {
-      planTier: updated.planTier,
-      status: updated.status,
-      periodicity: updated.periodicity as BillingPeriodicity,
-      currentPeriodEnd: updated.currentPeriodEnd?.toISOString() ?? null,
-      cancelledAt: updated.cancelledAt?.toISOString() ?? null,
-    };
-  }
-
-  // A cancelled subscription was already paid for through currentPeriodEnd —
-  // lava.top stops future renewals but doesn't refund the current period, so
-  // the user keeps their plan tier until that date passes. PENDING checkouts,
-  // FAILED payments, and EXPIRED subs (or a CANCELLED one past its period
-  // end) grant nothing.
-  private isEntitled(subscription: Subscription): boolean {
-    if (subscription.status === 'ACTIVE') return true;
-    if (subscription.status === 'CANCELLED') {
-      return (
-        subscription.currentPeriodEnd !== null &&
-        subscription.currentPeriodEnd.getTime() > Date.now()
-      );
-    }
-    return false;
-  }
-
-  // Anonymous requests and users who never subscribed are FREE.
+  // Anonymous requests and users who never purchased are FREE. A purchase
+  // is permanent once COMPLETED — no period or cancellation to check.
   async resolvePlanTier(userId?: string): Promise<PlanTier> {
     if (!userId) return 'FREE';
-    const subscription = await this.prisma.subscription.findUnique({
+    const purchase = await this.prisma.purchase.findUnique({
       where: { userId },
     });
-    if (!subscription || !this.isEntitled(subscription)) return 'FREE';
-    return subscription.planTier;
-  }
-
-  // Start of the paid plan's current billing window, used to reset
-  // generation counts monthly/annually instead of counting lifetime usage.
-  // Null for FREE users and for entitled subscriptions whose first payment
-  // webhook hasn't landed yet — callers should fall back to a lifetime count
-  // in that case rather than letting usage through unchecked.
-  async getCurrentPeriodStart(userId?: string): Promise<Date | null> {
-    if (!userId) return null;
-    const subscription = await this.prisma.subscription.findUnique({
-      where: { userId },
-    });
-    if (!subscription || !this.isEntitled(subscription)) return null;
-    return subscription.currentPeriodStart;
+    if (!purchase || purchase.status !== 'COMPLETED') return 'FREE';
+    return purchase.planTier;
   }
 }

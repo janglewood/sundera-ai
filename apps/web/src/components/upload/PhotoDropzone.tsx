@@ -45,9 +45,16 @@ async function downscaleImage(file: File): Promise<File> {
 interface PhotoDropzoneProps {
   onFileReady: (file: File) => void;
   disabled?: boolean;
+  // Called right before the file picker/camera opens or a drop is accepted.
+  // Return false to block (e.g. show a paywall) instead of opening it.
+  onRequestSelect?: () => boolean;
 }
 
-export function PhotoDropzone({ onFileReady, disabled }: PhotoDropzoneProps) {
+export function PhotoDropzone({
+  onFileReady,
+  disabled,
+  onRequestSelect,
+}: PhotoDropzoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [isChromeIOS, setIsChromeIOS] = useState(false);
@@ -59,6 +66,11 @@ export function PhotoDropzone({ onFileReady, disabled }: PhotoDropzoneProps) {
     // via <input type="file"> shows a black screen; Safari is unaffected.
     setIsChromeIOS(/CriOS/i.test(navigator.userAgent));
   }, []);
+
+  function openPicker(input: HTMLInputElement | null) {
+    if (onRequestSelect && !onRequestSelect()) return;
+    input?.click();
+  }
 
   async function handleFile(file: File | undefined) {
     if (!file) return;
@@ -75,7 +87,7 @@ export function PhotoDropzone({ onFileReady, disabled }: PhotoDropzoneProps) {
             ? "border-accent sm:border-foreground sm:bg-foreground/5"
             : "border-accent/40 sm:border-foreground/20"
         } ${disabled ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
-        onClick={() => inputRef.current?.click()}
+        onClick={() => openPicker(inputRef.current)}
         onDragOver={(e) => {
           e.preventDefault();
           setIsDragging(true);
@@ -84,6 +96,7 @@ export function PhotoDropzone({ onFileReady, disabled }: PhotoDropzoneProps) {
         onDrop={(e) => {
           e.preventDefault();
           setIsDragging(false);
+          if (onRequestSelect && !onRequestSelect()) return;
           void handleFile(e.dataTransfer.files[0]);
         }}
       >
@@ -127,7 +140,7 @@ export function PhotoDropzone({ onFileReady, disabled }: PhotoDropzoneProps) {
           type="button"
           aria-label="Take a photo"
           disabled={disabled}
-          onClick={() => cameraInputRef.current?.click()}
+          onClick={() => openPicker(cameraInputRef.current)}
           className="flex sm:hidden aspect-square w-16 shrink-0 items-center justify-center self-center rounded-2xl bg-accent text-accent-foreground shadow-md transition-colors hover:bg-accent-hover disabled:pointer-events-none disabled:opacity-50"
         >
           <svg

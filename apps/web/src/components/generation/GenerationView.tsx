@@ -3,19 +3,28 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ArrowUUpLeft, PencilSimple } from "@phosphor-icons/react/dist/ssr";
-import { ROOM_TYPE_LABELS, DESIGN_STYLE_LABELS } from "@sundera/shared";
-import type { RoomType, DesignStyle, RegionMask } from "@sundera/shared";
+import { ArrowUUpLeft, PencilSimple, Sparkle } from "@phosphor-icons/react/dist/ssr";
+import {
+  ROOM_TYPE_LABELS,
+  DESIGN_STYLE_LABELS,
+  resolveEntitledPlanTier,
+} from "@sundera/shared";
+import type {
+  RoomType,
+  DesignStyle,
+  RegionMask,
+  PurchaseResponse,
+} from "@sundera/shared";
 import { usePollGeneration } from "@/lib/use-poll-generation";
 import {
   createGenerationEdit,
   downloadGenerationResult,
   renameGeneration,
 } from "@/lib/generations";
+import { getMyPurchase } from "@/lib/billing";
 import { ApiError } from "@/lib/api-client";
 import { usePaywall } from "@/lib/paywall/paywall-context";
 import { useAuth } from "@/lib/auth/auth-context";
-import { rememberAnonGeneration } from "@/lib/anon-generations";
 import {
   AuthGateModal,
   type AuthGateReason,
@@ -60,28 +69,48 @@ function BackLink() {
   );
 }
 
-function HeaderActions({ onSignUp }: { onSignUp: () => void }) {
+function HeaderActions({
+  onSignUp,
+  isFreePlan,
+  onUpgrade,
+}: {
+  onSignUp: () => void;
+  isFreePlan: boolean;
+  onUpgrade: () => void;
+}) {
   const { user } = useAuth();
 
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex items-center justify-between gap-2">
       <BackLink />
-      {user ? (
-        <Link
-          href="/app"
-          className="rounded-full border border-foreground/20 px-3 py-1.5 text-sm font-medium transition-colors hover:bg-foreground/5"
-        >
-          Start over
-        </Link>
-      ) : (
-        <button
-          type="button"
-          onClick={onSignUp}
-          className="ml-auto rounded-full border border-foreground/20 px-3 py-1.5 text-sm font-medium transition-colors hover:bg-foreground/5"
-        >
-          Sign up
-        </button>
-      )}
+      <div className="ml-auto flex items-center gap-2">
+        {isFreePlan && (
+          <button
+            type="button"
+            onClick={onUpgrade}
+            className="flex items-center gap-1 rounded-full bg-foreground px-3 py-1.5 text-sm font-medium text-background transition-opacity hover:opacity-90"
+          >
+            <Sparkle size={14} weight="fill" />
+            Upgrade
+          </button>
+        )}
+        {user ? (
+          <Link
+            href="/app"
+            className="rounded-full border border-foreground/20 px-3 py-1.5 text-sm font-medium transition-colors hover:bg-foreground/5"
+          >
+            Start over
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={onSignUp}
+            className="rounded-full border border-foreground/20 px-3 py-1.5 text-sm font-medium transition-colors hover:bg-foreground/5"
+          >
+            Sign up
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -110,10 +139,20 @@ export function GenerationView({ id }: GenerationViewProps) {
     regionMask: RegionMask;
     prompt: string;
   } | null>(null);
+  const [purchase, setPurchase] = useState<PurchaseResponse | null>(null);
 
   useEffect(() => {
-    if (!user) rememberAnonGeneration(id);
-  }, [user, id]);
+    if (!user) return;
+    let cancelled = false;
+    void getMyPurchase().then((result) => {
+      if (!cancelled) setPurchase(result);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  const isFreePlan = !user || resolveEntitledPlanTier(purchase ?? { planTier: "FREE", status: null }) === "FREE";
 
   if (error) {
     return (
@@ -294,7 +333,11 @@ export function GenerationView({ id }: GenerationViewProps) {
 
   return (
     <>
-      <HeaderActions onSignUp={() => setAuthGate("account")} />
+      <HeaderActions
+        onSignUp={() => setAuthGate("account")}
+        isFreePlan={isFreePlan}
+        onUpgrade={() => openPaywall("browse")}
+      />
       <div className="flex flex-col gap-6">
         <div className="text-center">
           {isEditingTitle ? (
@@ -410,6 +453,22 @@ export function GenerationView({ id }: GenerationViewProps) {
               className="rounded-full bg-foreground px-6 py-3 font-medium text-background transition-opacity disabled:opacity-40"
             >
               {isEditSubmitting ? "Starting…" : "Edit"}
+            </button>
+          </div>
+        )}
+
+        {isFreePlan && (
+          <div className="flex flex-col items-center gap-2 rounded-2xl border border-foreground/10 bg-muted/50 px-6 py-5 text-center">
+            <p className="text-sm font-medium">
+              Unlock every design style, more generations, and unlimited edits
+            </p>
+            <button
+              type="button"
+              onClick={() => openPaywall("browse")}
+              className="flex items-center gap-1 rounded-full bg-foreground px-5 py-2 text-sm font-medium text-background transition-opacity hover:opacity-90"
+            >
+              <Sparkle size={14} weight="fill" />
+              Upgrade to use all the features
             </button>
           </div>
         )}

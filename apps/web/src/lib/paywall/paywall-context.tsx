@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { PaywallModal } from "@/components/paywall/PaywallModal";
 import { track } from "@/lib/analytics/posthog";
 
-export type PaywallReason = "limit" | "browse";
+export type PaywallReason = "limit" | "browse" | "style";
 
 interface PaywallContextValue {
   openPaywall: (reason?: PaywallReason) => void;

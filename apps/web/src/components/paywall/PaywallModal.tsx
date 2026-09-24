@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { X } from "@phosphor-icons/react/dist/ssr";
-import type { PaidPlanTier } from "@sundera/shared";
 import {
+  CtaLabel,
   PricingCards,
   ctaClassName,
   type PricingPlan,
@@ -24,6 +24,11 @@ const COPY: Record<PaywallReason, { heading: string; subtext: string }> = {
     subtext:
       "Get more redesigns, more edits, downloads, and every design style.",
   },
+  style: {
+    heading: "Upgrade to use all the features",
+    subtext:
+      "This style is part of a paid plan — upgrade to unlock every design style, plus more generations and edits.",
+  },
 };
 
 interface PaywallModalProps {
@@ -41,18 +46,12 @@ export function PaywallModal({ isOpen, reason, onClose }: PaywallModalProps) {
 
   const { heading, subtext } = COPY[reason];
 
-  async function handleUpgrade(
-    plan: PricingPlan,
-    cycle: "monthly" | "annual",
-  ) {
+  async function handleUpgrade(plan: PricingPlan) {
     setCheckoutError(null);
     setLoadingPlan(plan.name);
-    track("upgrade_clicked", { plan: plan.name, cycle, reason });
+    track("upgrade_clicked", { plan: plan.name, reason });
     try {
-      const { paymentUrl } = await createCheckout({
-        planTier: plan.name.toUpperCase() as PaidPlanTier,
-        periodicity: cycle === "annual" ? "PERIOD_YEAR" : "MONTHLY",
-      });
+      const { paymentUrl } = await createCheckout();
       window.location.href = paymentUrl;
     } catch {
       setCheckoutError("Couldn't start checkout. Please try again.");
@@ -95,7 +94,7 @@ export function PaywallModal({ isOpen, reason, onClose }: PaywallModalProps) {
 
         <PricingCards
           compactOnMobile={isMobile}
-          renderCta={(plan, cycle) =>
+          renderCta={(plan) =>
             plan.name === "Free" ? (
               <span
                 className={`${ctaClassName(false, isMobile)} cursor-default bg-muted text-muted-foreground hover:bg-muted`}
@@ -106,10 +105,14 @@ export function PaywallModal({ isOpen, reason, onClose }: PaywallModalProps) {
               <button
                 type="button"
                 disabled={loadingPlan !== null}
-                onClick={() => void handleUpgrade(plan, cycle)}
+                onClick={() => void handleUpgrade(plan)}
                 className={ctaClassName(plan.highlighted, isMobile)}
               >
-                {loadingPlan === plan.name ? "Redirecting…" : plan.cta}
+                {loadingPlan === plan.name ? (
+                  "Redirecting…"
+                ) : (
+                  <CtaLabel plan={plan} />
+                )}
               </button>
             )
           }

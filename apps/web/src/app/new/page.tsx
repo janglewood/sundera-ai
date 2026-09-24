@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import {
   LOCKED_DESIGN_STYLES,
   getLockedStylesForPlan,
@@ -12,9 +12,10 @@ import type { DesignStyle, RoomType } from "@sundera/shared";
 import { RoomTypeGrid } from "@/components/select/RoomTypeGrid";
 import { StyleGrid } from "@/components/select/StyleGrid";
 import { VoiceTextarea } from "@/components/shared/VoiceTextarea";
+import { AuthGateModal } from "@/components/auth/AuthGateModal";
 import { ApiError } from "@/lib/api-client";
 import { createGeneration } from "@/lib/generations";
-import { getMySubscription } from "@/lib/billing";
+import { getMyPurchase } from "@/lib/billing";
 import { useAuth } from "@/lib/auth/auth-context";
 import { usePaywall } from "@/lib/paywall/paywall-context";
 import { track } from "@/lib/analytics/posthog";
@@ -31,16 +32,29 @@ function NewGenerationForm() {
   const [customPrompt, setCustomPrompt] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showAuthGate, setShowAuthGate] = useState(false);
   const [lockedStyles, setLockedStyles] =
     useState<readonly DesignStyle[]>(LOCKED_DESIGN_STYLES);
+  const generateStepRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!roomType || !style) return;
+    const frame = requestAnimationFrame(() => {
+      generateStepRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "end",
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [roomType, style]);
 
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
-    void getMySubscription().then((subscription) => {
+    void getMyPurchase().then((purchase) => {
       if (!cancelled) {
         setLockedStyles(
-          getLockedStylesForPlan(resolveEntitledPlanTier(subscription)),
+          getLockedStylesForPlan(resolveEntitledPlanTier(purchase)),
         );
       }
     });
@@ -65,7 +79,7 @@ function NewGenerationForm() {
     return null;
   }
 
-  async function handleSubmit() {
+  async function startGeneration() {
     if (!photoId || !roomType || !style) return;
     setIsSubmitting(true);
     setError(null);
@@ -95,6 +109,15 @@ function NewGenerationForm() {
     }
   }
 
+  async function handleSubmit() {
+    if (!photoId || !roomType || !style) return;
+    if (!user) {
+      setShowAuthGate(true);
+      return;
+    }
+    await startGeneration();
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-10 px-6 py-16">
       <button
@@ -120,41 +143,67 @@ function NewGenerationForm() {
 
       <section>
         <h2 className="mb-4 text-lg font-semibold">What room is this?</h2>
-        <RoomTypeGrid value={roomType} onChange={setRoomType} />
-      </section>
-
-      <section>
-        <h2 className="mb-4 text-lg font-semibold">Pick a style</h2>
-        <StyleGrid
-          value={style}
-          onChange={setStyle}
-          lockedStyles={lockedStyles}
-          onLockedSelect={() => openPaywall("limit")}
+        <RoomTypeGrid
+          value={roomType}
+          onChange={(nextRoomType) => {
+            setRoomType(nextRoomType);
+            setStyle(null);
+          }}
         />
       </section>
 
-      <section>
-        <label className="mb-2 block text-sm font-medium">
-          Anything else? (optional)
-        </label>
-        <VoiceTextarea
-          value={customPrompt}
-          onChange={setCustomPrompt}
-          placeholder="e.g. add more plants, keep the wooden floor"
-          rows={3}
+      {roomType && (
+        <section className="wizard-step-enter">
+          <h2 className="mb-4 text-lg font-semibold">Pick a style</h2>
+          <StyleGrid
+            value={style}
+            onChange={setStyle}
+            lockedStyles={lockedStyles}
+            onLockedSelect={() => openPaywall("style")}
+          />
+        </section>
+      )}
+
+      {roomType && style && (
+        <div
+          ref={generateStepRef}
+          className="wizard-step-enter flex flex-col gap-10"
+        >
+          <section>
+            <label className="mb-2 block text-sm font-medium">
+              Anything else? (optional)
+            </label>
+            <VoiceTextarea
+              value={customPrompt}
+              onChange={setCustomPrompt}
+              placeholder="e.g. add more plants, keep the wooden floor"
+              rows={3}
+            />
+          </section>
+
+          {error && <p className="text-sm text-red-500">{error}</p>}
+
+          <button
+            type="button"
+            disabled={isSubmitting}
+            onClick={() => void handleSubmit()}
+            className="rounded-full bg-foreground px-6 py-3 font-medium text-background transition-opacity disabled:opacity-40"
+          >
+            {isSubmitting ? "Starting…" : "Generate redesign"}
+          </button>
+        </div>
+      )}
+
+      {showAuthGate && (
+        <AuthGateModal
+          reason="generate"
+          onClose={() => setShowAuthGate(false)}
+          onSuccess={() => {
+            setShowAuthGate(false);
+            void startGeneration();
+          }}
         />
-      </section>
-
-      {error && <p className="text-sm text-red-500">{error}</p>}
-
-      <button
-        type="button"
-        disabled={!roomType || !style || isSubmitting}
-        onClick={() => void handleSubmit()}
-        className="rounded-full bg-foreground px-6 py-3 font-medium text-background transition-opacity disabled:opacity-40"
-      >
-        {isSubmitting ? "Starting…" : "Generate redesign"}
-      </button>
+      )}
     </div>
   );
 }

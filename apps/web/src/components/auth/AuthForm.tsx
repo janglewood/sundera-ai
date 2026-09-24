@@ -8,11 +8,6 @@ import {
   getAuthErrorMessage,
   signInWithGoogle,
 } from "@/lib/auth/auth-actions";
-import {
-  clearAnonGenerationIds,
-  getAnonGenerationIds,
-} from "@/lib/anon-generations";
-import { claimGenerations } from "@/lib/generations";
 
 interface AuthFormProps {
   title: string;
@@ -26,23 +21,11 @@ export function AuthForm({ title, subtitle, onSuccess }: AuthFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function claimAnonGenerations() {
-    const ids = getAnonGenerationIds();
-    if (ids.length === 0) return;
-    try {
-      await claimGenerations(ids);
-      clearAnonGenerationIds();
-    } catch {
-      // best-effort — a failed claim shouldn't block sign-in completing
-    }
-  }
-
   async function handleSubmit() {
     setIsSubmitting(true);
     setError(null);
     try {
       const credential = await continueWithEmail(email, password);
-      await claimAnonGenerations();
       onSuccess(credential);
     } catch (err) {
       setError(getAuthErrorMessage(err));
@@ -55,7 +38,6 @@ export function AuthForm({ title, subtitle, onSuccess }: AuthFormProps) {
     setError(null);
     try {
       const credential = await signInWithGoogle();
-      await claimAnonGenerations();
       onSuccess(credential);
     } catch (err) {
       setError(getAuthErrorMessage(err));
