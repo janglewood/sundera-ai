@@ -18,6 +18,8 @@ DEFAULT_STATE = {
     "approved_slots": [],  # finished candidate info for stage 1 -> feeds stage 2, in order
     "current": None,  # dict describing the single pending item, or None
     "next_run_at": None,  # ISO datetime string; when stage is idle/done, when to start the next cycle
+    "refill_stage": "idle",  # idle | awaiting_confirmation | running — see refill_pool.py / bot.py's refill_scheduler_loop
+    "last_refill_check_date": None,  # "YYYY-MM-DD" — the REFILL_CHECK_TIME check only fires once/day
 }
 
 

@@ -42,6 +42,16 @@ ROOM_LABELS = {
     "entryway": "entryway",
 }
 
+
+def room_label(room_type):
+    """room_type is null for the Kufar pack (see kufar_collect.py) — unlike Pexels'
+    per-query room type, Kufar listings mix every room of an apartment in one gallery with
+    no per-photo label, classified later by hand/classify_photos.py instead."""
+    if not room_type:
+        return "room"
+    return ROOM_LABELS.get(room_type, room_type.replace("_", " "))
+
+
 # Mirrors packages/shared/src/enums/design-style.enum.ts DESIGN_STYLE_LABELS.
 # Keep in sync if a style is added/renamed there.
 DESIGN_STYLE_LABELS = {
@@ -129,12 +139,38 @@ def edit_image(env, image_bytes, mime_type, prompt, retries=3):
     raise RuntimeError("OpenRouter request failed after retries")
 
 
-def load_manifest():
+def load_manifest(source_dir=None):
+    """source_dir restricts to manifest entries whose file lives in that photos/ subfolder
+    (e.g. "clean" for classify_photos.py's vetted-room/no-watermark bucket) — None (default)
+    returns every kept photo regardless of subfolder, root-level Pexels/unclassified included."""
     if not os.path.exists(MANIFEST_PATH):
         sys.exit(f"No manifest at {MANIFEST_PATH} — run pexels_collect.py first")
     with open(MANIFEST_PATH) as f:
         manifest = json.load(f)
-    return [m for m in manifest if m.get("status") == "kept" and os.path.exists(os.path.join(PHOTOS_DIR, m["file"]))]
+    manifest = [m for m in manifest if m.get("status") == "kept" and os.path.exists(os.path.join(PHOTOS_DIR, m["file"]))]
+    if source_dir:
+        manifest = [m for m in manifest if m["file"].startswith(f"{source_dir}/")]
+    return manifest
+
+
+def remove_photo(photo_id):
+    """Delete a photo's file (if present) and flip its manifest entry to status "removed" —
+    used by bot.py the moment a photo is "used" (candidate rejected, or a generated result
+    approved and archived to R2), so it's never shown again. Consistent with the hand-delete
+    convention every collect/classify script's own load_manifest already respects."""
+    if not os.path.exists(MANIFEST_PATH):
+        return
+    with open(MANIFEST_PATH) as f:
+        manifest = json.load(f)
+    for m in manifest:
+        if m["id"] == photo_id:
+            path = os.path.join(PHOTOS_DIR, m["file"])
+            if os.path.exists(path):
+                os.remove(path)
+            m["status"] = "removed"
+            break
+    with open(MANIFEST_PATH, "w") as f:
+        json.dump(manifest, f, ensure_ascii=False, indent=2)
 
 
 def load_used():
