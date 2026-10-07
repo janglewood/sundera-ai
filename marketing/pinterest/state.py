@@ -15,7 +15,8 @@ DEFAULT_STATE = {
     "stage": "idle",  # idle | candidates | generating | done
     "slot_index": 0,
     "excluded_ids": [],  # photo ids already shown today (approved or rejected) — no repeats within a day
-    "approved_slots": [],  # finished candidate info for stage 1 -> feeds stage 2, in order
+    "approved_slots": [],  # {"room_type"} of slots completed (uploaded) so far today — steers
+                           # pick_next_candidate's avoid_room_types toward variety within a batch
     "current": None,  # dict describing the single pending item, or None
     "next_run_at": None,  # ISO datetime string; when stage is idle/done, when to start the next cycle
     "refill_stage": "idle",  # idle | awaiting_confirmation | running — see refill_pool.py / bot.py's refill_scheduler_loop

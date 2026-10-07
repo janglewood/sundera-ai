@@ -83,7 +83,12 @@ Polling endpoint (`apps/api/src/generations/generations.controller.ts` + `genera
 The source image is sent as a **base64 data URL** (`data:{mimeType};base64,...}`), not a presigned MinIO URL — OpenRouter's servers can't reach `localhost:9000` in dev, and this keeps dev/prod identical. 60s `AbortController` timeout per request.
 
 Prompt shape (`generation-worker.service.ts` → `buildPrompt()`):
-> "Redesign this {room type} in {style} style. Preserve the existing walls, windows, doors, and camera perspective exactly; only change furniture, decor, materials, and color palette. {customPrompt if provided}"
+> "Redesign this {room type} in {style} style. Keep the room's exact shape, geometry, and camera perspective; do not add, remove, resize, or move any doors, windows, or other openings — you may restyle existing ones but not create new ones. Wall, floor, and ceiling colors and materials can change, along with furniture, decor, and color palette. {customPrompt if provided}"
+
+(2026-09-28: reworded to explicitly allow wall/floor/ceiling color+material changes while still
+locking structural geometry and openings — the original "preserve the existing walls, windows,
+doors... exactly" read as forbidding color changes too, which wasn't the intent. Mirrored in
+`marketing/pinterest/pipeline.py`'s `build_prompt()`, kept in sync — see that file's comment.)
 
 ### Async job flow (`generation-worker.service.ts`)
 

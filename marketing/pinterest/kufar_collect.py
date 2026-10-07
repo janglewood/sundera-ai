@@ -75,7 +75,20 @@ WATERMARK_BOX = (0.72, 0.85, 1.0, 1.0)  # (x0, y0, x1, y1)
 
 def fetch_page(url, retries=4):
     for attempt in range(retries):
-        resp = requests.get(url, headers={"User-Agent": UA}, timeout=30)
+        try:
+            resp = requests.get(url, headers={"User-Agent": UA}, timeout=30)
+        except requests.exceptions.RequestException as e:
+            # Transient network failure (SSL handshake, DNS, connection reset — e.g. right
+            # after a laptop wakes from sleep and the network stack is still settling), not
+            # a Kufar response at all. Previously unretried, unlike the 429 case below, so a
+            # single one of these killed the entire scrape (confirmed 2026-09-29: an
+            # SSLEOFError mid-scrape aborted a run that had already reached its target).
+            if attempt < retries - 1:
+                wait = 10 * (attempt + 1)
+                print(f"  network error ({e}), retrying in {wait}s", file=sys.stderr)
+                time.sleep(wait)
+                continue
+            raise
         if resp.status_code == 429 and attempt < retries - 1:
             wait = 20 * (attempt + 1)
             print(f"  rate limited, sleeping {wait}s", file=sys.stderr)
@@ -104,7 +117,16 @@ def next_cursor_token(pagination):
 
 def download_bytes(url, retries=4):
     for attempt in range(retries):
-        resp = requests.get(url, headers={"User-Agent": UA}, timeout=60)
+        try:
+            resp = requests.get(url, headers={"User-Agent": UA}, timeout=60)
+        except requests.exceptions.RequestException as e:
+            # See the matching comment in fetch_page — same transient-network-failure gap.
+            if attempt < retries - 1:
+                wait = 10 * (attempt + 1)
+                print(f"  network error ({e}), retrying in {wait}s", file=sys.stderr)
+                time.sleep(wait)
+                continue
+            raise
         if resp.status_code == 429 and attempt < retries - 1:
             wait = 20 * (attempt + 1)
             print(f"  rate limited, sleeping {wait}s", file=sys.stderr)

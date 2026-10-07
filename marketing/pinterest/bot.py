@@ -2,19 +2,21 @@
 """Daily Telegram-approval daemon for the Sundera Pinterest pipeline.
 
 Runs forever. Once a day (SCHEDULE_TIME, in a fixed UTC+SCHEDULE_UTC_OFFSET
-timezone) it starts a batch of BATCH_SIZE (default 3) pins, in two stages,
-strictly one item at a time:
+timezone) it starts a batch of BATCH_SIZE (default 3) pins, strictly one
+slot at a time:
 
-  Stage 1 — candidates: send an unused "before" photo, wait for Approve/
-  Reject (inline button or typed "approve"/"reject"). Approve moves to the
-  next candidate; reject swaps in a different photo for the same slot.
-  Repeat until BATCH_SIZE candidates are approved.
+  Candidate — send an unused "before" photo with a button per DesignStyle,
+  plus a "different photo" button. Tapping a style immediately starts
+  generation with that style (no more random style assignment); "different
+  photo" swaps in a different candidate for the same slot without
+  generating anything.
 
-  Stage 2 — generation: for each approved candidate in order, pick a random
-  DesignStyle, call OpenRouter, build the before/after collage, send it for
-  approval. Approve uploads before/after/collage to R2 (see storage_r2.py)
-  and replies with a link. Reject re-generates the same candidate with a
-  different style and sends again.
+  Generation — call OpenRouter with the chosen style, build the
+  before/after collage, send it for Approve/Reject (inline button or typed
+  "approve"/"reject"). Approve uploads before/after/collage to R2 (see
+  storage_r2.py), replies with a link, and moves on to the next slot's
+  candidate. Reject re-generates the same candidate with a different
+  (randomly chosen) style and sends again.
 
 After BATCH_SIZE approved collages, sleeps until the next scheduled run.
 Send /run or /run_generation to start a batch immediately instead of
@@ -64,7 +66,13 @@ import random
 import sys
 from datetime import datetime, timedelta, timezone
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import (
+    BotCommand,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    ReplyKeyboardMarkup,
+    Update,
+)
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
@@ -74,6 +82,7 @@ from telegram.ext import (
     filters,
 )
 
+import classify_photos
 import pipeline
 import refill_pool
 import state
@@ -123,6 +132,23 @@ def decision_keyboard():
     ]])
 
 
+def style_keyboard():
+    """Candidate-stage keyboard: one button per DesignStyle (callback_data "style:<KEY>"),
+    two per row, plus a trailing "different photo" button (callback_data "reject_photo") to
+    swap the candidate without generating anything. Distinct callback_data namespace from
+    decision_keyboard()'s "approve"/"reject" so on_callback routes unambiguously."""
+    keys = list(pipeline.DESIGN_STYLE_LABELS.keys())
+    rows = [
+        [
+            InlineKeyboardButton(pipeline.DESIGN_STYLE_LABELS[key], callback_data=f"style:{key}")
+            for key in keys[i:i + 2]
+        ]
+        for i in range(0, len(keys), 2)
+    ]
+    rows.append([InlineKeyboardButton("🔁 Different photo", callback_data="reject_photo")])
+    return InlineKeyboardMarkup(rows)
+
+
 def refill_keyboard():
     # Distinct callback_data from decision_keyboard()'s "approve"/"reject" — refill
     # confirmation and candidate/generation decisions are routed separately in on_callback.
@@ -130,6 +156,30 @@ def refill_keyboard():
         InlineKeyboardButton("✅ Yes, refill", callback_data="refill_yes"),
         InlineKeyboardButton("❌ Not now", callback_data="refill_no"),
     ]])
+
+
+def main_menu_keyboard():
+    """Persistent bottom-of-chat buttons for the always-available commands (as opposed to
+    decision_keyboard()/refill_keyboard(), which are inline buttons attached to one specific
+    message). Button text is the literal slash command, so tapping one just sends that text —
+    routed by the same CommandHandlers as typing it — no extra dispatch needed here. Stays
+    visible across restarts once sent once (a Telegram client-side setting, not bot state)."""
+    return ReplyKeyboardMarkup(
+        [["/status"], ["/run", "/run_parse"], ["/run_classify", "/run_clean"]],
+        resize_keyboard=True,
+    )
+
+
+async def delete_message(app, message_id):
+    """Best-effort delete — keeps the chat down to just final "Saved ..." results by
+    removing the candidate-photo and collage-review messages once they're acted on, instead
+    of leaving every intermediate step sitting in the chat."""
+    if not message_id:
+        return
+    try:
+        await app.bot.delete_message(CHAT_ID, message_id)
+    except Exception:
+        pass
 
 
 def pick_next_candidate(st):
@@ -164,20 +214,26 @@ async def send_candidate(app, current):
             f,
             caption=(
                 f"Candidate {slot_num}/{BATCH_SIZE} — {room_label}\n"
-                "Approve to generate a redesign, or reject for a different photo."
+                "Pick a style to generate a redesign, or get a different photo."
             ),
-            reply_markup=decision_keyboard(),
+            reply_markup=style_keyboard(),
         )
     st = state.load()
     st["current"]["message_id"] = msg.message_id
     state.save(st)
 
 
-async def generate_and_send(app, slot, exclude_style=None, attempt=0):
-    styles = list(pipeline.DESIGN_STYLE_LABELS.keys())
-    if exclude_style and len(styles) > 1:
-        styles = [s for s in styles if s != exclude_style]
-    style = random.choice(styles)
+async def generate_and_send(app, slot, style=None, exclude_style=None, attempt=0):
+    """style: explicit choice (from the candidate-stage style buttons, or a resumed
+    pending_generation that already had one locked in) — reused as-is on retry. If None,
+    picks randomly (the collage-reject "regenerate with a different style" path), optionally
+    avoiding exclude_style; a retry in that path re-rolls excluding the style that just failed."""
+    locked = style is not None
+    if style is None:
+        styles = list(pipeline.DESIGN_STYLE_LABELS.keys())
+        if exclude_style and len(styles) > 1:
+            styles = [s for s in styles if s != exclude_style]
+        style = random.choice(styles)
     style_label = pipeline.DESIGN_STYLE_LABELS[style]
     room_label = pipeline.room_label(slot["room_type"])
     prompt = pipeline.build_prompt(room_label, style_label)
@@ -191,7 +247,7 @@ async def generate_and_send(app, slot, exclude_style=None, attempt=0):
     # restart mid-call resumes by re-generating this slot instead of getting stuck
     # with current=None and stage="generating" forever (see post_init).
     st = state.load()
-    st["current"] = {**slot, "pending_generation": True}
+    st["current"] = {**slot, "style": style, "pending_generation": True}
     state.save(st)
 
     status_msg = await app.bot.send_message(CHAT_ID, f"Generating {room_label} in {style_label}…")
@@ -208,7 +264,10 @@ async def generate_and_send(app, slot, exclude_style=None, attempt=0):
             f"Generation failed for {room_label} in {style_label} — retrying in {wait}s."
         )
         await asyncio.sleep(wait)
-        await generate_and_send(app, slot, exclude_style=style, attempt=attempt + 1)
+        if locked:
+            await generate_and_send(app, slot, style=style, attempt=attempt + 1)
+        else:
+            await generate_and_send(app, slot, exclude_style=style, attempt=attempt + 1)
         return
 
     st = state.load()
@@ -248,6 +307,12 @@ async def upload_and_reply(app, current, date, idx):
     collage_bytes = base64.b64decode(current["collage_b64"])
 
     room_label = pipeline.room_label(current["room_type"])
+    env = pipeline.load_api_env()
+    link = pipeline.utm_link(date, idx)
+    title, description = await asyncio.to_thread(
+        pipeline.generate_copy, env, room_label, current["style_label"], link
+    )
+
     stem = f"{idx:02d}_{pipeline.slugify(room_label)}_{pipeline.slugify(current['style_label'])}"
     urls = {}
     items = (
@@ -269,50 +334,73 @@ async def upload_and_reply(app, current, date, idx):
 
     await app.bot.send_message(
         CHAT_ID,
-        f"Saved {idx}/{BATCH_SIZE}: {room_label} — {current['style_label']}\n{urls['collage']}",
+        f"Saved {idx}/{BATCH_SIZE}: {room_label} — {current['style_label']}\n{urls['collage']}\n\n"
+        f"Title: {title}\n\n{description}",
     )
 
 
-async def handle_decision(app, approved):
+async def show_next_candidate(app, st):
+    """Shared tail of handle_reject_photo and handle_decision's approve branch: pick and
+    send the next unused candidate for the current slot, or announce out-of-photos."""
+    photo = pick_next_candidate(st)
+    if photo is None:
+        await out_of_photos(app, st)
+        return
+    st["stage"] = "candidates"
+    st["excluded_ids"].append(photo["id"])
+    st["current"] = {"photo_id": photo["id"], "photo_file": photo["file"], "room_type": photo["room_type"]}
+    state.save(st)
+    await send_candidate(app, st["current"])
+
+
+async def handle_style_choice(app, style_key):
+    """A style button tap on a candidate photo — approves that candidate and immediately
+    starts generation with the chosen style (no more random style assignment)."""
     st = state.load()
-    if st["stage"] not in ("candidates", "generating") or not st["current"]:
+    if st["stage"] != "candidates" or not st["current"]:
+        return "Nothing pending right now."
+    current = st["current"]
+    slot = {
+        "photo_id": current["photo_id"],
+        "photo_file": current["photo_file"],
+        "room_type": current["room_type"],
+    }
+    await delete_message(app, current.get("message_id"))
+    st["stage"] = "generating"
+    st["current"] = None
+    state.save(st)
+    await generate_and_send(app, slot, style=style_key)
+    return None
+
+
+async def handle_reject_photo(app):
+    """"Different photo" button on a candidate — rejected candidates are never shown again,
+    removed immediately (see pipeline.remove_photo and the module docstring's delete-on-use
+    policy) — then a replacement candidate is shown for the same slot."""
+    st = state.load()
+    if st["stage"] != "candidates" or not st["current"]:
+        return "Nothing pending right now."
+    await delete_message(app, st["current"].get("message_id"))
+    pipeline.remove_photo(st["current"]["photo_id"])
+    await show_next_candidate(app, st)
+    return None
+
+
+async def handle_decision(app, approved):
+    """Approve/reject on a generated collage (stage "generating" only — candidate-stage
+    decisions go through handle_style_choice/handle_reject_photo instead)."""
+    st = state.load()
+    if st["stage"] != "generating" or not st["current"]:
         return "Nothing pending right now."
     current = st["current"]
 
-    if st["stage"] == "candidates":
-        if approved:
-            st["approved_slots"].append({
-                "photo_id": current["photo_id"],
-                "photo_file": current["photo_file"],
-                "room_type": current["room_type"],
-            })
-            st["slot_index"] += 1
-            if st["slot_index"] >= BATCH_SIZE:
-                st["stage"] = "generating"
-                slot_index = 0
-                st["slot_index"] = slot_index
-                st["current"] = None
-                state.save(st)
-                await generate_and_send(app, st["approved_slots"][slot_index])
-                return None
-        else:
-            # Rejected candidates are never shown again — remove immediately (see
-            # pipeline.remove_photo and the module docstring's delete-on-use policy).
-            pipeline.remove_photo(current["photo_id"])
-        photo = pick_next_candidate(st)
-        if photo is None:
-            await out_of_photos(app, st)
-            return None
-        st["excluded_ids"].append(photo["id"])
-        st["current"] = {"photo_id": photo["id"], "photo_file": photo["file"], "room_type": photo["room_type"]}
-        state.save(st)
-        await send_candidate(app, st["current"])
-        return None
-
-    # stage == "generating"
     if approved:
         await upload_and_reply(app, current, st["date"], st["slot_index"] + 1)
+        # Collage-review message's job is done — the "Saved ..." message above is the one
+        # result we keep in the chat, so the review message (photo + Approve/Reject) goes.
+        await delete_message(app, current.get("message_id"))
         st = state.load()
+        st["approved_slots"].append({"room_type": current["room_type"]})
         st["slot_index"] += 1
         if st["slot_index"] >= BATCH_SIZE:
             st["stage"] = "done"
@@ -325,14 +413,14 @@ async def handle_decision(app, approved):
             )
         else:
             st["current"] = None
-            state.save(st)
-            await generate_and_send(app, st["approved_slots"][st["slot_index"]])
+            await show_next_candidate(app, st)
     else:
         base_slot = {
             "photo_id": current["photo_id"],
             "photo_file": current["photo_file"],
             "room_type": current["room_type"],
         }
+        await delete_message(app, current.get("message_id"))
         st["current"] = None
         state.save(st)
         await generate_and_send(app, base_slot, exclude_style=current.get("style"))
@@ -412,6 +500,56 @@ async def run_refill(app):
         state.save(st)
 
 
+async def run_clean(app):
+    """Kicks off refill_pool.clean_watermark_backlog() in a background thread — same
+    refill_stage gate and notify-bridging pattern as run_refill, but skips the scrape/classify
+    phases: just FLUX-cleans whatever's currently in photos/watermark/ into photos/clean/."""
+    st = state.load()
+    st["refill_stage"] = "running"
+    state.save(st)
+    await app.bot.send_message(CHAT_ID, "Cleaning photos/watermark/ with local FLUX now…")
+    loop = asyncio.get_running_loop()
+
+    def notify(msg):
+        asyncio.run_coroutine_threadsafe(app.bot.send_message(CHAT_ID, msg), loop)
+
+    try:
+        await asyncio.to_thread(refill_pool.clean_watermark_backlog, notify)
+    except Exception:
+        logger.exception("refill_pool.clean_watermark_backlog failed")
+        await app.bot.send_message(CHAT_ID, "Watermark cleanup failed — see logs.")
+    finally:
+        st = state.load()
+        st["refill_stage"] = "idle"
+        state.save(st)
+
+
+async def run_classify(app):
+    """Kicks off classify_photos.classify_batch(limit=None) in a background thread — same
+    refill_stage gate as run_refill/run_clean (all three touch photos/ + manifest.json, kept
+    mutually exclusive). classify_batch has no notify hook of its own (unlike
+    refill_pool.run/clean_watermark_backlog) — it's the slow, no-phase-boundary part of a full
+    refill (~15-25s/photo via Ollama), so this just reports the final counts, not progress."""
+    st = state.load()
+    st["refill_stage"] = "running"
+    state.save(st)
+    await app.bot.send_message(
+        CHAT_ID,
+        "Classifying all unclassified photos (room? which room? watermarked?) — this can take "
+        "a while, I'll message you when it's done.",
+    )
+    try:
+        counts = await asyncio.to_thread(classify_photos.classify_batch, None)
+        await app.bot.send_message(CHAT_ID, f"Classification done — {counts}")
+    except Exception:
+        logger.exception("classify_photos.classify_batch failed")
+        await app.bot.send_message(CHAT_ID, "Classification failed — see logs.")
+    finally:
+        st = state.load()
+        st["refill_stage"] = "idle"
+        state.save(st)
+
+
 async def handle_refill_decision(app, confirmed):
     st = state.load()
     if st["refill_stage"] != "awaiting_confirmation":
@@ -468,7 +606,12 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if query.data in ("refill_yes", "refill_no"):
         await handle_refill_decision(context.application, query.data == "refill_yes")
         return
-    note = await handle_decision(context.application, query.data == "approve")
+    if query.data.startswith("style:"):
+        note = await handle_style_choice(context.application, query.data.removeprefix("style:"))
+    elif query.data == "reject_photo":
+        note = await handle_reject_photo(context.application)
+    else:
+        note = await handle_decision(context.application, query.data == "approve")
     if note:
         await context.application.bot.send_message(CHAT_ID, note)
 
@@ -487,9 +630,24 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if st["refill_stage"] == "awaiting_confirmation":
         await handle_refill_decision(context.application, approved)
         return
-    note = await handle_decision(context.application, approved)
+    if st["stage"] == "candidates":
+        if approved:
+            await update.message.reply_text("Pick a style with the buttons above — typed approve doesn't apply here.")
+            return
+        note = await handle_reject_photo(context.application)
+    else:
+        note = await handle_decision(context.application, approved)
     if note:
         await update.message.reply_text(note)
+
+
+async def on_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_chat.id != CHAT_ID:
+        return
+    await update.message.reply_text(
+        "Sundera Pinterest bot. Use the buttons below (or the / menu) any time.",
+        reply_markup=main_menu_keyboard(),
+    )
 
 
 async def on_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -501,7 +659,7 @@ async def on_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
         lines.append(f"next run: {st['next_run_at']}")
     lines.append(f"clean pool: {len(pipeline.load_manifest(source_dir='clean'))} photos")
     lines.append(f"refill: {st['refill_stage']} (last checked: {st['last_refill_check_date']})")
-    await update.message.reply_text("\n".join(lines))
+    await update.message.reply_text("\n".join(lines), reply_markup=main_menu_keyboard())
 
 
 async def on_run(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -533,7 +691,45 @@ async def on_run_parse(update: Update, context: ContextTypes.DEFAULT_TYPE):
     asyncio.create_task(run_refill(context.application))
 
 
+async def on_run_clean(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """/run_clean — FLUX-clean whatever's currently in photos/watermark/ into photos/clean/,
+    skipping the scrape/classify phases of a full /run_parse. Same refill_stage gate as
+    /run_parse (both use the same FLUX server resource, can't run concurrently)."""
+    if update.effective_chat.id != CHAT_ID:
+        return
+    st = state.load()
+    if st["refill_stage"] != "idle":
+        await update.message.reply_text(f"Refill already {st['refill_stage']} — nothing to start.")
+        return
+    await update.message.reply_text("Starting watermark cleanup now…")
+    asyncio.create_task(run_clean(context.application))
+
+
+async def on_run_classify(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """/run_classify — sort/classify whatever's unclassified in photos/ root (room? which
+    room? still watermarked?) into photos/clean/ or photos/watermark/, skipping the scrape and
+    FLUX-clean phases of a full /run_parse. Same refill_stage gate as /run_parse//run_clean."""
+    if update.effective_chat.id != CHAT_ID:
+        return
+    st = state.load()
+    if st["refill_stage"] != "idle":
+        await update.message.reply_text(f"Refill already {st['refill_stage']} — nothing to start.")
+        return
+    await update.message.reply_text("Starting classification now…")
+    asyncio.create_task(run_classify(context.application))
+
+
 async def post_init(app: Application):
+    # Populates the client's "/" command menu — separate surface from main_menu_keyboard()'s
+    # bottom buttons, doesn't hurt to have both.
+    await app.bot.set_my_commands([
+        BotCommand("start", "Show the button menu"),
+        BotCommand("status", "Batch/refill status"),
+        BotCommand("run", "Start a candidate/generation batch now"),
+        BotCommand("run_parse", "Scrape + classify + FLUX-clean now (full refill)"),
+        BotCommand("run_classify", "Sort/classify unclassified photos now (skip scrape/clean)"),
+        BotCommand("run_clean", "FLUX-clean photos/watermark/ now (skip scrape/classify)"),
+    ])
     st = state.load()
     today = datetime.now(TZ).strftime("%Y-%m-%d")
     if st["stage"] in ("candidates", "generating") and st["current"]:
@@ -564,13 +760,14 @@ async def post_init(app: Application):
                 await send_candidate(app, current)
             elif current.get("pending_generation"):
                 # Crashed mid-OpenRouter-call before any result existed — nothing to
-                # re-send, just re-run generation for this slot from scratch.
+                # re-send, just re-run generation for this slot from scratch, with the
+                # same style that was already locked in (chosen or rolled) before the crash.
                 base_slot = {
                     "photo_id": current["photo_id"],
                     "photo_file": current["photo_file"],
                     "room_type": current["room_type"],
                 }
-                await generate_and_send(app, base_slot)
+                await generate_and_send(app, base_slot, style=current.get("style"))
             else:
                 room_label = pipeline.room_label(current["room_type"])
                 collage_bytes = base64.b64decode(current["collage_b64"])
@@ -599,9 +796,12 @@ def main():
         asyncio.set_event_loop(asyncio.new_event_loop())
 
     app = Application.builder().token(ENV["TELEGRAM_BOT_TOKEN"]).post_init(post_init).build()
+    app.add_handler(CommandHandler("start", on_start))
     app.add_handler(CommandHandler("status", on_status))
     app.add_handler(CommandHandler(["run", "run_generation"], on_run))
     app.add_handler(CommandHandler("run_parse", on_run_parse))
+    app.add_handler(CommandHandler("run_classify", on_run_classify))
+    app.add_handler(CommandHandler("run_clean", on_run_clean))
     app.add_handler(CallbackQueryHandler(on_callback))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))
     logger.info(
