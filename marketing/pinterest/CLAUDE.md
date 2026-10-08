@@ -19,13 +19,23 @@ promoting Sundera, with Anton approving each one in Telegram:
 
 ## Decisions already made (do not revisit without asking)
 
-- **Publish only via the official Pinterest API.** No Playwright / computer-use / browser automation:
-  Pinterest ToS forbids automated access without permission and bans risk losing the brand account.
-- **API access:** Trial access creates pins visible only to the creator. Public pins need **Standard access**:
-  demo video of the OAuth flow plus a real API call, accessible privacy policy, review takes days to ~4 weeks.
-  Start that application early; it is the longest lead time.
-- **Phase 0 (until Standard access):** the bot delivers ready-to-post pins and Anton posts them manually
-  (Pinterest's own scheduler is fine). Automatic publishing is added when access is granted.
+- **2026-10-08: reversed — publishing is now via Playwright browser automation, not the official
+  API.** The original decision (quoted below, kept for history) was dropped because Standard API
+  access has a days-to-weeks review lead time and Anton wants this working now, not after that
+  review lands. Confirmed explicitly: Anton's own personal account, capped at a few posts/day
+  (PUBLISH_TIMES_PER_DAY, default 3) at randomized times within a window — not mass automation, not
+  someone else's account. Ban risk to the account is accepted, not eliminated — see
+  `pinterest_publish.py`. The original API-based reasoning, kept for context on why this was the
+  starting position:
+  > Publish only via the official Pinterest API. No Playwright / computer-use / browser automation:
+  > Pinterest ToS forbids automated access without permission and bans risk losing the brand account.
+  > API access: Trial access creates pins visible only to the creator. Public pins need Standard
+  > access: demo video of the OAuth flow plus a real API call, accessible privacy policy, review
+  > takes days to ~4 weeks.
+- **Phase 0 (until Standard access, if ever revisited):** the bot delivers ready-to-post pins and
+  Anton posts them manually (Pinterest's own scheduler is fine). This is now superseded by the
+  Playwright flow below for the default path, but still works as a fallback — nothing was removed
+  from the approval flow, publishing was only added on top of it.
 - **Photo source: Kufar (`re.kufar.by`), not Pexels — `bot.py`'s daily flow draws from
   `photos/clean/` on disk.** Originally Pexels-only (license allows modification/commercial
   use; Unsplash forbids compiling photos for a competing service, a grey area for a redesign
@@ -43,6 +53,11 @@ promoting Sundera, with Anton approving each one in Telegram:
   Anton reviews the photos by hand and deletes bad ones (the script never re-downloads a deleted photo).
 - Pinterest labels AI content ("Gen AI"); keep the real "before" in the collage, vary titles/descriptions/boards,
   do not post near-duplicate pins (spam risk).
+  **2026-10-08: `pinterest_publish.py` briefly auto-enabled the create-pin page's own "mark as
+  AI-modified" disclosure toggle, reading this bullet as an instruction to self-disclose — reversed
+  same day on explicit request. This bullet is about Pinterest's own automatic "Gen AI" labeling of
+  content it detects, not an instruction to proactively flip that toggle; don't re-add it without
+  asking.**
 
 ## Current state
 
@@ -247,21 +262,144 @@ promoting Sundera, with Anton approving each one in Telegram:
   only in case of a future revert to a Pexels-only, Railway-deployed setup.
 - **Title/description generation is done** (`pipeline.generate_copy`, called from `bot.py`'s
   `upload_and_reply()` only after Anton approves the collage — see the 2026-10-07 note above) — alt-text
-  generation, Pinterest OAuth + publish, and landing pages are still not built, see "Suggested next steps"
-  below.
+  generation and landing pages are still not built, see "Suggested next steps" below.
+- **2026-10-08: Pinterest publishing is done — `pinterest_publish.py`, Playwright browser automation
+  (see the decision reversal above for why not the API).** Entry points:
+  - `login_interactive()` (`./.venv/bin/python pinterest_publish.py login`) — **must be run by hand once**
+    before anything can actually publish. Opens a real, visible Chromium window; Anton logs into
+    Pinterest himself, then the session (cookies) is saved to `pinterest_session.json` (gitignored —
+    it's equivalent to a login credential, never commit it). `bot.py` never sees or handles Pinterest
+    credentials — this step is deliberately kept outside the bot process.
+    **Doesn't work if the Pinterest account only has "Continue with Google"** (which `sundera1ai`
+    does) — confirmed 2026-10-08: Google outright refuses sign-in from a Playwright/CDP-controlled
+    Chromium ("This browser or app may not be secure"), a deliberate anti-automation measure on
+    Google's side, headed or not, not something to try to route around.
+  - **`import_cookies()`** (`pinterest_publish.py import-cookies --file <export.json>`) — the
+    workaround for the Google-OAuth case above. Anton logs into Pinterest normally in a real,
+    non-automated browser (Chrome + the Cookie-Editor extension), exports that tab's cookies as
+    JSON, and this converts Cookie-Editor's export schema into the same `storage_state.json` shape
+    `login_interactive()` would have produced — filters to `pinterest.com`-domain cookies only (in
+    case the export was "all cookies" rather than scoped to the tab), maps `sameSite` values
+    (`no_restriction`/`unspecified`/`lax`/`strict` → Playwright's `None`/`Lax`/`Lax`/`Strict`), and
+    treat session cookies (or any missing `expirationDate`) as `expires: -1`. Then does the same
+    logged-in sanity check as `login_interactive()` (navigate to the home feed, warn if redirected to
+    `/login`) unless `--no-verify`. The raw cookie-export JSON file itself is as sensitive as the
+    session it produces — delete it after converting, same handling as any other credential per
+    Housekeeping below.
+  - A `pinterest_publish.py test --image ... --title ... --description ... --link ... --board ...
+    --headed` CLI exists for manually verifying/fixing selectors against the live site before
+    trusting the scheduled path (see the next bullet on selector risk) — works the same regardless of
+    which of the two methods above produced the session.
+  - `publish_pin(image_path, title, description, link, board_name=None, headless=True)` — loads the
+    saved session, opens the Pinterest create-pin page, uploads the image via a raw `input[type=file]`
+    (works even hidden, more stable across redesigns than clicking a visible dropzone), fills
+    title/description/link, clicks Publish. **`board_name` is optional — the `sundera1ai` account has no boards set up (confirmed 2026-10-08,
+    screenshot showed only "Created"/"Saved" tabs, no Boards tab), so by default the board-picker step
+    is skipped entirely and the pin lands directly on the profile.** If a board is ever created, pass
+    its exact visible name and the picker step runs (click `[data-test-id="board-dropdown-select-button"]`
+    → click matching text).
+    **Field selectors were originally placeholder-text regexes and were wrong — fixed and verified live
+    2026-10-08.** The account's Pinterest UI renders in Russian (account language setting), so
+    English-text placeholder matching failed outright (`fill_title` timed out — see the debug
+    screenshot/HTML dump that caught it). The actual DOM was inspected via `_debug_dump`'s HTML dump
+    (added that session) and it turned out `pin-creation-tool/` lands on Pinterest's "storyboard"
+    creation surface, whose `id`/`data-test-id` attributes stay in English regardless of display
+    language — switched to those instead of visible text, which is the durable fix (don't go back to
+    placeholder-text matching for this page):
+    - title: `#storyboard-selector-title`
+    - description: `[data-test-id="storyboard-description-field-container"] [contenteditable="true"]`
+      (a Draft.js rich-text editor, not a plain textarea — `.fill()` works on it via Playwright's
+      contenteditable handling)
+    - link: `#WebsiteField`
+      (an "AI-disclosure toggle" step, `[data-test-id="ai-disclosure-switch"] input[type="checkbox"]`,
+      was briefly added here then removed same day on explicit request — see the "Gen AI" bullet above)
+    - board picker trigger: `[data-test-id="board-dropdown-select-button"]`
+    - publish button: `[data-test-id="storyboard-creation-nav-done"] button`
+    On any step failure `publish_pin` raises `PublishError` and `_debug_dump` saves both a full-page
+    screenshot **and the page's HTML** to `output/pinterest_debug/` (gitignored, covered by the
+    existing `marketing/pinterest/output` ignore) — the HTML dump is what made finding the real
+    selectors above possible; keep it if debugging a future break.
+    **2026-10-08, second bug found after the one above: the Publish button stays disabled while the
+    last-filled field (`#WebsiteField`) still has focus.** Chased several wrong hypotheses first
+    (headless vs. headed, near-duplicate drafts triggering spam detection, an account-wide Pinterest
+    bot-restriction after the first successful publish — ruled all three out by testing fresh content
+    headed/headless and by Anton confirming the same draft was publishable from his own normal,
+    non-automated browser) before Anton noticed directly: click outside the input and the button lights
+    up immediately. Fixed with a `blur_last_field` step — `page.locator("#WebsiteField").press("Tab")`
+    — right after `fill_link` and before `click_publish`. This, not any of the discarded hypotheses, was
+    the actual root cause of every post-first-pin failure that day.
+    **Mistake made while debugging this, for the record: an agent-written cleanup script meant to
+    delete duplicate test drafts had a matching bug and deleted ALL drafts, including "Modern Kitchen
+    Redesign" — a real pre-existing draft of Anton's, not agent-created.** Should have asked before
+    running any bulk-delete against the live account; didn't. Confirmed acceptable to Anton after the
+    fact (unpublished draft, no public content lost) but noted here as a standing reminder: get explicit
+    confirmation before any destructive/bulk action against the real Pinterest account, even ones that
+    look obviously safe (e.g. "obviously this is just test junk").
+    **Verified end-to-end 2026-10-08**: a real `test --headed` run against live Pinterest published
+    an actual pin to `sundera1ai` (title "Minimalist Living Room Redesign Inspiration", confirmed
+    visible on the profile). That specific queue item was manually removed from `publish_queue`
+    afterward since the `test` CLI publishes directly and doesn't touch the queue — leaving it in
+    would have caused the scheduler to publish it a second time (duplicate-pin spam risk, see the
+    existing decision above). **A run that fails after `upload_image` but before `click_publish`
+    leaves an empty/partial draft sitting in Pinterest's own Drafts sidebar** (Pinterest autosaves
+    as you type) — cosmetic, doesn't affect the public profile, but worth an occasional manual
+    cleanup in Pinterest's UI since nothing here deletes those.
+  - **Wired into `bot.py`:** `upload_and_reply()` now writes the already-generated collage to
+    `output/to_publish/<stem>_<date>.jpg` and appends `{id, image_path, title, description, link, board,
+    added_at}` to `state.py`'s `publish_queue` instead of publishing immediately (unchanged: the
+    "Saved ..." Telegram message with R2 links still happens the same as before — publishing happens on
+    top of that, not instead of it). A third independent scheduler, `publish_scheduler_loop` (same
+    pattern as `scheduler_loop`/`refill_scheduler_loop` — runs regardless of the other two's state),
+    picks `PUBLISH_TIMES_PER_DAY` (default 3) **randomized** times/day within
+    `[PUBLISH_WINDOW_START, PUBLISH_WINDOW_END)` (default 09:00-21:00, bot's configured timezone) —
+    randomized rather than evenly spaced so posting doesn't look mechanically regular.
+    **2026-10-08: added a second, mandatory approval gate before any real Pinterest publish — explicit
+    request, "publish only after I clicked approve."** At each due slot (or on `/run_publish`, or on a
+    bot restart that finds one pending), the scheduler no longer calls `publish_pin` directly — it pops
+    the queue head and calls `send_publish_approval`, which sends the image + title/description to
+    Telegram with its own Publish/Discard buttons (`publish_decision_keyboard`, distinct `callback_data`
+    from the collage-review `approve`/`reject` so the two can't collide) and stores the item +
+    `message_id` in `state.py`'s `pending_publish`. **`do_publish` (the function that actually calls
+    `pinterest_publish.publish_pin` via `asyncio.to_thread`) is now only ever invoked from
+    `handle_publish_decision`'s approved branch — no code path calls it unattended.** Discard deletes the
+    local image file and drops the item for good (no requeue — "no" means no, not "ask me again later");
+    on success/failure `do_publish`'s existing behavior is unchanged (delete local file + Telegram
+    confirmation on success; requeue to the front + alert on failure, so a failed publish gets a *fresh*
+    approval prompt at the next due slot rather than silently retrying). Only one `pending_publish` is
+    in flight at a time — `publish_scheduler_loop` waits for it to resolve before prompting about the
+    next queued item, same "one thing at a time" pattern as the main candidate/generation flow. Typed
+    "approve"/"reject" deliberately does **not** route to a pending publish decision (buttons only) —
+    that shortcut is already overloaded for refill-confirmation and collage-review, and a real Pinterest
+    publish is the one decision in this bot that shouldn't be fat-fingerable via a stray "yes". Also
+    fixed while adding this: the restart-resume branch for a dropped/stale candidate batch used to reset
+    to `dict(state.DEFAULT_STATE)` preserving only `refill_stage`/`last_refill_check_date` — would have
+    silently wiped `publish_queue`/`pending_publish` too; now preserves every publish-related field.
+    `/run_publish` (chat command + persistent button) now asks for approval on the queue head
+    immediately, ignoring the schedule — it does **not** publish by itself either, same gate.
+    `/status` reports queue length, today's used/total publish slots, configured board name (or "none
+    (posts straight to profile)" if `PINTEREST_BOARD_NAME` is empty), and now also whether a publish
+    decision is currently awaiting Anton's response.
+  - **Not yet tested through the actual queue/scheduler path** (only via the standalone `test` CLI, see
+    above) — `/run_publish` or the first scheduled `publish_scheduler_loop` slot is still the first real
+    test of that path specifically (do_publish's success/failure handling, Telegram alerting, etc.).
+  - **`requirements.txt` now includes `playwright`** (needed at `bot.py` import time, not just for a
+    side script) — this makes the already-stale "Deploying (Docker + Railway)" section below even less
+    applicable than before: a minimal container also needs `playwright install chromium` plus system
+    libraries (libnss3, libatk-bridge2.0, etc.) that a bare Dockerfile won't have. Not addressed here
+    since that deploy path is unused (`bot.py` runs locally only, per the existing 2026-09-25 note).
 
-## Suggested next steps (posting automation — later, not now)
+## Suggested next steps
 
 1. ~~Pipeline script: choose photo + style, call generation, save results.~~ done (`generate_pairs.py`).
 2. ~~Collage builder.~~ done (Pillow, in `generate_pairs.py`).
-3. ~~Telegram bot with approve/reject.~~ done (`bot.py`, SQLite state) — **note: this is review-approval only,
-   it doesn't publish to Pinterest.**
+3. ~~Telegram bot with approve/reject.~~ done (`bot.py`, SQLite state).
 4. ~~Title/description generation.~~ done (`pipeline.generate_copy`, see above). Alt-text generation still
-   not built.
-5. Pin queue and scheduler for spreading publishes over the day (today's `bot.py` already spreads
-   *generation* over the day via the approval flow, but nothing publishes to Pinterest yet).
-6. Pinterest OAuth + publisher (start with Trial/sandbox, then apply for Standard) — publish will need
-   alt-text too, and should reuse the title/description already generated per pin rather than regenerating.
+   not built (Pinterest's alt-text field isn't filled by `pinterest_publish.py` yet).
+5. ~~Pin queue and scheduler for spreading publishes over the day.~~ done (`publish_queue` in `state.py`,
+   `publish_scheduler_loop` in `bot.py`).
+6. ~~Pinterest publisher.~~ done via Playwright (`pinterest_publish.py`), not the API — see the 2026-10-08
+   decision reversal above. **Needs the one-time manual `login` step + a live `test --headed` run before
+   it's actually proven working, not just wired up.**
 7. Landing pages per style with UTM tracking (UTM params are already generated per pin via `pipeline.utm_link`,
    pointing at `sundera.app/` — swap in real per-style landing page paths here once they exist).
 

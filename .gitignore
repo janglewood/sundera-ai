@@ -16,5 +16,6 @@ marketing/pinterest/output
 marketing/pinterest/.venv
 marketing/pinterest/.env
 marketing/pinterest/bot_state.db
+marketing/pinterest/pinterest_session.json
 __pycache__/
 *.pyc
