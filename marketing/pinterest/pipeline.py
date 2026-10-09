@@ -42,6 +42,16 @@ ROOM_LABELS = {
     "entryway": "entryway",
 }
 
+
+def room_label(room_type):
+    """room_type is null for the Kufar pack (see kufar_collect.py) — unlike Pexels'
+    per-query room type, Kufar listings mix every room of an apartment in one gallery with
+    no per-photo label, classified later by hand/classify_photos.py instead."""
+    if not room_type:
+        return "room"
+    return ROOM_LABELS.get(room_type, room_type.replace("_", " "))
+
+
 # Mirrors packages/shared/src/enums/design-style.enum.ts DESIGN_STYLE_LABELS.
 # Keep in sync if a style is added/renamed there.
 DESIGN_STYLE_LABELS = {
@@ -75,6 +85,9 @@ def read_env_file(path):
     return env
 
 
+DEFAULT_TEXT_MODEL = "google/gemini-2.5-flash-lite"  # cheap + reliable for short pin copy — see CLAUDE.md
+
+
 def load_api_env():
     """OPENROUTER_* — checks marketing/pinterest/.env first, then apps/api/.env, then the environment."""
     env = read_env_file(API_ENV_PATH)
@@ -86,6 +99,12 @@ def load_api_env():
         sys.exit(
             f"Missing {', '.join(missing)} (checked marketing/pinterest/.env, apps/api/.env, and the environment)"
         )
+    # Separate (cheaper) model for text copy, not the image-editing model above. Optional —
+    # falls back to DEFAULT_TEXT_MODEL rather than failing, so existing deployments don't
+    # need an .env change to pick this up.
+    env["OPENROUTER_TEXT_MODEL"] = os.environ.get(
+        "OPENROUTER_TEXT_MODEL", env.get("OPENROUTER_TEXT_MODEL") or DEFAULT_TEXT_MODEL
+    )
     return env
 
 
@@ -93,8 +112,11 @@ def build_prompt(room_label, style_label):
     # Mirrors buildPrompt() in apps/api/src/generations/generation-worker.service.ts
     return (
         f"Redesign this {room_label} in {style_label.lower()} style. "
-        "Preserve the existing walls, windows, doors, and camera perspective exactly; "
-        "only change furniture, decor, materials, and color palette."
+        "Keep the room's exact shape, geometry, and camera perspective; "
+        "do not add, remove, resize, or move any doors, windows, or other openings — "
+        "you may restyle existing ones but not create new ones. "
+        "Wall, floor, and ceiling colors and materials can change, along with "
+        "furniture, decor, and color palette."
     )
 
 
@@ -129,12 +151,115 @@ def edit_image(env, image_bytes, mime_type, prompt, retries=3):
     raise RuntimeError("OpenRouter request failed after retries")
 
 
-def load_manifest():
+def utm_link(date, slot_num):
+    """date: 'YYYY-MM-DD' (schedule timezone), slot_num: 1-based slot in the batch.
+    Format: https://sundera.app/?utm_source=pinterest&utm_medium=social&utm_content=2026-09-21-1"""
+    return f"https://sundera.app/?utm_source=pinterest&utm_medium=social&utm_content={date}-{slot_num}"
+
+
+_COPY_RE = re.compile(r"TITLE:\s*(.+?)\s*\n+\s*DESCRIPTION:\s*(.+)", re.IGNORECASE | re.DOTALL)
+
+
+def _clip(text, limit):
+    text = text.strip()
+    if len(text) <= limit:
+        return text
+    return text[:limit].rsplit(" ", 1)[0].rstrip(".,;:")
+
+
+# Ported from feat/marketing-automatio-tool (commit 7b0f336, "FEAT: copy generation") — see
+# the collage/CTA porting note above draw_badge; this is the copy-generation half of that
+# same unmerged branch, hand-ported the same way.
+def generate_copy(env, room_label, style_label, retries=3):
+    """Title + description for a Pinterest pin, via a cheap OpenRouter text model
+    (OPENROUTER_TEXT_MODEL, see load_api_env). The description has no link in it —
+    the UTM link (built by utm_link) goes only in the pin's separate link field,
+    filled in by pinterest_publish.py."""
+    system_prompt = (
+        "You write short, SEO-friendly Pinterest pin copy for Sundera, an AI interior redesign app: "
+        "upload a photo of your room, get back a photorealistic redesign in seconds. Audience is "
+        "home-decor Pinterest users searching for room inspiration."
+    )
+    user_prompt = (
+        f"This pin shows a real 'before' photo of a {room_label} next to an AI-generated 'after' "
+        f"redesign of the same room in {style_label} style.\n\n"
+        "Write:\n"
+        "1. TITLE — max 100 characters. SEO keywords (room type + style). No hashtags, no emoji, no quotes.\n"
+        "2. DESCRIPTION — 300-500 characters, two parts in order: "
+        "(a) one short CTA sentence inviting the reader to try Sundera on their own room; "
+        "(b) 1-2 sentences describing this specific transformation with concrete details "
+        "(colors, materials, furniture) as if describing a real before/after. "
+        "Do not include a URL or any mention of a link — the pin's link field covers that separately.\n\n"
+        "Respond in exactly this format and nothing else:\n"
+        "TITLE: <title>\n"
+        "DESCRIPTION: <description>"
+    )
+    body = {
+        "model": env["OPENROUTER_TEXT_MODEL"],
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        "temperature": 0.8,
+    }
+    for attempt in range(retries):
+        resp = requests.post(
+            f"{env['OPENROUTER_BASE_URL']}/chat/completions",
+            headers={
+                "Authorization": f"Bearer {env['OPENROUTER_API_KEY']}",
+                "Content-Type": "application/json",
+            },
+            json=body,
+            timeout=30,
+        )
+        if resp.status_code == 429 and attempt < retries - 1:
+            time.sleep(10 * (attempt + 1))
+            continue
+        resp.raise_for_status()
+        text = resp.json()["choices"][0]["message"]["content"]
+        match = _COPY_RE.search(text)
+        if not match:
+            if attempt < retries - 1:
+                continue
+            raise RuntimeError(f"Could not parse title/description from model output: {text!r}")
+        title = match.group(1).strip().strip('"').strip("*").strip()
+        description = match.group(2).strip().strip('"').strip()
+        return _clip(title, 100), _clip(description, 500)
+    raise RuntimeError("OpenRouter text request failed after retries")
+
+
+def load_manifest(source_dir=None):
+    """source_dir restricts to manifest entries whose file lives in that photos/ subfolder
+    (e.g. "clean" for classify_photos.py's vetted-room/no-watermark bucket) — None (default)
+    returns every kept photo regardless of subfolder, root-level Pexels/unclassified included."""
     if not os.path.exists(MANIFEST_PATH):
         sys.exit(f"No manifest at {MANIFEST_PATH} — run pexels_collect.py first")
     with open(MANIFEST_PATH) as f:
         manifest = json.load(f)
-    return [m for m in manifest if m.get("status") == "kept" and os.path.exists(os.path.join(PHOTOS_DIR, m["file"]))]
+    manifest = [m for m in manifest if m.get("status") == "kept" and os.path.exists(os.path.join(PHOTOS_DIR, m["file"]))]
+    if source_dir:
+        manifest = [m for m in manifest if m["file"].startswith(f"{source_dir}/")]
+    return manifest
+
+
+def remove_photo(photo_id):
+    """Delete a photo's file (if present) and flip its manifest entry to status "removed" —
+    used by bot.py the moment a photo is "used" (candidate rejected, or a generated result
+    approved and archived to R2), so it's never shown again. Consistent with the hand-delete
+    convention every collect/classify script's own load_manifest already respects."""
+    if not os.path.exists(MANIFEST_PATH):
+        return
+    with open(MANIFEST_PATH) as f:
+        manifest = json.load(f)
+    for m in manifest:
+        if m["id"] == photo_id:
+            path = os.path.join(PHOTOS_DIR, m["file"])
+            if os.path.exists(path):
+                os.remove(path)
+            m["status"] = "removed"
+            break
+    with open(MANIFEST_PATH, "w") as f:
+        json.dump(manifest, f, ensure_ascii=False, indent=2)
 
 
 def load_used():
@@ -226,7 +351,7 @@ BADGE_PAD_Y = 10
 BADGE_MARGIN = 16
 
 
-def draw_badge(draw, font, canvas_width, text, *, align, dot=False):
+def draw_badge(draw, font, canvas_width, text, *, align, dot=False, top=BADGE_MARGIN):
     text_bbox = draw.textbbox((0, 0), text, font=font)
     text_w = text_bbox[2] - text_bbox[0]
     text_h = text_bbox[3] - text_bbox[1]
@@ -237,7 +362,7 @@ def draw_badge(draw, font, canvas_width, text, *, align, dot=False):
     badge_w = content_w + 2 * BADGE_PAD_X
     badge_h = text_h + 2 * BADGE_PAD_Y
     x0 = BADGE_MARGIN if align == "left" else canvas_width - BADGE_MARGIN - badge_w
-    y0 = BADGE_MARGIN
+    y0 = top
     draw.rounded_rectangle([x0, y0, x0 + badge_w, y0 + badge_h], radius=badge_h / 2, fill=BADGE_FILL)
 
     cx = x0 + BADGE_PAD_X
@@ -248,24 +373,36 @@ def draw_badge(draw, font, canvas_width, text, *, align, dot=False):
     draw.text((cx, cy - text_h / 2 - text_bbox[1]), text, fill=BADGE_TEXT, font=font)
 
 
+COLLAGE_WIDTH = 1000
+COLLAGE_HEIGHT = 1500  # before+after photo area, 2:3
+
+
+def cover_crop(img, target_w, target_h):
+    """Resize to fully cover target_w x target_h, then center-crop the excess."""
+    scale = max(target_w / img.width, target_h / img.height)
+    img = img.resize((round(img.width * scale), round(img.height * scale)))
+    left = (img.width - target_w) // 2
+    top = (img.height - target_h) // 2
+    return img.crop((left, top, left + target_w, top + target_h))
+
+
 def make_collage_bytes(before_bytes, after_bytes):
     before = Image.open(io.BytesIO(before_bytes)).convert("RGB")
     after = Image.open(io.BytesIO(after_bytes)).convert("RGB")
 
-    panel_h = 800
-    gap = 6
-    before = before.resize((round(panel_h * before.width / before.height), panel_h))
-    after = after.resize((round(panel_h * after.width / after.height), panel_h))
+    panel_h = COLLAGE_HEIGHT // 2
+    before = cover_crop(before, COLLAGE_WIDTH, panel_h)
+    after = cover_crop(after, COLLAGE_WIDTH, panel_h)
 
-    canvas = Image.new("RGB", (before.width + gap + after.width, panel_h), "white")
+    canvas = Image.new("RGB", (COLLAGE_WIDTH, COLLAGE_HEIGHT), "white")
     canvas.paste(before, (0, 0))
-    canvas.paste(after, (before.width + gap, 0))
+    canvas.paste(after, (0, panel_h))
 
     overlay = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
     odraw = ImageDraw.Draw(overlay)
     font = load_font(26)
-    draw_badge(odraw, font, canvas.width, "BEFORE", align="left")
-    draw_badge(odraw, font, canvas.width, "AFTER", align="right", dot=True)
+    draw_badge(odraw, font, canvas.width, "BEFORE", align="left", top=BADGE_MARGIN)
+    draw_badge(odraw, font, canvas.width, "AFTER", align="left", dot=True, top=panel_h + BADGE_MARGIN)
 
     canvas = Image.alpha_composite(canvas.convert("RGBA"), overlay).convert("RGB")
     out = io.BytesIO()

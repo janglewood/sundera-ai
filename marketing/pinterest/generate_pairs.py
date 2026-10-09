@@ -42,6 +42,7 @@ def main():
     ap.add_argument("--count", type=int, default=5)
     ap.add_argument("--seed", type=int, default=None, help="random seed, for reproducible picks")
     ap.add_argument("--presign", metavar="BATCH_ID", help="re-print fresh presigned URLs for an existing batch and exit")
+    ap.add_argument("--source", metavar="SUBDIR", help="restrict to photos/<SUBDIR>/ (e.g. clean) instead of every kept photo")
     args = ap.parse_args()
     if args.presign:
         presign_batch(args.presign)
@@ -52,7 +53,7 @@ def main():
     env = pipeline.load_api_env()
     r2_env = storage_r2.load_env()
     s3 = storage_r2.client(r2_env)
-    manifest = pipeline.load_manifest()
+    manifest = pipeline.load_manifest(source_dir=args.source)
     used_ids = pipeline.load_used()
     picked = pipeline.pick_photos(manifest, used_ids, args.count)
     if len(picked) < args.count:
@@ -64,7 +65,7 @@ def main():
 
     results = []
     for idx, photo in enumerate(picked, start=1):
-        room_label = pipeline.ROOM_LABELS.get(photo["room_type"], photo["room_type"].replace("_", " "))
+        room_label = pipeline.room_label(photo["room_type"])
         style = random.choice(list(pipeline.DESIGN_STYLE_LABELS.keys()))
         style_label = pipeline.DESIGN_STYLE_LABELS[style]
         prompt = pipeline.build_prompt(room_label, style_label)
@@ -74,7 +75,7 @@ def main():
             before_bytes = f.read()
         mime_type = pipeline.guess_mime(before_path)
 
-        stem = f"{idx:02d}_{photo['room_type']}_{pipeline.slugify(style_label)}"
+        stem = f"{idx:02d}_{pipeline.slugify(room_label)}_{pipeline.slugify(style_label)}"
         print(f"[{idx}/{len(picked)}] {photo['file']} -> {style_label} ...")
         try:
             after_bytes, after_mime = pipeline.edit_image(env, before_bytes, mime_type, prompt)

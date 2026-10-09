@@ -8,7 +8,8 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
-    "lint": "turbo run lint"
+    "lint": "turbo run lint",
+    "pinterest:bot:remove": "launchctl unload \"$HOME/Library/LaunchAgents/com.sundera.pinterest-bot.plist\"; rm -f \"$HOME/Library/LaunchAgents/com.sundera.pinterest-bot.plist\""
   },
   "devDependencies": {
     "turbo": "^2.3.3",

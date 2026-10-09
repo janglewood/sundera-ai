@@ -47,8 +47,11 @@ function buildPrompt(
   const styleLabel = DESIGN_STYLE_LABELS[style as DesignStyle] ?? style;
   const base =
     `Redesign this ${roomLabel.toLowerCase()} in ${styleLabel.toLowerCase()} style. ` +
-    'Preserve the existing walls, windows, doors, and camera perspective exactly; ' +
-    'only change furniture, decor, materials, and color palette.';
+    "Keep the room's exact shape, geometry, and camera perspective; " +
+    'do not add, remove, resize, or move any doors, windows, or other openings — ' +
+    'you may restyle existing ones but not create new ones. ' +
+    'Wall, floor, and ceiling colors and materials can change, along with ' +
+    'furniture, decor, and color palette.';
   return customPrompt ? `${base} ${customPrompt}` : base;
 }
 

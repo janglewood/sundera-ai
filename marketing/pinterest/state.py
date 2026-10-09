@@ -15,9 +15,23 @@ DEFAULT_STATE = {
     "stage": "idle",  # idle | candidates | generating | done
     "slot_index": 0,
     "excluded_ids": [],  # photo ids already shown today (approved or rejected) — no repeats within a day
-    "approved_slots": [],  # finished candidate info for stage 1 -> feeds stage 2, in order
+    "approved_slots": [],  # {"room_type"} of slots completed (uploaded) so far today — steers
+                           # pick_next_candidate's avoid_room_types toward variety within a batch
     "current": None,  # dict describing the single pending item, or None
     "next_run_at": None,  # ISO datetime string; when stage is idle/done, when to start the next cycle
+    "refill_stage": "idle",  # idle | awaiting_confirmation | running — see refill_pool.py / bot.py's refill_scheduler_loop
+    "last_refill_check_date": None,  # "YYYY-MM-DD" — the REFILL_CHECK_TIME check only fires once/day
+    "publish_queue": [],  # [{id, image_path, title, description, link, board, added_at}] — see bot.py's
+                          # publish_scheduler_loop / pinterest_publish.py. Approved pins are appended here
+                          # instead of publishing immediately, so publishing can be spread over the day.
+    "publish_date": None,  # "YYYY-MM-DD" — the day publish_times_today was generated for
+    "publish_times_today": [],  # ISO datetimes, picked once/day (random, within the configured window)
+    "publish_times_done": [],  # subset of publish_times_today already consumed (attempted, pass or fail)
+    "pending_publish": None,  # dict (queue item + message_id) awaiting Anton's Approve/Reject in
+                              # Telegram before the real Pinterest publish runs, or None — see
+                              # bot.py's send_publish_approval/handle_publish_decision. A scheduled
+                              # or /run_publish slot never calls pinterest_publish.publish_pin()
+                              # directly; it always goes through this approval gate first.
 }
 
 
