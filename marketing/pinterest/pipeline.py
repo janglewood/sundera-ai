@@ -170,11 +170,11 @@ def _clip(text, limit):
 # Ported from feat/marketing-automatio-tool (commit 7b0f336, "FEAT: copy generation") — see
 # the collage/CTA porting note above draw_badge; this is the copy-generation half of that
 # same unmerged branch, hand-ported the same way.
-def generate_copy(env, room_label, style_label, link, retries=3):
+def generate_copy(env, room_label, style_label, retries=3):
     """Title + description for a Pinterest pin, via a cheap OpenRouter text model
-    (OPENROUTER_TEXT_MODEL, see load_api_env). The model writes a {LINK} placeholder
-    rather than a literal URL — swapped in here — so the UTM link (built by utm_link,
-    not the model) can never be mistyped or hallucinated."""
+    (OPENROUTER_TEXT_MODEL, see load_api_env). The description has no link in it —
+    the UTM link (built by utm_link) goes only in the pin's separate link field,
+    filled in by pinterest_publish.py."""
     system_prompt = (
         "You write short, SEO-friendly Pinterest pin copy for Sundera, an AI interior redesign app: "
         "upload a photo of your room, get back a photorealistic redesign in seconds. Audience is "
@@ -185,12 +185,11 @@ def generate_copy(env, room_label, style_label, link, retries=3):
         f"redesign of the same room in {style_label} style.\n\n"
         "Write:\n"
         "1. TITLE — max 100 characters. SEO keywords (room type + style). No hashtags, no emoji, no quotes.\n"
-        "2. DESCRIPTION — 300-500 characters, three parts in order: "
+        "2. DESCRIPTION — 300-500 characters, two parts in order: "
         "(a) one short CTA sentence inviting the reader to try Sundera on their own room; "
         "(b) 1-2 sentences describing this specific transformation with concrete details "
-        "(colors, materials, furniture) as if describing a real before/after; "
-        "(c) one closing CTA sentence that ends with exactly the literal text {LINK} — "
-        "do not write a URL yourself, do not alter or explain that token, just place it at the end.\n\n"
+        "(colors, materials, furniture) as if describing a real before/after. "
+        "Do not include a URL or any mention of a link — the pin's link field covers that separately.\n\n"
         "Respond in exactly this format and nothing else:\n"
         "TITLE: <title>\n"
         "DESCRIPTION: <description>"
@@ -225,7 +224,6 @@ def generate_copy(env, room_label, style_label, link, retries=3):
             raise RuntimeError(f"Could not parse title/description from model output: {text!r}")
         title = match.group(1).strip().strip('"').strip("*").strip()
         description = match.group(2).strip().strip('"').strip()
-        description = description.replace("{LINK}", link)
         return _clip(title, 100), _clip(description, 500)
     raise RuntimeError("OpenRouter text request failed after retries")
 
@@ -375,70 +373,8 @@ def draw_badge(draw, font, canvas_width, text, *, align, dot=False, top=BADGE_MA
     draw.text((cx, cy - text_h / 2 - text_bbox[1]), text, fill=BADGE_TEXT, font=font)
 
 
-# Ported from feat/marketing-automatio-tool (commit e4d19b9, "FEAT: cta lable for collage")
-# — that branch diverged from this one before this session's Kufar-pipeline work and was
-# never merged; this is a hand-port of just the collage/CTA pieces, not the rest of that
-# branch (copy generation, self-learning candidate picking, etc. — out of scope, see CLAUDE.md).
 COLLAGE_WIDTH = 1000
-COLLAGE_HEIGHT = 1500  # before+after photo area, 2:3 on its own
-
-# CTA band appended below the before/after photo area (not overlaid on top of a photo, so
-# neither image gets covered). Final canvas is COLLAGE_WIDTH x (COLLAGE_HEIGHT +
-# CTA_BAND_HEIGHT), ~1:1.63, still well inside Pinterest's supported aspect range (up to
-# ~1:2.1) so it won't get cropped in feed. Slightly translucent accent band (blends with the
-# white canvas behind it) so it reads as part of the design, not a hard sticker.
-CTA_BAND_HEIGHT = 130
-CTA_TEXT = "Redesign your room"
-CTA_BG = ACCENT[:3] + (225,)
-CTA_TEXT_COLOR = (255, 255, 255, 255)
-
-
-def draw_down_arrow(draw, cx, cy, size, color):
-    """Bold filled arrow — shaft + barbed/flared head, like the ➜ dingbat rotated 90° to
-    point down — rather than a thin outline stem+chevron."""
-    h = size
-    w = size * 0.85
-    top = cy - h / 2
-    bottom = cy + h / 2
-    head_top_y = top + h * 0.42
-
-    shaft_l = cx - w * 0.17
-    shaft_r = cx + w * 0.17
-    head_l = cx - w / 2
-    head_r = cx + w / 2
-
-    draw.polygon(
-        [
-            (shaft_l, top),
-            (shaft_r, top),
-            (shaft_r, head_top_y),
-            (head_r, head_top_y),
-            (cx, bottom),
-            (head_l, head_top_y),
-            (shaft_l, head_top_y),
-        ],
-        fill=color,
-    )
-
-
-def draw_cta_band(draw, font, canvas_width, canvas_height, band_height):
-    top = canvas_height - band_height
-    draw.rectangle([0, top, canvas_width, canvas_height], fill=CTA_BG)
-
-    text_bbox = draw.textbbox((0, 0), CTA_TEXT, font=font)
-    text_w = text_bbox[2] - text_bbox[0]
-    text_h = text_bbox[3] - text_bbox[1]
-
-    arrow_size = text_h * 1.3
-    arrow_gap = 16
-    content_w = text_w + arrow_gap + arrow_size
-
-    text_x = (canvas_width - content_w) / 2
-    center_y = top + band_height / 2
-    draw.text((text_x, center_y - text_h / 2 - text_bbox[1]), CTA_TEXT, fill=CTA_TEXT_COLOR, font=font)
-
-    arrow_cx = text_x + text_w + arrow_gap + arrow_size / 2
-    draw_down_arrow(draw, arrow_cx, center_y, arrow_size, CTA_TEXT_COLOR)
+COLLAGE_HEIGHT = 1500  # before+after photo area, 2:3
 
 
 def cover_crop(img, target_w, target_h):
@@ -458,8 +394,7 @@ def make_collage_bytes(before_bytes, after_bytes):
     before = cover_crop(before, COLLAGE_WIDTH, panel_h)
     after = cover_crop(after, COLLAGE_WIDTH, panel_h)
 
-    canvas_height = COLLAGE_HEIGHT + CTA_BAND_HEIGHT
-    canvas = Image.new("RGB", (COLLAGE_WIDTH, canvas_height), "white")
+    canvas = Image.new("RGB", (COLLAGE_WIDTH, COLLAGE_HEIGHT), "white")
     canvas.paste(before, (0, 0))
     canvas.paste(after, (0, panel_h))
 
@@ -468,7 +403,6 @@ def make_collage_bytes(before_bytes, after_bytes):
     font = load_font(26)
     draw_badge(odraw, font, canvas.width, "BEFORE", align="left", top=BADGE_MARGIN)
     draw_badge(odraw, font, canvas.width, "AFTER", align="left", dot=True, top=panel_h + BADGE_MARGIN)
-    draw_cta_band(odraw, load_font(38), canvas.width, canvas_height, CTA_BAND_HEIGHT)
 
     canvas = Image.alpha_composite(canvas.convert("RGBA"), overlay).convert("RGB")
     out = io.BytesIO()

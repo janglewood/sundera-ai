@@ -156,14 +156,20 @@ promoting Sundera, with Anton approving each one in Telegram:
   never merged). Only the collage/CTA pieces were hand-ported at the time (confirmed with Anton — a full
   merge was explicitly declined for now).
   **2026-09-29: title/description copy generation hand-ported too** (commit `7b0f336`,
-  "FEAT: copy generation") — `pipeline.generate_copy(env, room_label, style_label, link)` calls a separate,
+  "FEAT: copy generation") — `pipeline.generate_copy(env, room_label, style_label)` calls a separate,
   cheap OpenRouter **text** model (`OPENROUTER_TEXT_MODEL`, default `pipeline.DEFAULT_TEXT_MODEL` =
   `google/gemini-2.5-flash-lite`, not `OPENROUTER_MODEL` which is the image-editing model) via
   `/chat/completions`, prompted for a title (<=100 chars) and a description (300-500 chars) structured as:
-  opening CTA sentence -> 1-2 sentences describing the specific before/after -> closing CTA sentence ending
-  in a literal `{LINK}` token that `generate_copy` swaps for the real link afterwards (never written by the
-  model itself, so the URL can't be mistyped/hallucinated). `pipeline.utm_link(date, slot_num)` builds that
-  link: `https://sundera.app/?utm_source=pinterest&utm_medium=social&utm_content=<date>-<slot_num>`.
+  opening CTA sentence -> 1-2 sentences describing the specific before/after. `pipeline.utm_link(date,
+  slot_num)` builds the UTM link: `https://sundera.app/?utm_source=pinterest&utm_medium=social&utm_content=
+  <date>-<slot_num>`.
+  **2026-10-09: removed the link from the description copy entirely** — it used to end with a closing CTA
+  sentence containing a literal `{LINK}` token that `generate_copy` swapped for the real URL, so the link
+  appeared both in the description text and in the pin's separate link field. Anton asked for the link to
+  live only in the link field, not duplicated in the description. The model is no longer asked for that
+  closing CTA/token at all; `generate_copy` no longer takes a `link` argument since it no longer needs one
+  (the link field itself is still built by `utm_link` and set separately, unchanged, in `bot.py`'s
+  `upload_and_reply()`/`publish_queue` item and by `pinterest_publish.py`'s `#WebsiteField`).
   **2026-10-07: moved to post-approval only** — `generate_and_send()` used to call this right after building
   the collage (before Anton had even seen it), wasting a text-model call whenever the collage got rejected.
   It now runs inside `upload_and_reply()`, triggered only from `handle_decision()`'s approved branch — so
@@ -260,6 +266,23 @@ promoting Sundera, with Anton approving each one in Telegram:
   per-boot fetch — the old "fetched from Pexels at runtime, container filesystem can be fully ephemeral"
   design no longer applies. The "Deploying (Docker + Railway)" section below is stale as of 2026-09-25, kept
   only in case of a future revert to a Pexels-only, Railway-deployed setup.
+  **2026-10-09: a VPS-cloud split (and separately, a local Docker container) were explored and dropped** —
+  Pinterest publishing has to stay on a trusted IP (Anton's home network, matching `pinterest_session.json`'s
+  origin; a VPS's datacenter IP is a red flag to Pinterest's anti-fraud systems, and a proxy was considered
+  and rejected), which meant the Mac would still need to wake up regularly for publishing anyway — so moving
+  only the Telegram/approval flow to a VPS wasn't buying much. Docker was dropped too: this machine's Docker
+  Desktop is 20.10.8, the same version already blamed below for a failed local `apt-get`-based build, and
+  `playwright install --with-deps chromium` needs another one. **Decision: everything stays on this Mac,
+  supervised by `launchd` instead of a manually-run terminal** — see "Running via launchd" below, which
+  replaces manually running `./.venv/bin/python bot.py`.
+  **Same session: fixed a backlog-dump bug in `pick_publish_times`** — restarting the bot partway through the
+  day (e.g. after being down since before today's publish schedule was computed) used to still scatter
+  `PUBLISH_TIMES_PER_DAY` times across the *full* configured window, including times already in the past;
+  those were immediately "due" the moment `publish_scheduler_loop` next checked, firing several queued pins
+  within the same ~120s tick right at startup instead of spread through the day. Now clamped to
+  `max(configured start, now)` — a fresh day still gets the full window, a restart only schedules what's left
+  of today's window (or nothing further today if the window's already fully elapsed, resuming normally
+  tomorrow).
 - **Title/description generation is done** (`pipeline.generate_copy`, called from `bot.py`'s
   `upload_and_reply()` only after Anton approves the collage — see the 2026-10-07 note above) — alt-text
   generation and landing pages are still not built, see "Suggested next steps" below.
@@ -403,7 +426,46 @@ promoting Sundera, with Anton approving each one in Telegram:
 7. Landing pages per style with UTM tracking (UTM params are already generated per pin via `pipeline.utm_link`,
    pointing at `sundera.app/` — swap in real per-style landing page paths here once they exist).
 
-## Deploying (Docker + Railway) — STALE as of 2026-09-25, not currently used
+## Running via launchd (2026-10-09 — current, replaces manually running `bot.py`)
+
+`bot.py` is supervised by a macOS `launchd` agent instead of being started by hand in a
+terminal, so it survives both a crash and a reboot without Anton needing to remember to
+restart it. Source of truth for the agent definition lives in-repo at
+`marketing/pinterest/launchd/com.sundera.pinterest-bot.plist` (hardcodes this machine's
+absolute paths — personal deploy config, not portable, not meant to be).
+
+- **Install/start**: symlink it into `~/Library/LaunchAgents/` and load it:
+  ```
+  ln -sf "$(pwd)/marketing/pinterest/launchd/com.sundera.pinterest-bot.plist" \
+      ~/Library/LaunchAgents/com.sundera.pinterest-bot.plist
+  launchctl load ~/Library/LaunchAgents/com.sundera.pinterest-bot.plist
+  ```
+  (Symlink, not a copy — editing the plist in-repo and reloading picks up the change without
+  re-copying.)
+- **Stop/uninstall**: `launchctl unload ~/Library/LaunchAgents/com.sundera.pinterest-bot.plist`
+  (stops it and prevents the reboot/`RunAtLoad` auto-start; delete the symlink too to fully
+  remove it).
+- **Restart after an edit to `bot.py`/`.env`**: unload then load again (there's no "restart"
+  verb in older `launchctl`) — or `launchctl kickstart -k gui/$(id -u)/com.sundera.pinterest-bot`
+  on newer macOS.
+- **Logs**: `marketing/pinterest/output/launchd/bot.out.log` /`bot.err.log` (stdout/stderr,
+  gitignored — same `output/` ignore as everything else there). `launchctl list | grep sundera`
+  shows whether it's currently loaded and its last exit code.
+- **Why `launchd` and not Docker**: same crash/reboot-restart guarantee (`KeepAlive` +
+  `RunAtLoad`), but zero build risk (this machine's Docker Desktop is a version already known
+  to fail `apt-get`-based builds, which `playwright install --with-deps chromium` would need)
+  and zero bind-mount bookkeeping — it's exactly today's `./.venv/bin/python bot.py`, just
+  supervised. `KeepAlive=true` restarts `bot.py` on *any* exit (crash, unhandled exception, a
+  Telegram `getUpdates` conflict from two instances briefly overlapping, etc.), not just a
+  non-zero exit code; `ThrottleInterval` (30s) keeps a persistent failure (e.g. a broken `.env`)
+  from spinning in a tight restart loop.
+- **Only one `bot.py` should ever run at a time** — Telegram's long-polling (`getUpdates`)
+  doesn't tolerate two pollers on the same bot token, and two processes would also race on
+  `bot_state.db`. Before loading the `launchd` agent, make sure no manually-started
+  `./.venv/bin/python bot.py` is still running (`ps aux | grep bot.py`).
+
+## Deploying (Docker + Railway) — STALE as of 2026-09-25, not currently used, superseded by
+## the VPS exploration above (also dropped) and now by launchd
 
 `bot.py` now runs locally on this Mac only (see "Current state" above — it depends on local
 Ollama + rapid-mlx, which Railway can't reach). Kept below only in case of a future revert to
@@ -441,5 +503,12 @@ never actually validated end-to-end here for that reason — **build via Railway
   chat — even when asking an agent to add one to `.env`, put it in the file yourself rather than pasting the
   value. The Pexels key has been pasted into a chat/agent session at least twice now (most recently
   2026-09-21); rotate it if that hasn't happened since the last paste.
+  **2026-10-09: the Telegram bot token leaked into an agent chat too** — an agent tailed
+  `output/launchd/bot.out.log`/`bot.err.log` while verifying the new `launchd` setup started cleanly,
+  and `python-telegram-bot`'s own HTTP request logging includes the full bot token in every logged URL
+  (`POST https://api.telegram.org/bot<TOKEN>/getMe`, etc.) — not something pasted carelessly, just a
+  consequence of those log files containing the token by default. Rotate via @BotFather if not already
+  done since; when checking these logs in the future, grep for a specific line/event rather than
+  tailing/catting the whole file, or redact the token from the output before it's displayed.
 - `marketing/pinterest/photos/`, `.env`, `.venv/`, `output/`, `bot_state.db` are all gitignored (see root
   `.gitignore`) — done, not just "consider."

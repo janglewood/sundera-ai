@@ -113,6 +113,13 @@ import storage_r2
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("pinterest-bot")
 
+# httpx (python-telegram-bot's HTTP client) logs every request at INFO, e.g.
+# "HTTP Request: POST https://api.telegram.org/bot<TOKEN>/getMe ...", with the bot token
+# embedded in the URL — confirmed leaking into a chat transcript twice (2026-10-09, see
+# CLAUDE.md Housekeeping) just from tailing these logs. Raised to WARNING so the token is
+# never written to the log files at all, not just "don't look at it".
+logging.getLogger("httpx").setLevel(logging.WARNING)
+
 
 def load_bot_env():
     env = pipeline.read_env_file(pipeline.LOCAL_ENV_PATH)
@@ -354,7 +361,7 @@ async def upload_and_reply(app, current, date, idx):
     env = pipeline.load_api_env()
     link = pipeline.utm_link(date, idx)
     title, description = await asyncio.to_thread(
-        pipeline.generate_copy, env, room_label, current["style_label"], link
+        pipeline.generate_copy, env, room_label, current["style_label"]
     )
 
     stem = f"{idx:02d}_{pipeline.slugify(room_label)}_{pipeline.slugify(current['style_label'])}"
@@ -663,14 +670,26 @@ async def refill_scheduler_loop(app):
 def pick_publish_times(now):
     """PUBLISH_TIMES_PER_DAY random datetimes within [PUBLISH_WINDOW_START, PUBLISH_WINDOW_END)
     today, sorted. Randomized (not evenly spaced) so posting doesn't look robotic — see
-    pinterest_publish.py's module docstring on why this is browser automation, not the API."""
+    pinterest_publish.py's module docstring on why this is browser automation, not the API.
+
+    start is clamped to now (2026-10-09 fix): without this, a restart partway through the day
+    (e.g. the Mac/bot was down since before today's schedule was ever computed) would still
+    scatter times across the *full* configured window, including times already in the past —
+    those become immediately "due" the moment publish_scheduler_loop next checks, firing
+    several queued pins within the same ~120s tick right at startup instead of spread through
+    the day. If the window has already fully elapsed for today (now >= end), this returns no
+    times at all rather than cramming leftovers into "right now" — today just publishes
+    nothing further, and a normal full-window schedule resumes tomorrow."""
     start = now.replace(
         hour=PUBLISH_WINDOW_START_HOUR, minute=PUBLISH_WINDOW_START_MINUTE, second=0, microsecond=0
     )
     end = now.replace(
         hour=PUBLISH_WINDOW_END_HOUR, minute=PUBLISH_WINDOW_END_MINUTE, second=0, microsecond=0
     )
-    span = max((end - start).total_seconds(), 0)
+    start = max(start, now)
+    span = (end - start).total_seconds()
+    if span <= 0:
+        return []
     times = sorted(start + timedelta(seconds=random.uniform(0, span)) for _ in range(PUBLISH_TIMES_PER_DAY))
     return [t.isoformat() for t in times]
 

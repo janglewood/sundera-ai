@@ -19,3 +19,4 @@ marketing/pinterest/bot_state.db
 marketing/pinterest/pinterest_session.json
 __pycache__/
 *.pyc
+.claude/settings.local.json
