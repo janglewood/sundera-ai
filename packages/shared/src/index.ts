@@ -5,4 +5,5 @@ export * from "./enums/plan-tier.enum";
 export * from "./enums/purchase-status.enum";
 export * from "./dto/generation.dto";
 export * from "./dto/billing.dto";
+export * from "./dto/blog-post.dto";
 export * from "./constants/plan-limits";

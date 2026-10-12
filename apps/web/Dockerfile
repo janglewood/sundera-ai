@@ -20,6 +20,7 @@ COPY apps/web apps/web
 # Railway must have them set before/during this build, not just on the
 # running container.
 ARG NEXT_PUBLIC_API_BASE_URL
+ARG NEXT_PUBLIC_BLOG_IMAGE_HOST
 ARG NEXT_PUBLIC_FIREBASE_API_KEY
 ARG NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
 ARG NEXT_PUBLIC_FIREBASE_PROJECT_ID

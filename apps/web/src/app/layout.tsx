@@ -5,6 +5,7 @@ import { AuthProvider } from "@/lib/auth/auth-context";
 import { PaywallProvider } from "@/lib/paywall/paywall-context";
 import { PostHogProvider } from "@/lib/analytics/PostHogProvider";
 import { FeedbackWidget } from "@/components/shared/FeedbackWidget";
+import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 const inter = Inter({
@@ -19,6 +20,7 @@ const calistoga = Calistoga({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: "Sundera — AI Interior Design From One Photo",
   description:
     "Try AI interior design free: upload a room photo, pick a style, and get a photorealistic redesign in seconds.",
