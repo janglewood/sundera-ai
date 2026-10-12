@@ -216,7 +216,7 @@ def main_menu_keyboard():
     routed by the same CommandHandlers as typing it — no extra dispatch needed here. Stays
     visible across restarts once sent once (a Telegram client-side setting, not bot state)."""
     return ReplyKeyboardMarkup(
-        [["/status"], ["/run", "/run_parse"], ["/run_classify", "/run_clean"], ["/run_publish"]],
+        [["/status"], ["/run", "/run_parse"], ["/run_classify", "/run_clean"], ["/run_publish"], ["/reset"]],
         resize_keyboard=True,
     )
 
@@ -904,6 +904,39 @@ async def on_run(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await start_new_cycle(context.application)
 
 
+async def on_reset(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """/reset — force the candidate/generation batch (stage/slot_index/excluded_ids/
+    approved_slots/current/date) back to idle, for when it gets stuck with no usable buttons
+    (e.g. a message's inline keyboard failed to render, or a stale message was deleted by
+    hand) and /run just refuses to start a new one. Same preserved-fields pattern as
+    post_init's day-rollover reset: refill_stage/last_refill_check_date and everything
+    publish-related have their own independent schedules/approval gates and must survive
+    this. Does not touch a stuck refill or pending publish — not what this command is for."""
+    if update.effective_chat.id != CHAT_ID:
+        return
+    st = state.load()
+    if st["stage"] not in ("candidates", "generating"):
+        await update.message.reply_text("No batch in progress — nothing to reset.")
+        return
+    if st["current"]:
+        await delete_message(context.application, st["current"].get("message_id"))
+    preserved = {
+        k: st[k] for k in (
+            "refill_stage", "last_refill_check_date",
+            "publish_queue", "publish_date", "publish_times_today",
+            "publish_times_done", "pending_publish",
+        )
+    }
+    st = dict(state.DEFAULT_STATE)
+    st.update(preserved)
+    st["next_run_at"] = next_run_after(datetime.now(TZ)).isoformat()
+    state.save(st)
+    await update.message.reply_text(
+        "Batch state reset to idle. Send /run to start a fresh batch.",
+        reply_markup=main_menu_keyboard(),
+    )
+
+
 async def on_run_parse(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """/run_parse — start refill_pool.run() (scrape -> classify -> clean) immediately,
     ignoring REFILL_CHECK_TIME/REFILL_THRESHOLD and skipping the yes/no prompt (typing the
@@ -979,6 +1012,7 @@ async def post_init(app: Application):
         BotCommand("run_classify", "Sort/classify unclassified photos now (skip scrape/clean)"),
         BotCommand("run_clean", "FLUX-clean photos/watermark/ now (skip scrape/classify)"),
         BotCommand("run_publish", "Ask to publish the next queued pin now (still needs your Approve)"),
+        BotCommand("reset", "Force a stuck candidate/generation batch back to idle"),
     ])
     st = state.load()
     today = datetime.now(TZ).strftime("%Y-%m-%d")
@@ -1086,6 +1120,7 @@ def main():
     app.add_handler(CommandHandler("run_classify", on_run_classify))
     app.add_handler(CommandHandler("run_clean", on_run_clean))
     app.add_handler(CommandHandler("run_publish", on_run_publish))
+    app.add_handler(CommandHandler("reset", on_reset))
     app.add_handler(CallbackQueryHandler(on_callback))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))
     logger.info(
