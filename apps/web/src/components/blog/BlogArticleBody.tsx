@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { Plus } from "@phosphor-icons/react/dist/ssr";
 import type { BlogFaqItem, BlogPriceRow, BlogPostSummary } from "@sundera/shared";
 
@@ -25,7 +26,7 @@ interface BlogArticleBodyProps {
   slug: string;
   roomLabel: string;
   styleLabel: string;
-  dateLabel: string;
+  dateLabel: ReactNode;
   dateValue?: string;
   related?: BlogPostSummary[];
 }

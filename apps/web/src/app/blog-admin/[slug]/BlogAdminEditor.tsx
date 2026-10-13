@@ -5,20 +5,13 @@ import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import type { BlogFaqItem, BlogPostAdminDetail, BlogPriceRow } from "@sundera/shared";
 import { BlogArticleBody } from "@/components/blog/BlogArticleBody";
+import { LocalDateTime } from "@/components/blog/LocalDateTime";
 import { deleteQueuedPost, publishQueuedPost, saveBlogDraft } from "../actions";
 
 interface BlogAdminEditorProps {
   post: BlogPostAdminDetail;
   roomLabel: string;
   styleLabel: string;
-}
-
-function formatUtc(iso: string): string {
-  return `${new Date(iso).toLocaleString("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "UTC",
-  })} UTC`;
 }
 
 const inputClass =
@@ -157,9 +150,13 @@ export function BlogAdminEditor({ post, roomLabel, styleLabel }: BlogAdminEditor
             &larr; Back to queue
           </button>
           <p className="mt-1 text-xs text-muted-foreground">
-            {editable
-              ? `Scheduled for ${formatUtc(post.scheduledFor)}`
-              : "Already published — read-only."}
+            {editable ? (
+              <>
+                Scheduled for <LocalDateTime iso={post.scheduledFor} />
+              </>
+            ) : (
+              "Already published — read-only."
+            )}
           </p>
         </div>
         {editable && (
@@ -377,11 +374,17 @@ export function BlogAdminEditor({ post, roomLabel, styleLabel }: BlogAdminEditor
               roomLabel={roomLabel}
               styleLabel={styleLabel}
               dateLabel={
-                editable
-                  ? `Scheduled for ${formatUtc(post.scheduledFor)}`
-                  : post.publishedAt
-                    ? `Published ${formatUtc(post.publishedAt)}`
-                    : ""
+                editable ? (
+                  <>
+                    Scheduled for <LocalDateTime iso={post.scheduledFor} />
+                  </>
+                ) : post.publishedAt ? (
+                  <>
+                    Published <LocalDateTime iso={post.publishedAt} />
+                  </>
+                ) : (
+                  ""
+                )
               }
               dateValue={post.publishedAt ?? undefined}
             />
