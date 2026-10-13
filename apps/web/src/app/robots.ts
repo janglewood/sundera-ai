@@ -7,7 +7,9 @@ import { SITE_URL } from "@/lib/site";
 // stale as new ones appear.
 export default function robots(): MetadataRoute.Robots {
   return {
-    rules: [{ userAgent: "*", allow: "/" }],
+    // /blog-admin is password-gated (see middleware.ts) but still worth an
+    // explicit disallow — no reason to let it show up in a crawl at all.
+    rules: [{ userAgent: "*", allow: "/", disallow: "/blog-admin" }],
     sitemap: `${SITE_URL}/sitemap.xml`,
   };
 }

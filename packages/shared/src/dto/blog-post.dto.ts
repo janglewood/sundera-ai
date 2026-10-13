@@ -32,6 +32,54 @@ export interface BlogPostDetail extends BlogPostSummary {
   faq: BlogFaqItem[];
 }
 
+// blog-admin (apps/web) queue list + edit view — covers SCHEDULED posts, which
+// BlogPostSummary/Detail deliberately exclude (those are PUBLISHED-only, see
+// BlogPostsService.findPublished/findBySlug). Not based on BlogPostDetail:
+// that type's publishedAt is always a string (it falls back to createdAt for
+// display on the public site), which would misrepresent a SCHEDULED post as
+// already published.
+export interface BlogPostAdminDetail {
+  slug: string;
+  title: string;
+  dek: string;
+  roomType: RoomType;
+  style: DesignStyle;
+  imageUrl: string;
+  imageAlt: string;
+  problems: string[];
+  palette: string;
+  materials: string;
+  lighting: string;
+  priceTable: BlogPriceRow[];
+  faq: BlogFaqItem[];
+  status: "SCHEDULED" | "PUBLISHED";
+  scheduledFor: string;
+  publishedAt: string | null;
+}
+
+export interface BlogPostQueueItem {
+  slug: string;
+  title: string;
+  dek: string;
+  roomType: RoomType;
+  style: DesignStyle;
+  imageUrl: string;
+  imageAlt: string;
+  scheduledFor: string;
+}
+
+export interface UpdateBlogPostRequest {
+  title?: string;
+  dek?: string;
+  imageAlt?: string;
+  problems?: string[];
+  palette?: string;
+  materials?: string;
+  lighting?: string;
+  priceTable?: BlogPriceRow[];
+  faq?: BlogFaqItem[];
+}
+
 export interface CreateBlogPostRequest {
   slug: string;
   title: string;
