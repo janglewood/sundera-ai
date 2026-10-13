@@ -52,6 +52,17 @@ simpler: no photo scraping, no browser automation, no local-only dependencies.
   `entryway` — rooms `@sundera/shared`'s `RoomType` doesn't have. `pipeline.parse_source_key`
   silently skips those; a "how to do this in Sundera" article can't send someone to pick a
   room type that doesn't exist in the product.
+- **Text model: `anthropic/claude-haiku-4.5` via OpenRouter, not Gemini.** Chosen
+  2026-10-13 after a real head-to-head (same prompt, real OpenRouter calls) against
+  `google/gemini-2.5-flash-lite` (the Pinterest pack's default) and
+  `google/gemini-2.5-flash`: noticeably more specific, less generic-filler prose —
+  directly relevant since GEO/AI-answer-engine citability (the actual goal of this blog)
+  depends on content being distinctive, not formulaic. Cost difference is irrelevant at
+  this volume (~$0.004/article on Haiku vs ~$0.0003-0.0017 on the Gemini options — a few
+  cents/month either way at 2-3 articles/day). **Known quirk, already handled, not a
+  reason to revisit:** Haiku wraps its JSON in markdown fences despite
+  `response_format: json_object` being set — `pipeline._strip_code_fence` strips it before
+  `json.loads`, verified working against the real API.
 - **Runs on Railway, not locally.** Unlike the Pinterest bot (local-only: depends on
   Ollama + rapid-mlx for photo classification/watermark cleanup), this bot has no such
   dependency — plain Python, no browser automation, no local models. Cloud hosting is a

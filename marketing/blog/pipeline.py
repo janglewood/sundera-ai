@@ -116,7 +116,12 @@ def crop_collage(image_bytes):
     return out.getvalue()
 
 
-DEFAULT_TEXT_MODEL = "google/gemini-2.5-flash-lite"  # same default as the Pinterest pack's copy generation
+DEFAULT_TEXT_MODEL = "anthropic/claude-haiku-4.5"  # see CLAUDE.md — chosen 2026-10-13 over
+# google/gemini-2.5-flash-lite (the Pinterest pack's default) and google/gemini-2.5-flash
+# after a real head-to-head on this exact prompt: noticeably more specific, less
+# generic-filler prose, for a trivial cost difference at 2-3 articles/day (~$0.004/article
+# vs ~$0.0003-0.0017). Wraps its JSON in markdown fences despite response_format:
+# json_object — _strip_code_fence below handles that, not a reason to avoid this model.
 
 ARTICLE_SYSTEM_PROMPT = (
     "You write SEO blog articles for Sundera, an AI interior redesign app: upload a photo "
