@@ -1,0 +1,4 @@
+Pillow>=12,<13
+requests>=2.34,<3
+boto3>=1.43,<2
+python-telegram-bot>=21,<22

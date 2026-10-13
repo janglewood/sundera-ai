@@ -17,6 +17,7 @@ marketing/pinterest/.venv
 marketing/pinterest/.env
 marketing/pinterest/bot_state.db
 marketing/pinterest/pinterest_session.json
+marketing/blog/.venv
 __pycache__/
 *.pyc
 .claude/settings.local.json

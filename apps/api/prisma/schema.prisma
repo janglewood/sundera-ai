@@ -124,6 +124,41 @@ enum PurchaseStatus {
   FAILED
 }
 
+enum BlogPostStatus {
+  SCHEDULED
+  PUBLISHED
+}
+
+// Content for the auto-generated blog (marketing/blog/ bot writes these via
+// POST /blog-posts). sourceImageKey is the R2 key of the Pinterest collage
+// this article was built from — unique so the bot's dedup check (and the DB
+// itself, as a backstop) never turns the same pin into two articles.
+// scheduledFor is picked by BlogPostsService.create() to spread posts over
+// the day; BlogPublishWorkerService flips SCHEDULED -> PUBLISHED when due.
+model BlogPost {
+  id             String         @id @default(cuid())
+  slug           String         @unique
+  title          String
+  dek            String
+  roomType       RoomType
+  style          DesignStyle
+  imageUrl       String
+  imageAlt       String
+  problems       Json
+  palette        String
+  materials      String
+  lighting       String
+  priceTable     Json
+  faq            Json
+  sourceImageKey String         @unique
+  status         BlogPostStatus @default(SCHEDULED)
+  scheduledFor   DateTime
+  publishedAt    DateTime?
+  createdAt      DateTime       @default(now())
+
+  @@index([status])
+}
+
 // Absence of a row means the user is on the FREE tier. A one-time purchase,
 // so once status is COMPLETED the plan tier is entitled permanently — no
 // period, cancellation, or expiry to track.
