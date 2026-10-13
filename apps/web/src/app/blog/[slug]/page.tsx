@@ -93,6 +93,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
       <main className="flex-1 px-6 py-12 sm:px-8 sm:py-16">
         <BlogArticleBody
           post={post}
+          slug={post.slug}
           roomLabel={roomLabel}
           styleLabel={styleLabel}
           dateLabel={`Published ${formatPostDate(post.publishedAt)}`}

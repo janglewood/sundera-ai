@@ -10,7 +10,7 @@ import {
   sha256Hex,
   SESSION_COOKIE,
 } from "@/lib/blog-admin-auth";
-import { publishBlogPost, updateBlogPost } from "@/lib/blog-admin";
+import { deleteBlogPost, publishBlogPost, updateBlogPost } from "@/lib/blog-admin";
 
 // Server Functions aren't separate routes proxy.ts can reliably gate forever
 // — Next's own docs warn a matcher change can silently drop coverage for an
@@ -68,6 +68,13 @@ export async function saveBlogDraft(slug: string, dto: UpdateBlogPostRequest) {
 export async function publishQueuedPost(slug: string) {
   await requireAdminSession();
   await publishBlogPost(slug);
+  revalidatePath("/blog-admin");
+  redirect("/blog-admin");
+}
+
+export async function deleteQueuedPost(slug: string) {
+  await requireAdminSession();
+  await deleteBlogPost(slug);
   revalidatePath("/blog-admin");
   redirect("/blog-admin");
 }

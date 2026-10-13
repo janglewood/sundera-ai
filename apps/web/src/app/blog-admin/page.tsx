@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { DESIGN_STYLE_LABELS, ROOM_TYPE_LABELS } from "@sundera/shared";
 import { getBlogQueue } from "@/lib/blog-admin";
-import { logout, publishQueuedPost } from "./actions";
+import { deleteQueuedPost, logout, publishQueuedPost } from "./actions";
 import { ConfirmSubmitForm } from "./ConfirmSubmitForm";
 
 export const metadata: Metadata = {
@@ -88,6 +88,17 @@ export default async function BlogAdminQueuePage() {
                   >
                     Edit
                   </Link>
+                  <ConfirmSubmitForm
+                    action={deleteQueuedPost.bind(null, post.slug)}
+                    confirmMessage={`Delete "${post.title}" from the queue? This can't be undone.`}
+                  >
+                    <button
+                      type="submit"
+                      className="rounded-full border border-red-600/30 px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:border-red-600/60 hover:bg-red-600/5"
+                    >
+                      Delete
+                    </button>
+                  </ConfirmSubmitForm>
                   <ConfirmSubmitForm
                     action={publishQueuedPost.bind(null, post.slug)}
                     confirmMessage={`Publish "${post.title}" now? It'll go live immediately and leave the queue.`}

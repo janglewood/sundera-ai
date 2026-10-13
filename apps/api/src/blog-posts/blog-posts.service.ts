@@ -157,6 +157,15 @@ export class BlogPostsService {
     return toAdminDetail(updated);
   }
 
+  // Removes a queued post outright — e.g. a candidate Anton never wants
+  // published. Scoped to SCHEDULED same as update/publishNow: a PUBLISHED
+  // post is live on the site, out of blog-admin's queue/edit/publish/delete
+  // flow entirely.
+  async deleteQueued(slug: string): Promise<void> {
+    const post = await this.requireScheduled(slug);
+    await this.prisma.blogPost.delete({ where: { slug: post.slug } });
+  }
+
   private async requireScheduled(slug: string): Promise<BlogPost> {
     const post = await this.prisma.blogPost.findUnique({ where: { slug } });
     if (!post) {

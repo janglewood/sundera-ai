@@ -1,4 +1,14 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { BlogBotGuard } from './guards/blog-bot.guard';
 import { BlogPostsService } from './blog-posts.service';
 import { UpdateBlogPostDto } from './dto/update-blog-post.dto';
@@ -29,5 +39,11 @@ export class BlogPostsAdminController {
   @Post(':slug/publish')
   publish(@Param('slug') slug: string) {
     return this.blogPostsService.publishNow(slug);
+  }
+
+  @Delete(':slug')
+  @HttpCode(204)
+  remove(@Param('slug') slug: string) {
+    return this.blogPostsService.deleteQueued(slug);
   }
 }

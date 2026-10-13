@@ -22,6 +22,7 @@ export interface BlogArticleBodyPost {
 
 interface BlogArticleBodyProps {
   post: BlogArticleBodyPost;
+  slug: string;
   roomLabel: string;
   styleLabel: string;
   dateLabel: string;
@@ -35,14 +36,23 @@ const STEPS = [
   "Choose a design style.",
 ];
 
+// Every CTA on an article page needs attribution back to that specific
+// article, not just "blog" in general — utm_campaign=<slug> is how we tell
+// which article actually drove an upload.
+function uploadCtaHref(slug: string): string {
+  return `/?utm_source=blog&utm_campaign=${encodeURIComponent(slug)}#upload`;
+}
+
 export function BlogArticleBody({
   post,
+  slug,
   roomLabel,
   styleLabel,
   dateLabel,
   dateValue,
   related = [],
 }: BlogArticleBodyProps) {
+  const uploadHref = uploadCtaHref(slug);
   return (
     <article className="mx-auto w-full max-w-2xl">
       <p className="text-xs font-semibold tracking-wide text-accent-hover uppercase">
@@ -71,9 +81,6 @@ export function BlogArticleBody({
             priority
           />
         </div>
-        <figcaption className="mt-2 text-center text-xs text-muted-foreground">
-          AI visualization. Details may differ from a real renovation.
-        </figcaption>
       </figure>
 
       <section className="mt-12">
@@ -127,7 +134,7 @@ export function BlogArticleBody({
           ))}
         </ol>
         <Link
-          href="/#upload"
+          href={uploadHref}
           className="mt-6 inline-flex rounded-full bg-accent bg-linear-to-br from-accent to-accent-hover px-5 py-2.5 text-sm font-semibold text-accent-foreground shadow-lg shadow-accent/30 transition-colors hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           Try it free
@@ -208,7 +215,7 @@ export function BlogArticleBody({
 
       <div className="mt-12 flex justify-center">
         <Link
-          href="/#upload"
+          href={uploadHref}
           className="inline-flex rounded-full bg-accent bg-linear-to-br from-accent to-accent-hover px-6 py-3 text-sm font-semibold text-accent-foreground shadow-lg shadow-accent/30 transition-colors hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           Redesign my room
