@@ -16,7 +16,10 @@ export function initPostHog() {
   initialized = true;
   posthog.init(POSTHOG_KEY as string, {
     api_host: POSTHOG_HOST,
-    // Only intentional, named events below — no autocapture/pageview noise.
+    // No click/element autocapture — but pageviews are tracked, manually
+    // (not via capture_pageview: true) because Next's App Router does
+    // client-side navigation without firing a real page load. See
+    // PostHogPageView, which calls track("$pageview") on route change.
     autocapture: false,
     capture_pageview: false,
     person_profiles: "identified_only",
