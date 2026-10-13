@@ -1,8 +1,14 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { BlogPostDetail, BlogPostSummary } from '@sundera/shared';
+import type {
+  BlogPostAdminDetail,
+  BlogPostDetail,
+  BlogPostQueueItem,
+  BlogPostSummary,
+} from '@sundera/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBlogPostDto } from './dto/create-blog-post.dto';
+import { UpdateBlogPostDto } from './dto/update-blog-post.dto';
 import type { BlogPost, Prisma } from '../../generated/prisma';
 
 function parseHourMinute(value: string): { hour: number; minute: number } {
@@ -35,6 +41,40 @@ function toDetail(post: BlogPost): BlogPostDetail {
   };
 }
 
+function toQueueItem(post: BlogPost): BlogPostQueueItem {
+  return {
+    slug: post.slug,
+    title: post.title,
+    dek: post.dek,
+    roomType: post.roomType as BlogPostQueueItem['roomType'],
+    style: post.style as BlogPostQueueItem['style'],
+    imageUrl: post.imageUrl,
+    imageAlt: post.imageAlt,
+    scheduledFor: post.scheduledFor.toISOString(),
+  };
+}
+
+function toAdminDetail(post: BlogPost): BlogPostAdminDetail {
+  return {
+    slug: post.slug,
+    title: post.title,
+    dek: post.dek,
+    roomType: post.roomType as BlogPostAdminDetail['roomType'],
+    style: post.style as BlogPostAdminDetail['style'],
+    imageUrl: post.imageUrl,
+    imageAlt: post.imageAlt,
+    problems: post.problems as unknown as string[],
+    palette: post.palette,
+    materials: post.materials,
+    lighting: post.lighting,
+    priceTable: post.priceTable as unknown as BlogPostAdminDetail['priceTable'],
+    faq: post.faq as unknown as BlogPostAdminDetail['faq'],
+    status: post.status,
+    scheduledFor: post.scheduledFor.toISOString(),
+    publishedAt: post.publishedAt ? post.publishedAt.toISOString() : null,
+  };
+}
+
 @Injectable()
 export class BlogPostsService {
   constructor(
@@ -56,6 +96,76 @@ export class BlogPostsService {
       throw new NotFoundException(`No published blog post with slug ${slug}`);
     }
     return toDetail(post);
+  }
+
+  // blog-admin (apps/web) — posts still waiting for their scheduled slot,
+  // i.e. not live on the site yet. Oldest slot first, matching the order
+  // they'll actually go out.
+  async findQueue(): Promise<BlogPostQueueItem[]> {
+    const posts = await this.prisma.blogPost.findMany({
+      where: { status: 'SCHEDULED' },
+      orderBy: { scheduledFor: 'asc' },
+    });
+    return posts.map(toQueueItem);
+  }
+
+  // Unlike findBySlug, not restricted to PUBLISHED — blog-admin needs to load
+  // a still-queued post to preview/edit it.
+  async findForAdmin(slug: string): Promise<BlogPostAdminDetail> {
+    const post = await this.prisma.blogPost.findUnique({ where: { slug } });
+    if (!post) {
+      throw new NotFoundException(`No blog post with slug ${slug}`);
+    }
+    return toAdminDetail(post);
+  }
+
+  // Editing is scoped to queued posts only — once a post is PUBLISHED it's
+  // live on the site and out of blog-admin's "queue, edit, publish" flow.
+  async update(slug: string, dto: UpdateBlogPostDto): Promise<BlogPostAdminDetail> {
+    const post = await this.requireScheduled(slug);
+    const updated = await this.prisma.blogPost.update({
+      where: { slug: post.slug },
+      data: {
+        ...(dto.title !== undefined && { title: dto.title }),
+        ...(dto.dek !== undefined && { dek: dto.dek }),
+        ...(dto.imageAlt !== undefined && { imageAlt: dto.imageAlt }),
+        ...(dto.problems !== undefined && {
+          problems: dto.problems as unknown as Prisma.InputJsonValue,
+        }),
+        ...(dto.palette !== undefined && { palette: dto.palette }),
+        ...(dto.materials !== undefined && { materials: dto.materials }),
+        ...(dto.lighting !== undefined && { lighting: dto.lighting }),
+        ...(dto.priceTable !== undefined && {
+          priceTable: dto.priceTable as unknown as Prisma.InputJsonValue,
+        }),
+        ...(dto.faq !== undefined && { faq: dto.faq as unknown as Prisma.InputJsonValue }),
+      },
+    });
+    return toAdminDetail(updated);
+  }
+
+  // Publishing from blog-admin jumps the queue: live immediately rather than
+  // waiting for the randomized scheduledFor slot. That's the whole point of
+  // a manual "Publish" action, and it's also what takes the post out of the
+  // queue (findQueue only returns SCHEDULED posts).
+  async publishNow(slug: string): Promise<BlogPostAdminDetail> {
+    await this.requireScheduled(slug);
+    const updated = await this.prisma.blogPost.update({
+      where: { slug },
+      data: { status: 'PUBLISHED', publishedAt: new Date() },
+    });
+    return toAdminDetail(updated);
+  }
+
+  private async requireScheduled(slug: string): Promise<BlogPost> {
+    const post = await this.prisma.blogPost.findUnique({ where: { slug } });
+    if (!post) {
+      throw new NotFoundException(`No blog post with slug ${slug}`);
+    }
+    if (post.status !== 'SCHEDULED') {
+      throw new ConflictException(`Blog post ${slug} is already published`);
+    }
+    return post;
   }
 
   async listUsedSourceKeys(): Promise<string[]> {

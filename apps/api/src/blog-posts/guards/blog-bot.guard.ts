@@ -5,7 +5,10 @@ import type { Request } from 'express';
 
 // Same shared-secret pattern as LavaTopWebhookGuard — marketing/blog/'s bot
 // (Railway) sends this on every write/bot-only read so it's the only thing
-// that can create BlogPost rows or see unpublished source-key state.
+// that can create BlogPost rows or see unpublished source-key state. Also
+// used by blog-admin's server-side routes in apps/web (BlogPostsAdminController)
+// — same trust boundary (a privileged caller that can read/edit/publish
+// unpublished posts), reusing the secret rather than adding a parallel one.
 @Injectable()
 export class BlogBotGuard implements CanActivate {
   private readonly logger = new Logger(BlogBotGuard.name);

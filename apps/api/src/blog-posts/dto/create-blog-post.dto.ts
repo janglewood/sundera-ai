@@ -9,7 +9,7 @@ import {
 } from 'class-validator';
 import { ROOM_TYPES, DESIGN_STYLES } from '@sundera/shared';
 
-class PriceRowDto {
+export class PriceRowDto {
   @IsString()
   @MaxLength(60)
   item!: string;
@@ -23,7 +23,7 @@ class PriceRowDto {
   mid!: string;
 }
 
-class FaqItemDto {
+export class FaqItemDto {
   @IsString()
   @MaxLength(200)
   question!: string;
