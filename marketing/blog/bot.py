@@ -24,7 +24,9 @@ Runs on Railway — unlike the Pinterest bot, this has no local-only dependency 
 no rapid-mlx, no browser automation), so cloud hosting is a clean fit. See CLAUDE.md.
 
 Config: marketing/blog/.env — see .env.example. Chat commands: /run (check for a new
-candidate now), /status (today's progress).
+candidate now), /status (today's progress), /reset (clear a stuck "running"/"pending"
+state — e.g. after an error; a failed /run now also auto-resets and reports the error
+in-chat, so /reset is mainly for anything that slips past that, like a crash mid-upload).
 
 Run: python bot.py
 """
@@ -121,7 +123,7 @@ def decision_keyboard():
 
 
 def main_menu_keyboard():
-    return ReplyKeyboardMarkup([["/status"], ["/run"]], resize_keyboard=True)
+    return ReplyKeyboardMarkup([["/status"], ["/run"], ["/reset"]], resize_keyboard=True)
 
 
 def _require_chat(update):
@@ -245,7 +247,19 @@ async def maybe_propose_next(app):
         )
         STATE["running"] = False
         return
-    await propose_next(app)
+    try:
+        await propose_next(app)
+    except Exception as exc:
+        # Without this, an exception here (R2/OpenRouter/API failures) left
+        # STATE["running"] stuck True forever — every /run after a failure
+        # just answered "Already running." with no way to recover short of
+        # /reset or a redeploy. Surfacing the error in Telegram also means
+        # Railway logs aren't the only way to see what went wrong.
+        logger.exception("propose_next failed")
+        STATE["running"] = False
+        await app.bot.send_message(
+            CHAT_ID, f"Error while generating a candidate:\n{exc}\n\nUse /run to retry."
+        )
 
 
 async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -268,6 +282,17 @@ async def on_run(update: Update, context: ContextTypes.DEFAULT_TYPE):
     STATE["running"] = True
     await update.message.reply_text("Starting…")
     await maybe_propose_next(context.application)
+
+
+async def on_reset(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not _require_chat(update):
+        return
+    STATE["running"] = False
+    STATE["pending"] = None
+    await update.message.reply_text(
+        "State reset (running + pending cleared). /run to start again.",
+        reply_markup=main_menu_keyboard(),
+    )
 
 
 async def on_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -332,6 +357,7 @@ def main():
     app.add_handler(CommandHandler("start", on_start))
     app.add_handler(CommandHandler("status", on_status))
     app.add_handler(CommandHandler("run", on_run))
+    app.add_handler(CommandHandler("reset", on_reset))
     app.add_handler(CallbackQueryHandler(on_callback))
     logger.info(
         "Starting blog bot: daily_proposal_count=%s check_time=%02d:%02d UTC%+g",
