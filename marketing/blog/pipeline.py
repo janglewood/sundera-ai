@@ -199,7 +199,13 @@ def generate_article(env, room_label, style_label, retries=3):
         if resp.status_code == 429 and attempt < retries - 1:
             time.sleep(10 * (attempt + 1))
             continue
-        resp.raise_for_status()
+        if resp.status_code >= 400:
+            # requests' raise_for_status() drops the response body, which is where
+            # OpenRouter actually explains a 400 (bad model slug, no credit, provider
+            # access not enabled, etc.) — surface it instead of a bare "400 Bad Request".
+            raise RuntimeError(
+                f"OpenRouter chat/completions {resp.status_code}: {resp.text[:500]}"
+            )
         text = resp.json()["choices"][0]["message"]["content"]
         try:
             data = json.loads(_strip_code_fence(text))
