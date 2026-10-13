@@ -3,8 +3,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { DESIGN_STYLE_LABELS, ROOM_TYPE_LABELS } from "@sundera/shared";
 import { getBlogQueue } from "@/lib/blog-admin";
-import { logout, publishQueuedPost } from "./actions";
+import { deleteQueuedPost, logout, publishQueuedPost } from "./actions";
 import { ConfirmSubmitForm } from "./ConfirmSubmitForm";
+import { LocalDateTime } from "@/components/blog/LocalDateTime";
 
 export const metadata: Metadata = {
   title: "Blog admin queue — Sundera AI",
@@ -12,14 +13,6 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = "force-dynamic";
-
-function formatScheduledFor(iso: string): string {
-  return `${new Date(iso).toLocaleString("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "UTC",
-  })} UTC`;
-}
 
 export default async function BlogAdminQueuePage() {
   const queue = await getBlogQueue();
@@ -77,7 +70,7 @@ export default async function BlogAdminQueuePage() {
                     </h2>
                     <p className="mt-2 text-sm text-muted-foreground">{post.dek}</p>
                     <p className="mt-3 text-xs text-muted-foreground">
-                      Scheduled for {formatScheduledFor(post.scheduledFor)}
+                      Scheduled for <LocalDateTime iso={post.scheduledFor} />
                     </p>
                   </div>
                 </Link>
@@ -88,6 +81,17 @@ export default async function BlogAdminQueuePage() {
                   >
                     Edit
                   </Link>
+                  <ConfirmSubmitForm
+                    action={deleteQueuedPost.bind(null, post.slug)}
+                    confirmMessage={`Delete "${post.title}" from the queue? This can't be undone.`}
+                  >
+                    <button
+                      type="submit"
+                      className="rounded-full border border-red-600/30 px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:border-red-600/60 hover:bg-red-600/5"
+                    >
+                      Delete
+                    </button>
+                  </ConfirmSubmitForm>
                   <ConfirmSubmitForm
                     action={publishQueuedPost.bind(null, post.slug)}
                     confirmMessage={`Publish "${post.title}" now? It'll go live immediately and leave the queue.`}

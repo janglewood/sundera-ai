@@ -57,3 +57,18 @@ export function publishBlogPost(slug: string): Promise<BlogPostAdminDetail> {
     method: "POST",
   });
 }
+
+// 204 No Content on success — can't reuse adminFetch<T>, which always parses
+// a JSON body.
+export async function deleteBlogPost(slug: string): Promise<void> {
+  const path = `/blog-posts/admin/${slug}`;
+  const response = await fetch(apiUrl(path), {
+    method: "DELETE",
+    headers: adminHeaders(),
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`apps/api ${path} failed (${response.status}): ${body}`);
+  }
+}
