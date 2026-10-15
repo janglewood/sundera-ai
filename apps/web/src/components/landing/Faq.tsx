@@ -29,7 +29,7 @@ const FAQS = [
   {
     question: "Is it free?",
     answer:
-      "Yes — the free plan includes 1 redesign with limited styles, no card required (just a free account to reveal and download your redesign, with a watermark). A one-time payment unlocks more redesigns, editing, every style, and watermark-free downloads — for good.",
+      "Every account gets 2 free tokens (1 token = 1 redesign or 1 edit) with limited styles and a watermark on downloads — no card required. Beyond that, buy a one-time pack ($5 for 10 tokens, $12 for 25, or $20 for 50) to unlock every design style and watermark-free downloads. Packs stack and tokens never expire.",
   },
   {
     question: "What happens to my photos?",

@@ -17,31 +17,28 @@ export function Pricing() {
             Simple pricing, pay once
           </h2>
           <p className="mt-4 text-muted-foreground">
-            Start free. Upgrade with a one-time payment for more generations,
-            edits, and styles.
+            Start free. Buy a token pack whenever you need more redesigns or
+            edits — packs stack and tokens never expire.
           </p>
         </div>
 
         <PricingCards
-          renderCta={(plan) =>
-            plan.name === "Free" ? (
-              <a
-                href="#upload"
-                onClick={highlightUpload}
-                className={ctaClassName(plan.highlighted)}
-              >
-                <CtaLabel plan={plan} />
-              </a>
-            ) : (
-              <Link
-                href="/login?next=paywall"
-                className={ctaClassName(plan.highlighted)}
-              >
-                <CtaLabel plan={plan} />
-              </Link>
-            )
-          }
+          renderCta={(plan) => (
+            <Link
+              href="/login?next=paywall"
+              className={ctaClassName(plan.highlighted)}
+            >
+              <CtaLabel plan={plan} />
+            </Link>
+          )}
         />
+
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          Free: 2 tokens, watermarked downloads.{" "}
+          <a href="#upload" onClick={highlightUpload} className="underline">
+            Try it free
+          </a>
+        </p>
       </div>
     </section>
   );

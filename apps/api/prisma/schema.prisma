@@ -19,7 +19,7 @@ model User {
 
   roomPhotos  RoomPhoto[]
   generations Generation[]
-  purchase    Purchase?
+  purchases   Purchase[]
 }
 
 model RoomPhoto {
@@ -115,7 +115,9 @@ model GenerationResult {
 }
 
 enum PlanTier {
-  LIFETIME
+  ROOM
+  ROOMS
+  HOUSE
 }
 
 enum PurchaseStatus {
@@ -159,12 +161,13 @@ model BlogPost {
   @@index([status])
 }
 
-// Absence of a row means the user is on the FREE tier. A one-time purchase,
-// so once status is COMPLETED the plan tier is entitled permanently — no
-// period, cancellation, or expiry to track.
+// One row per checkout attempt — packs stack, so a user can own several
+// COMPLETED purchases over time. Token balance = FREE_TOKENS + sum of
+// PACK_TOKENS[planTier] over COMPLETED purchases - tokens used
+// (see resolveEntitlements in @sundera/shared).
 model Purchase {
   id             String         @id @default(cuid())
-  userId         String         @unique
+  userId         String
   user           User           @relation(fields: [userId], references: [id])
   planTier       PlanTier
   status         PurchaseStatus @default(PENDING)
@@ -173,4 +176,6 @@ model Purchase {
   purchasedAt    DateTime?
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
+
+  @@index([userId])
 }

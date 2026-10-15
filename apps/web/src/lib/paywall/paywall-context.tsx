@@ -4,6 +4,7 @@ import { createContext, useContext, useState } from "react";
 import type { ReactNode } from "react";
 import { PaywallModal } from "@/components/paywall/PaywallModal";
 import { track } from "@/lib/analytics/posthog";
+import { useTokenBalance } from "@/lib/useTokenBalance";
 
 export type PaywallReason = "limit" | "browse" | "style";
 
@@ -17,6 +18,7 @@ const PaywallContext = createContext<PaywallContextValue | null>(null);
 export function PaywallProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [reason, setReason] = useState<PaywallReason>("browse");
+  const { tokens, refetch } = useTokenBalance();
 
   return (
     <PaywallContext.Provider
@@ -24,7 +26,11 @@ export function PaywallProvider({ children }: { children: ReactNode }) {
         openPaywall: (nextReason = "browse") => {
           setReason(nextReason);
           setIsOpen(true);
-          track("paywall_viewed", { reason: nextReason });
+          void refetch();
+          track("paywall_viewed", {
+            reason: nextReason,
+            tokens_balance: tokens?.balance ?? 0,
+          });
         },
         closePaywall: () => setIsOpen(false),
       }}
@@ -33,6 +39,7 @@ export function PaywallProvider({ children }: { children: ReactNode }) {
       <PaywallModal
         isOpen={isOpen}
         reason={reason}
+        tokensBalance={tokens?.balance ?? 0}
         onClose={() => setIsOpen(false)}
       />
     </PaywallContext.Provider>

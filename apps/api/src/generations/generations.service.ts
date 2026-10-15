@@ -6,10 +6,10 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import sharp from 'sharp';
-import { PLAN_LIMITS, isStyleAllowedForPlan } from '@sundera/shared';
+import { isStyleAllowedForEntitlements } from '@sundera/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
-import { PaymentsService } from '../payments/payments.service';
+import { TokensService } from '../payments/tokens.service';
 import { CreateGenerationDto } from './dto/create-generation.dto';
 import { CreateEditGenerationDto } from './dto/create-edit-generation.dto';
 import { PaywallRequiredException } from './paywall-required.exception';
@@ -55,7 +55,7 @@ export class GenerationsService {
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly configService: ConfigService,
-    private readonly payments: PaymentsService,
+    private readonly tokens: TokensService,
   ) {}
 
   async create(dto: CreateGenerationDto, userId: string) {
@@ -66,37 +66,36 @@ export class GenerationsService {
       throw new NotFoundException(`RoomPhoto not found: ${dto.roomPhotoId}`);
     }
 
-    const planTier = await this.payments.resolvePlanTier(userId);
-    const limits = PLAN_LIMITS[planTier];
+    // Balance check + insert happen in one transaction guarded by a
+    // per-user advisory lock, so concurrent requests from the same user
+    // can't both pass the balance check before either has committed its
+    // spend (double-spend under concurrency).
+    const generation = await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${userId}))`;
 
-    if (!isStyleAllowedForPlan(dto.style, planTier)) {
-      throw new PaywallRequiredException(
-        'This style is available on paid plans.',
-      );
-    }
+      const entitlements = await this.tokens.getEntitlements(userId, tx);
 
-    // maxGenerations is a lifetime total on every plan — there's no billing
-    // period to reset against (LIFETIME is a one-time purchase).
-    const generationCount = await this.prisma.generation.count({
-      where: { userId, sourceResultId: null },
-    });
-    if (generationCount >= limits.maxGenerations) {
-      throw new PaywallRequiredException(
-        planTier === 'FREE'
-          ? "You've used your free redesign. Upgrade to create more."
-          : "You've reached your plan's redesign limit. Upgrade for more.",
-      );
-    }
+      if (!isStyleAllowedForEntitlements(dto.style, entitlements)) {
+        throw new PaywallRequiredException(
+          'This style is available with a token pack.',
+        );
+      }
+      if (entitlements.tokensBalance < 1) {
+        throw new PaywallRequiredException(
+          "You're out of tokens. Get a pack to continue.",
+        );
+      }
 
-    const generation = await this.prisma.generation.create({
-      data: {
-        userId,
-        roomPhotoId: dto.roomPhotoId,
-        roomType: dto.roomType,
-        style: dto.style,
-        customPrompt: dto.customPrompt,
-        model: this.configService.getOrThrow<string>('OPENROUTER_MODEL'),
-      },
+      return tx.generation.create({
+        data: {
+          userId,
+          roomPhotoId: dto.roomPhotoId,
+          roomType: dto.roomType,
+          style: dto.style,
+          customPrompt: dto.customPrompt,
+          model: this.configService.getOrThrow<string>('OPENROUTER_MODEL'),
+        },
+      });
     });
 
     return { id: generation.id, status: generation.status };
@@ -134,37 +133,36 @@ export class GenerationsService {
       );
     }
 
-    if (userId) {
-      const planTier = await this.payments.resolvePlanTier(userId);
-      const editCount = await this.countChainEdits(userId, parentGenerationId);
-      if (editCount >= PLAN_LIMITS[planTier].maxEdits) {
+    const generation = await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${userId}))`;
+
+      const entitlements = await this.tokens.getEntitlements(userId, tx);
+      if (entitlements.tokensBalance < 1) {
         throw new PaywallRequiredException(
-          planTier === 'FREE'
-            ? 'Editing is available on the Lifetime plan. Upgrade to edit your redesign.'
-            : "You've reached your plan's edit limit. Upgrade for more.",
+          "You're out of tokens. Get a pack to continue.",
         );
       }
-    }
 
-    const generation = await this.prisma.generation.create({
-      data: {
-        userId,
-        roomPhotoId: parent.roomPhotoId,
-        roomType: parent.roomType,
-        style: parent.style,
-        customPrompt: dto.prompt,
-        regionMask: dto.regionMask
-          ? {
-              shape: dto.regionMask.shape,
-              points: dto.regionMask.points.map((point) => ({
-                x: point.x,
-                y: point.y,
-              })),
-            }
-          : undefined,
-        sourceResultId: sourceResult.id,
-        model: this.configService.getOrThrow<string>('OPENROUTER_MODEL'),
-      },
+      return tx.generation.create({
+        data: {
+          userId,
+          roomPhotoId: parent.roomPhotoId,
+          roomType: parent.roomType,
+          style: parent.style,
+          customPrompt: dto.prompt,
+          regionMask: dto.regionMask
+            ? {
+                shape: dto.regionMask.shape,
+                points: dto.regionMask.points.map((point) => ({
+                  x: point.x,
+                  y: point.y,
+                })),
+              }
+            : undefined,
+          sourceResultId: sourceResult.id,
+          model: this.configService.getOrThrow<string>('OPENROUTER_MODEL'),
+        },
+      });
     });
 
     return { id: generation.id, status: generation.status };
@@ -185,7 +183,10 @@ export class GenerationsService {
       },
     });
 
-    const generationByResultId = new Map<string, (typeof generations)[number]>();
+    const generationByResultId = new Map<
+      string,
+      (typeof generations)[number]
+    >();
     for (const generation of generations) {
       for (const result of generation.results) {
         generationByResultId.set(result.id, generation);
@@ -197,7 +198,10 @@ export class GenerationsService {
 
   private findRootId(
     generation: { id: string; sourceResultId: string | null },
-    generationByResultId: Map<string, { id: string; sourceResultId: string | null }>,
+    generationByResultId: Map<
+      string,
+      { id: string; sourceResultId: string | null }
+    >,
   ): string {
     let current = generation;
     while (current.sourceResultId) {
@@ -256,45 +260,6 @@ export class GenerationsService {
     return { id: root.id, title: root.title };
   }
 
-  private async countChainEdits(
-    userId: string,
-    generationId: string,
-  ): Promise<number> {
-    const { generations, generationByResultId } =
-      await this.loadGenerationGraph(userId);
-
-    const generation = generations.find((g) => g.id === generationId);
-    if (!generation) return 0;
-    const rootId = this.findRootId(generation, generationByResultId);
-
-    // Count every descendant in the tree rooted at rootId: BFS down via
-    // each generation's results, following sourceResultId edges to children.
-    const childrenByResultId = new Map<string, (typeof generations)[number][]>();
-    for (const candidate of generations) {
-      if (!candidate.sourceResultId) continue;
-      const siblings = childrenByResultId.get(candidate.sourceResultId) ?? [];
-      siblings.push(candidate);
-      childrenByResultId.set(candidate.sourceResultId, siblings);
-    }
-    const generationById = new Map(generations.map((g) => [g.id, g]));
-
-    let count = 0;
-    const queue = [rootId];
-    while (queue.length) {
-      const currentId = queue.shift()!;
-      const current = generationById.get(currentId);
-      if (!current) continue;
-      for (const result of current.results) {
-        const children = childrenByResultId.get(result.id) ?? [];
-        for (const child of children) {
-          count++;
-          queue.push(child.id);
-        }
-      }
-    }
-    return count;
-  }
-
   async findByUser(userId: string) {
     const { generations, generationByResultId } =
       await this.loadGenerationGraph(userId);
@@ -317,7 +282,8 @@ export class GenerationsService {
     }
 
     const latestEntries = [...latestByRootId.values()].sort(
-      (a, b) => b.generation.createdAt.getTime() - a.generation.createdAt.getTime(),
+      (a, b) =>
+        b.generation.createdAt.getTime() - a.generation.createdAt.getTime(),
     );
 
     return Promise.all(
@@ -369,12 +335,12 @@ export class GenerationsService {
     // The custom title always lives on the chain's root row (see
     // renameGeneration) — resolve it even when viewing a downstream edit.
     const title = generation.sourceResultId
-      ? (
+      ? ((
           await this.prisma.generation.findUnique({
             where: { id: await this.findRootGenerationId(id) },
             select: { title: true },
           })
-        )?.title ?? null
+        )?.title ?? null)
       : generation.title;
 
     return {
@@ -394,16 +360,12 @@ export class GenerationsService {
     };
   }
 
-  async getResultFile(
-    generationId: string,
-    resultId: string,
-    userId?: string,
-  ) {
+  async getResultFile(generationId: string, resultId: string, userId?: string) {
     if (!userId) {
       throw new SignUpRequiredException('Sign up to download this result.');
     }
 
-    const planTier = await this.payments.resolvePlanTier(userId);
+    const entitlements = await this.tokens.getEntitlements(userId);
 
     const result = await this.prisma.generationResult.findUnique({
       where: { id: resultId },
@@ -415,7 +377,7 @@ export class GenerationsService {
     const { buffer, contentType } = await this.storage.getObject(
       result.storageKey,
     );
-    const finalBuffer = PLAN_LIMITS[planTier].watermarkOnDownload
+    const finalBuffer = entitlements.watermarkOnDownload
       ? await applyWatermark(buffer)
       : buffer;
     const ext = result.storageKey.split('.').pop() ?? 'jpg';

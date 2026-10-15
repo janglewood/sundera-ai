@@ -11,33 +11,39 @@ import {
 import type { PaywallReason } from "@/lib/paywall/paywall-context";
 import { useIsMobile } from "@/lib/useIsMobile";
 import { createCheckout } from "@/lib/billing";
+import { markCheckoutPending } from "@/lib/useTokenBalance";
 import { track } from "@/lib/analytics/posthog";
 
 const COPY: Record<PaywallReason, { heading: string; subtext: string }> = {
   limit: {
-    heading: "You've hit a free plan limit",
-    subtext:
-      "Upgrade to keep redesigning — more generations, more edits, and every style.",
+    heading: "You're out of tokens",
+    subtext: "Get a pack to continue redesigning and editing.",
   },
   browse: {
-    heading: "Upgrade your plan",
+    heading: "Get more tokens",
     subtext:
-      "Get more redesigns, more edits, downloads, and every design style.",
+      "Every design style, watermark-free downloads, and tokens that never expire.",
   },
   style: {
-    heading: "Upgrade to use all the features",
+    heading: "Unlock every design style",
     subtext:
-      "This style is part of a paid plan — upgrade to unlock every design style, plus more generations and edits.",
+      "This style is available with a token pack — packs also unlock watermark-free downloads.",
   },
 };
 
 interface PaywallModalProps {
   isOpen: boolean;
   reason: PaywallReason;
+  tokensBalance: number;
   onClose: () => void;
 }
 
-export function PaywallModal({ isOpen, reason, onClose }: PaywallModalProps) {
+export function PaywallModal({
+  isOpen,
+  reason,
+  tokensBalance,
+  onClose,
+}: PaywallModalProps) {
   const isMobile = useIsMobile();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
@@ -48,10 +54,15 @@ export function PaywallModal({ isOpen, reason, onClose }: PaywallModalProps) {
 
   async function handleUpgrade(plan: PricingPlan) {
     setCheckoutError(null);
-    setLoadingPlan(plan.name);
-    track("upgrade_clicked", { plan: plan.name, reason });
+    setLoadingPlan(plan.tier);
+    track("upgrade_clicked", {
+      planTier: plan.tier,
+      price: plan.price,
+      tokens: plan.tokens,
+    });
     try {
-      const { paymentUrl } = await createCheckout();
+      markCheckoutPending();
+      const { paymentUrl } = await createCheckout(plan.tier);
       window.location.href = paymentUrl;
     } catch {
       setCheckoutError("Couldn't start checkout. Please try again.");
@@ -65,7 +76,7 @@ export function PaywallModal({ isOpen, reason, onClose }: PaywallModalProps) {
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-label="Upgrade your plan"
+      aria-label="Get more tokens"
     >
       <div
         className="relative flex h-full w-full flex-col overflow-y-auto bg-card p-4 sm:h-auto sm:max-h-[90vh] sm:max-w-4xl sm:rounded-3xl sm:border sm:border-white/40 sm:p-10 sm:shadow-2xl"
@@ -81,7 +92,10 @@ export function PaywallModal({ isOpen, reason, onClose }: PaywallModalProps) {
         </button>
 
         <div className="mx-auto max-w-xl shrink-0 text-center">
-          <h2 className="font-display text-lg tracking-tight sm:text-3xl">
+          <p className="text-sm font-medium text-accent-hover">
+            You have {tokensBalance} token{tokensBalance === 1 ? "" : "s"}
+          </p>
+          <h2 className="mt-1 font-display text-lg tracking-tight sm:text-3xl">
             {heading}
           </h2>
           <p className="mt-1 text-sm text-muted-foreground sm:mt-3 sm:text-base">
@@ -94,28 +108,16 @@ export function PaywallModal({ isOpen, reason, onClose }: PaywallModalProps) {
 
         <PricingCards
           compactOnMobile={isMobile}
-          renderCta={(plan) =>
-            plan.name === "Free" ? (
-              <span
-                className={`${ctaClassName(false, isMobile)} cursor-default bg-muted text-muted-foreground hover:bg-muted`}
-              >
-                Current plan
-              </span>
-            ) : (
-              <button
-                type="button"
-                disabled={loadingPlan !== null}
-                onClick={() => void handleUpgrade(plan)}
-                className={ctaClassName(plan.highlighted, isMobile)}
-              >
-                {loadingPlan === plan.name ? (
-                  "Redirecting…"
-                ) : (
-                  <CtaLabel plan={plan} />
-                )}
-              </button>
-            )
-          }
+          renderCta={(plan) => (
+            <button
+              type="button"
+              disabled={loadingPlan !== null}
+              onClick={() => void handleUpgrade(plan)}
+              className={ctaClassName(plan.highlighted, isMobile)}
+            >
+              {loadingPlan === plan.tier ? "Redirecting…" : <CtaLabel plan={plan} />}
+            </button>
+          )}
         />
       </div>
     </div>

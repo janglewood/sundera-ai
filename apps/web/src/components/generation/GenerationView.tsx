@@ -2,29 +2,20 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ArrowUUpLeft, PencilSimple, Sparkle } from "@phosphor-icons/react/dist/ssr";
-import {
-  ROOM_TYPE_LABELS,
-  DESIGN_STYLE_LABELS,
-  resolveEntitledPlanTier,
-} from "@sundera/shared";
-import type {
-  RoomType,
-  DesignStyle,
-  RegionMask,
-  PurchaseResponse,
-} from "@sundera/shared";
+import { ROOM_TYPE_LABELS, DESIGN_STYLE_LABELS } from "@sundera/shared";
+import type { RoomType, DesignStyle, RegionMask } from "@sundera/shared";
 import { usePollGeneration } from "@/lib/use-poll-generation";
 import {
   createGenerationEdit,
   downloadGenerationResult,
   renameGeneration,
 } from "@/lib/generations";
-import { getMyPurchase } from "@/lib/billing";
 import { ApiError } from "@/lib/api-client";
 import { usePaywall } from "@/lib/paywall/paywall-context";
 import { useAuth } from "@/lib/auth/auth-context";
+import { useTokenBalance } from "@/lib/useTokenBalance";
 import {
   AuthGateModal,
   type AuthGateReason,
@@ -139,20 +130,10 @@ export function GenerationView({ id }: GenerationViewProps) {
     regionMask: RegionMask;
     prompt: string;
   } | null>(null);
-  const [purchase, setPurchase] = useState<PurchaseResponse | null>(null);
+  const { tokens, refetch: refetchTokens } = useTokenBalance();
 
-  useEffect(() => {
-    if (!user) return;
-    let cancelled = false;
-    void getMyPurchase().then((result) => {
-      if (!cancelled) setPurchase(result);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [user]);
-
-  const isFreePlan = !user || resolveEntitledPlanTier(purchase ?? { planTier: "FREE", status: null }) === "FREE";
+  const isFreePlan = !user || (tokens?.planTier ?? "FREE") === "FREE";
+  const tokensBalance = tokens?.balance ?? 0;
 
   if (error) {
     return (
@@ -209,6 +190,7 @@ export function GenerationView({ id }: GenerationViewProps) {
         prompt: editPrompt.trim(),
       });
       router.push(`/generations/${edit.id}`);
+      void refetchTokens();
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         setAuthGate("edit");
@@ -229,6 +211,10 @@ export function GenerationView({ id }: GenerationViewProps) {
       setAuthGate("edit");
       return;
     }
+    if (tokensBalance < 1) {
+      openPaywall("limit");
+      return;
+    }
     await performEditSubmit();
   }
 
@@ -243,6 +229,7 @@ export function GenerationView({ id }: GenerationViewProps) {
         regionMask,
       });
       router.push(`/generations/${edit.id}`);
+      void refetchTokens();
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         setAuthGate("edit");
@@ -262,6 +249,10 @@ export function GenerationView({ id }: GenerationViewProps) {
       setPendingRegionEdit({ regionMask, prompt });
       setPendingAction("regionEdit");
       setAuthGate("edit");
+      return;
+    }
+    if (tokensBalance < 1) {
+      openPaywall("limit");
       return;
     }
     await performRegionEditSubmit(regionMask, prompt);
@@ -448,11 +439,15 @@ export function GenerationView({ id }: GenerationViewProps) {
             {editError && <p className="text-sm text-red-500">{editError}</p>}
             <button
               type="button"
-              disabled={!editPrompt.trim() || isEditSubmitting}
+              disabled={
+                !editPrompt.trim() ||
+                isEditSubmitting ||
+                (!!user && tokensBalance < 1)
+              }
               onClick={() => void handleEditSubmit()}
               className="rounded-full bg-foreground px-6 py-3 font-medium text-background transition-opacity disabled:opacity-40"
             >
-              {isEditSubmitting ? "Starting…" : "Edit"}
+              {isEditSubmitting ? "Starting…" : "Edit · 1 token"}
             </button>
           </div>
         )}
@@ -460,7 +455,7 @@ export function GenerationView({ id }: GenerationViewProps) {
         {isFreePlan && (
           <div className="flex flex-col items-center gap-2 rounded-2xl border border-foreground/10 bg-muted/50 px-6 py-5 text-center">
             <p className="text-sm font-medium">
-              Unlock every design style, more generations, and unlimited edits
+              Unlock every design style and watermark-free downloads
             </p>
             <button
               type="button"
@@ -468,7 +463,7 @@ export function GenerationView({ id }: GenerationViewProps) {
               className="flex items-center gap-1 rounded-full bg-foreground px-5 py-2 text-sm font-medium text-background transition-opacity hover:opacity-90"
             >
               <Sparkle size={14} weight="fill" />
-              Upgrade to use all the features
+              Get more tokens
             </button>
           </div>
         )}
