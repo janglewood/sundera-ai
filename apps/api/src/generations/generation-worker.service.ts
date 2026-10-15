@@ -192,7 +192,7 @@ export class GenerationWorkerService {
     const variants = await this.imageGenerationProvider.editImage({
       sourceImageDataUrl,
       prompt,
-      variantCount: 3,
+      variantCount: claimed.sourceResultId ? 1 : 3,
     });
 
     for (const [index, variant] of variants.entries()) {
