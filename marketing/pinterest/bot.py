@@ -524,21 +524,28 @@ async def start_new_cycle(app):
 
 async def scheduler_loop(app):
     while True:
-        st = state.load()
-        if st["stage"] in ("candidates", "generating"):
+        try:
+            st = state.load()
+            if st["stage"] in ("candidates", "generating"):
+                await asyncio.sleep(30)
+                continue
+            now = datetime.now(TZ)
+            next_run_at = st.get("next_run_at")
+            if not next_run_at:
+                next_run_at = next_run_after(now).isoformat()
+                st["next_run_at"] = next_run_at
+                state.save(st)
+            next_run = datetime.fromisoformat(next_run_at)
+            if now >= next_run:
+                await start_new_cycle(app)
+            else:
+                await asyncio.sleep(min((next_run - now).total_seconds(), 300))
+        except Exception:
+            # A single network/Telegram hiccup must not kill this loop forever — see the
+            # 2026-10-12 publish_scheduler_loop incident (CLAUDE.md) that motivated this guard
+            # on all three scheduler loops.
+            logger.exception("scheduler_loop iteration failed")
             await asyncio.sleep(30)
-            continue
-        now = datetime.now(TZ)
-        next_run_at = st.get("next_run_at")
-        if not next_run_at:
-            next_run_at = next_run_after(now).isoformat()
-            st["next_run_at"] = next_run_at
-            state.save(st)
-        next_run = datetime.fromisoformat(next_run_at)
-        if now >= next_run:
-            await start_new_cycle(app)
-        else:
-            await asyncio.sleep(min((next_run - now).total_seconds(), 300))
 
 
 async def run_refill(app):
@@ -643,28 +650,32 @@ async def refill_scheduler_loop(app):
     whether today's SCHEDULE_TIME batch is idle, in progress, or done."""
     while True:
         await asyncio.sleep(300)
-        st = state.load()
-        if st["refill_stage"] != "idle":
-            continue
-        now = datetime.now(TZ)
-        today = now.strftime("%Y-%m-%d")
-        if st["last_refill_check_date"] == today:
-            continue
-        if (now.hour, now.minute) < (REFILL_CHECK_HOUR, REFILL_CHECK_MINUTE):
-            continue
-        count = len(pipeline.load_manifest(source_dir="clean"))
-        st["last_refill_check_date"] = today
-        if count < REFILL_THRESHOLD:
-            st["refill_stage"] = "awaiting_confirmation"
-            state.save(st)
-            await app.bot.send_message(
-                CHAT_ID,
-                f"photos/clean/ has {count} photos left (< {REFILL_THRESHOLD}). Run a fresh "
-                "scrape -> classify -> clean cycle? This can take several hours.",
-                reply_markup=refill_keyboard(),
-            )
-        else:
-            state.save(st)
+        try:
+            st = state.load()
+            if st["refill_stage"] != "idle":
+                continue
+            now = datetime.now(TZ)
+            today = now.strftime("%Y-%m-%d")
+            if st["last_refill_check_date"] == today:
+                continue
+            if (now.hour, now.minute) < (REFILL_CHECK_HOUR, REFILL_CHECK_MINUTE):
+                continue
+            count = len(pipeline.load_manifest(source_dir="clean"))
+            st["last_refill_check_date"] = today
+            if count < REFILL_THRESHOLD:
+                st["refill_stage"] = "awaiting_confirmation"
+                state.save(st)
+                await app.bot.send_message(
+                    CHAT_ID,
+                    f"photos/clean/ has {count} photos left (< {REFILL_THRESHOLD}). Run a fresh "
+                    "scrape -> classify -> clean cycle? This can take several hours.",
+                    reply_markup=refill_keyboard(),
+                )
+            else:
+                state.save(st)
+        except Exception:
+            # See the same guard + rationale in scheduler_loop/publish_scheduler_loop.
+            logger.exception("refill_scheduler_loop iteration failed")
 
 
 def pick_publish_times(now):
@@ -778,30 +789,49 @@ async def publish_scheduler_loop(app):
     pinterest_publish.publish_pin."""
     while True:
         await asyncio.sleep(120)
-        st = state.load()
-        if st["pending_publish"]:
-            continue
-        now = datetime.now(TZ)
-        today = now.strftime("%Y-%m-%d")
-        if st["publish_date"] != today:
-            st["publish_date"] = today
-            st["publish_times_today"] = pick_publish_times(now)
-            st["publish_times_done"] = []
-            state.save(st)
+        try:
             st = state.load()
-        if not st["publish_queue"]:
-            continue
-        due = [
-            t for t in st["publish_times_today"]
-            if t not in st["publish_times_done"] and datetime.fromisoformat(t) <= now
-        ]
-        if not due:
-            continue
-        slot_time = min(due)
-        st["publish_times_done"].append(slot_time)
-        item = st["publish_queue"].pop(0)
-        state.save(st)
-        await send_publish_approval(app, item)
+            if st["pending_publish"]:
+                continue
+            now = datetime.now(TZ)
+            today = now.strftime("%Y-%m-%d")
+            if st["publish_date"] != today:
+                st["publish_date"] = today
+                st["publish_times_today"] = pick_publish_times(now)
+                st["publish_times_done"] = []
+                state.save(st)
+                st = state.load()
+            if not st["publish_queue"]:
+                continue
+            due = [
+                t for t in st["publish_times_today"]
+                if t not in st["publish_times_done"] and datetime.fromisoformat(t) <= now
+            ]
+            if not due:
+                continue
+            slot_time = min(due)
+            st["publish_times_done"].append(slot_time)
+            item = st["publish_queue"].pop(0)
+            state.save(st)
+            try:
+                await send_publish_approval(app, item)
+            except Exception:
+                # 2026-10-12 incident: a Telegram network timeout here propagated out of this
+                # loop entirely and killed the task for good (no supervisor restarts individual
+                # asyncio tasks) — publish_queue kept accepting approved pins for ~2 days with
+                # nothing ever popping them. Requeue (same pattern as do_publish's failure
+                # branch) instead of losing the item, and keep the loop alive via the outer guard.
+                logger.exception("send_publish_approval failed for %s", item.get("id"))
+                st = state.load()
+                st["publish_queue"].insert(0, item)
+                state.save(st)
+                await app.bot.send_message(
+                    CHAT_ID,
+                    f"Failed to send the Pinterest publish-approval prompt for \"{item['title']}\": "
+                    "left at the front of the queue, will retry at the next scheduled slot.",
+                )
+        except Exception:
+            logger.exception("publish_scheduler_loop iteration failed")
 
 
 async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
