@@ -62,11 +62,11 @@ function BackLink() {
 
 function HeaderActions({
   onSignUp,
-  isFreePlan,
+  tokensBalance,
   onUpgrade,
 }: {
   onSignUp: () => void;
-  isFreePlan: boolean;
+  tokensBalance: number | undefined;
   onUpgrade: () => void;
 }) {
   const { user } = useAuth();
@@ -75,14 +75,13 @@ function HeaderActions({
     <div className="flex items-center justify-between gap-2">
       <BackLink />
       <div className="ml-auto flex items-center gap-2">
-        {isFreePlan && (
+        {user && tokensBalance !== undefined && (
           <button
             type="button"
             onClick={onUpgrade}
-            className="flex items-center gap-1 rounded-full bg-foreground px-3 py-1.5 text-sm font-medium text-background transition-opacity hover:opacity-90"
+            className="rounded-full border border-foreground/10 bg-background px-3 py-1.5 text-sm font-medium text-foreground/80 transition-colors hover:text-foreground"
           >
-            <Sparkle size={14} weight="fill" />
-            Upgrade
+            {tokensBalance} token{tokensBalance === 1 ? "" : "s"}
           </button>
         )}
         {user ? (
@@ -326,7 +325,7 @@ export function GenerationView({ id }: GenerationViewProps) {
     <>
       <HeaderActions
         onSignUp={() => setAuthGate("account")}
-        isFreePlan={isFreePlan}
+        tokensBalance={tokens?.balance}
         onUpgrade={() => openPaywall("browse")}
       />
       <div className="flex flex-col gap-6">
