@@ -5,8 +5,8 @@ import { Check } from "@phosphor-icons/react/dist/ssr";
 import {
   PAID_PLAN_TIERS,
   PACK_TOKENS,
-  PLAN_DISPLAY_NAMES,
   PLAN_PRICES_USD,
+  type PaidPlanTier,
 } from "@sundera/shared";
 
 const COMMON_FEATURES = [
@@ -15,12 +15,19 @@ const COMMON_FEATURES = [
   "Pay once · no subscription · tokens never expire",
 ];
 
+const PACK_COPY: Record<PaidPlanTier, { title: string; subtitle: string }> = {
+  ROOM: { title: "Try it out", subtitle: "Perfect for your first room" },
+  ROOMS: { title: "Level up", subtitle: "Great for a few rooms" },
+  HOUSE: { title: "Go all in", subtitle: "Redesign your whole home" },
+};
+
 export const PRICING_PLANS = PAID_PLAN_TIERS.map((tier) => {
   const tokens = PACK_TOKENS[tier];
   const price = PLAN_PRICES_USD[tier];
   return {
     tier,
-    name: PLAN_DISPLAY_NAMES[tier],
+    title: PACK_COPY[tier].title,
+    subtitle: PACK_COPY[tier].subtitle,
     price,
     tokens,
     pricePerToken: (price / tokens).toFixed(2),
@@ -95,12 +102,12 @@ export function PricingCards({
               <h3
                 className={`font-semibold ${compactOnMobile ? "text-sm leading-tight sm:text-base" : "text-base"}`}
               >
-                {plan.name}
+                {plan.title}
               </h3>
               <p
                 className={`mt-1 text-sm text-muted-foreground ${compactOnMobile ? "hidden sm:block" : ""}`}
               >
-                ${plan.pricePerToken}/token
+                {plan.subtitle}
               </p>
 
               <div
@@ -116,7 +123,10 @@ export function PricingCards({
               <p
                 className={`font-medium text-accent-hover ${compactOnMobile ? "text-[10px] sm:text-xs" : "text-xs"}`}
               >
-                {plan.tokens} tokens
+                {plan.tokens} tokens{" "}
+                <span className="font-normal text-muted-foreground">
+                  (${plan.pricePerToken}/token)
+                </span>
               </p>
 
               {compactOnMobile && (
