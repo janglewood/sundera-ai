@@ -1,30 +1,19 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { resolveEntitledPlanTier, type PurchaseResponse } from "@sundera/shared";
+import { PLAN_DISPLAY_NAMES } from "@sundera/shared";
 import { CaretDown } from "@phosphor-icons/react/dist/ssr";
 import { useAuth } from "@/lib/auth/auth-context";
 import { signOutUser } from "@/lib/auth/auth-actions";
 import { usePaywall } from "@/lib/paywall/paywall-context";
-import { getMyPurchase } from "@/lib/billing";
+import { useTokenBalance } from "@/lib/useTokenBalance";
 
 export function AccountMenu() {
   const { user } = useAuth();
   const { openPaywall } = usePaywall();
-  const [purchase, setPurchase] = useState<PurchaseResponse | null>(null);
+  const { tokens } = useTokenBalance();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!user) return;
-    let cancelled = false;
-    void getMyPurchase().then((result) => {
-      if (!cancelled) setPurchase(result);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [user]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -37,13 +26,19 @@ export function AccountMenu() {
     return () => document.removeEventListener("mousedown", handlePointerDown);
   }, [isOpen]);
 
-  const entitledPlanTier = purchase ? resolveEntitledPlanTier(purchase) : "FREE";
-  const isFreePlan = entitledPlanTier === "FREE";
-  const planLabel =
-    entitledPlanTier.charAt(0) + entitledPlanTier.slice(1).toLowerCase();
+  const planLabel = PLAN_DISPLAY_NAMES[tokens?.planTier ?? "FREE"];
+  const balance = tokens?.balance ?? 0;
 
   return (
-    <div className="relative" ref={menuRef}>
+    <div className="relative flex items-center gap-2" ref={menuRef}>
+      <button
+        type="button"
+        onClick={() => openPaywall("browse")}
+        className="shrink-0 rounded-full border border-foreground/10 bg-background px-3 py-1.5 text-sm font-medium text-foreground/80 transition-colors hover:text-foreground"
+      >
+        {balance} token{balance === 1 ? "" : "s"}
+      </button>
+
       <button
         type="button"
         onClick={() => setIsOpen((open) => !open)}
@@ -74,20 +69,18 @@ export function AccountMenu() {
             </div>
           )}
 
-          {isFreePlan && (
-            <div className="space-y-0.5 border-t border-foreground/10 pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsOpen(false);
-                  openPaywall("browse");
-                }}
-                className="w-full rounded-lg px-2 py-1.5 text-left font-medium text-foreground hover:bg-muted"
-              >
-                Upgrade
-              </button>
-            </div>
-          )}
+          <div className="space-y-0.5 border-t border-foreground/10 pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(false);
+                openPaywall("browse");
+              }}
+              className="w-full rounded-lg px-2 py-1.5 text-left font-medium text-foreground hover:bg-muted"
+            >
+              Get more tokens
+            </button>
+          </div>
 
           <div className="mt-4 pt-2">
             <button

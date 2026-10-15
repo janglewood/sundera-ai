@@ -2,12 +2,11 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { PLAN_LIMITS, resolveEntitledPlanTier } from "@sundera/shared";
 import { PhotoDropzone } from "@/components/upload/PhotoDropzone";
-import { createUpload, listMyGenerations } from "@/lib/generations";
-import { getMyPurchase } from "@/lib/billing";
+import { createUpload } from "@/lib/generations";
 import { useAuth } from "@/lib/auth/auth-context";
 import { usePaywall } from "@/lib/paywall/paywall-context";
+import { useTokenBalance } from "@/lib/useTokenBalance";
 import { track } from "@/lib/analytics/posthog";
 
 function AppHome() {
@@ -15,9 +14,9 @@ function AppHome() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
   const { openPaywall } = usePaywall();
+  const { tokens } = useTokenBalance();
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isAtFreeLimit, setIsAtFreeLimit] = useState(false);
 
   useEffect(() => {
     if (searchParams.get("openPaywall") === "1") {
@@ -26,26 +25,8 @@ function AppHome() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
-  useEffect(() => {
-    if (!user) return;
-    let cancelled = false;
-    void Promise.all([getMyPurchase(), listMyGenerations()]).then(
-      ([purchase, generations]) => {
-        if (cancelled) return;
-        const planTier = resolveEntitledPlanTier(purchase);
-        setIsAtFreeLimit(
-          planTier === "FREE" &&
-            generations.length >= PLAN_LIMITS.FREE.maxGenerations,
-        );
-      },
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [user]);
-
   function handleRequestSelect() {
-    if (isAtFreeLimit) {
+    if (user && tokens && tokens.balance < 1) {
       openPaywall("limit");
       return false;
     }

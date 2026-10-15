@@ -1,5 +1,9 @@
-import type { PlanTier } from "../enums/plan-tier.enum";
+import type { PaidPlanTier, PlanTier } from "../enums/plan-tier.enum";
 import type { PurchaseStatus } from "../enums/purchase-status.enum";
+
+export interface CreateCheckoutRequest {
+  planTier: PaidPlanTier;
+}
 
 export interface CreateCheckoutResponse {
   paymentUrl: string;
@@ -11,8 +15,9 @@ export interface PurchaseResponse {
   purchasedAt: string | null;
 }
 
-export function resolveEntitledPlanTier(
-  purchase: Pick<PurchaseResponse, "planTier" | "status">,
-): PlanTier {
-  return purchase.status === "COMPLETED" ? purchase.planTier : "FREE";
+export interface TokensResponse {
+  balance: number;
+  granted: number;
+  used: number;
+  planTier: PlanTier;
 }

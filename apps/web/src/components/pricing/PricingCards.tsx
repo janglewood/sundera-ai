@@ -2,37 +2,41 @@
 
 import type { ReactNode } from "react";
 import { Check } from "@phosphor-icons/react/dist/ssr";
+import {
+  PAID_PLAN_TIERS,
+  PACK_TOKENS,
+  PLAN_PRICES_USD,
+  type PaidPlanTier,
+} from "@sundera/shared";
 
-export const PRICING_PLANS = [
-  {
-    name: "Free",
-    tagline: "Try it out",
-    price: 0,
-    features: [
-      "1 room redesign",
-      "No edits",
-      "A few design styles",
-      "Download with watermark",
-    ],
-    cta: "Start free",
-    ctaShort: "Start free",
-    highlighted: false,
-  },
-  {
-    name: "Lifetime",
-    tagline: "Redesign your whole home",
-    price: 15,
-    features: [
-      "30 room redesigns, yours forever",
-      "Up to 5 edits per redesign",
-      "Download without watermark",
-      "Every design style",
-    ],
-    cta: "Get lifetime access",
-    ctaShort: "Get access",
-    highlighted: true,
-  },
-] as const;
+const COMMON_FEATURES = [
+  "Download without watermark",
+  "Every design style",
+  "Pay once · no subscription · tokens never expire",
+];
+
+const PACK_COPY: Record<PaidPlanTier, { title: string; subtitle: string }> = {
+  ROOM: { title: "Try it out", subtitle: "Perfect for your first room" },
+  ROOMS: { title: "Level up", subtitle: "Great for a few rooms" },
+  HOUSE: { title: "Go all in", subtitle: "Redesign your whole home" },
+};
+
+export const PRICING_PLANS = PAID_PLAN_TIERS.map((tier) => {
+  const tokens = PACK_TOKENS[tier];
+  const price = PLAN_PRICES_USD[tier];
+  return {
+    tier,
+    title: PACK_COPY[tier].title,
+    subtitle: PACK_COPY[tier].subtitle,
+    price,
+    tokens,
+    pricePerToken: (price / tokens).toFixed(2),
+    features: COMMON_FEATURES,
+    cta: `Get ${tokens} tokens`,
+    ctaShort: "Get tokens",
+    highlighted: tier === "ROOMS",
+  };
+});
 
 export type PricingPlan = (typeof PRICING_PLANS)[number];
 
@@ -66,13 +70,13 @@ export function PricingCards({
 }: PricingCardsProps) {
   return (
     <div
-      className={`grid ${compactOnMobile ? "mt-4 grid-cols-1 gap-2 sm:mt-12 sm:grid-cols-2 sm:gap-6" : "mt-8 grid-cols-1 gap-4 sm:mt-12 sm:grid-cols-2 sm:gap-6"}`}
+      className={`grid ${compactOnMobile ? "mt-4 grid-cols-1 gap-2 sm:mt-12 sm:grid-cols-3 sm:gap-4" : "mt-8 grid-cols-1 gap-4 sm:mt-12 sm:grid-cols-3 sm:gap-4"}`}
     >
       {PRICING_PLANS.map((plan) => (
         <div
-          key={plan.name}
+          key={plan.tier}
           className={`relative flex flex-col rounded-2xl border shadow-lg shadow-black/5 backdrop-blur-xl ${
-            compactOnMobile ? "p-3 sm:p-7" : "p-5 sm:p-7"
+            compactOnMobile ? "p-3 sm:p-6" : "p-5 sm:p-6"
           } ${
             plan.highlighted
               ? "border-accent/60 bg-card/60 ring-2 ring-accent"
@@ -98,12 +102,12 @@ export function PricingCards({
               <h3
                 className={`font-semibold ${compactOnMobile ? "text-sm leading-tight sm:text-base" : "text-base"}`}
               >
-                {plan.name}
+                {plan.title}
               </h3>
               <p
                 className={`mt-1 text-sm text-muted-foreground ${compactOnMobile ? "hidden sm:block" : ""}`}
               >
-                {plan.tagline}
+                {plan.subtitle}
               </p>
 
               <div
@@ -114,19 +118,23 @@ export function PricingCards({
                 >
                   ${plan.price}
                 </span>
-                {plan.price > 0 && (
-                  <span className="text-sm text-muted-foreground">once</span>
-                )}
+                <span className="text-sm text-muted-foreground">once</span>
               </div>
+              <p
+                className={`font-medium text-accent-hover ${compactOnMobile ? "text-[10px] sm:text-xs" : "text-xs"}`}
+              >
+                {plan.tokens} tokens{" "}
+                <span className="font-normal text-muted-foreground">
+                  (${plan.pricePerToken}/token)
+                </span>
+              </p>
 
               {compactOnMobile && (
                 <div className="mt-2 flex flex-col items-center sm:hidden">
                   {renderCta(plan)}
-                  {plan.price > 0 && (
-                    <p className="mt-1.5 text-center text-[10px] text-muted-foreground">
-                      Pay once, yours forever
-                    </p>
-                  )}
+                  <p className="mt-1.5 text-center text-[10px] text-muted-foreground">
+                    1 token = 1 redesign or 1 edit
+                  </p>
                 </div>
               )}
             </div>
@@ -158,11 +166,9 @@ export function PricingCards({
             className={`flex flex-col items-center ${compactOnMobile ? "hidden sm:flex" : ""}`}
           >
             {renderCta(plan)}
-            {plan.price > 0 && (
-              <p className="mt-2 text-center text-xs text-muted-foreground">
-                Pay once, yours forever
-              </p>
-            )}
+            <p className="mt-2 text-center text-xs text-muted-foreground">
+              1 token = 1 redesign or 1 edit
+            </p>
           </div>
         </div>
       ))}

@@ -1,5 +1,5 @@
 import { DESIGN_STYLES, type DesignStyle } from "../enums/design-style.enum";
-import type { PlanTier } from "../enums/plan-tier.enum";
+import { PAID_PLAN_TIERS, type PaidPlanTier, type PlanTier } from "../enums/plan-tier.enum";
 
 export const FREE_DESIGN_STYLES: readonly DesignStyle[] = [
   "MODERN",
@@ -12,48 +12,93 @@ export const FREE_DESIGN_STYLES: readonly DesignStyle[] = [
   "PROVENCE",
 ];
 
-// maxGenerations is a lifetime total for every plan — there's no billing
-// period to reset against now that LIFETIME is a one-time purchase, not a
-// subscription (matches FREE, which was always a one-time grant).
-// maxEdits stays a lifetime-per-redesign-chain cap regardless of plan — the
-// "up to N edits per redesign" copy was never a time-boxed limit.
-// Downloads are allowed on every plan (once signed in) — FREE just gets a
-// "sundera.app" watermark baked into the file; LIFETIME downloads clean.
-export const PLAN_LIMITS = {
-  FREE: {
-    maxGenerations: 1,
-    maxEdits: 0,
-    allowedStyles: FREE_DESIGN_STYLES,
-    watermarkOnDownload: true,
-  },
-  LIFETIME: {
-    maxGenerations: 30,
-    maxEdits: 5,
-    allowedStyles: DESIGN_STYLES,
-    watermarkOnDownload: false,
-  },
-} as const;
+export const LOCKED_DESIGN_STYLES: readonly DesignStyle[] = DESIGN_STYLES.filter(
+  (style) => !FREE_DESIGN_STYLES.includes(style),
+);
 
 export function isStyleAllowedForFreePlan(style: DesignStyle): boolean {
   return FREE_DESIGN_STYLES.includes(style);
 }
 
-export function isStyleAllowedForPlan(
-  style: DesignStyle,
-  planTier: PlanTier,
-): boolean {
-  return (PLAN_LIMITS[planTier].allowedStyles as readonly DesignStyle[]).includes(
-    style,
-  );
-}
+// Every user gets 2 free tokens on signup; 1 token = 1 generation or 1 edit.
+export const FREE_TOKENS = 2;
 
-export const LOCKED_DESIGN_STYLES: readonly DesignStyle[] = DESIGN_STYLES.filter(
-  (style) => !FREE_DESIGN_STYLES.includes(style),
+// One-time packs, in ascending price order. They stack: a user can own several.
+export const PACK_TOKENS: Record<PaidPlanTier, number> = {
+  ROOM: 10,
+  ROOMS: 25,
+  HOUSE: 50,
+};
+
+export const PLAN_PRICES_USD: Record<PaidPlanTier, number> = {
+  ROOM: 5,
+  ROOMS: 12,
+  HOUSE: 20,
+};
+
+export const PLAN_DISPLAY_NAMES: Record<PlanTier, string> = {
+  FREE: "Free",
+  ROOM: "Room",
+  ROOMS: "Few rooms",
+  HOUSE: "Whole house",
+};
+
+// Highest-price-first — used to pick the single "plan tier" to display for a
+// user who has stacked several completed packs.
+const TIER_RANK_DESC: readonly PaidPlanTier[] = [...PAID_PLAN_TIERS].sort(
+  (a, b) => PLAN_PRICES_USD[b] - PLAN_PRICES_USD[a],
 );
 
-export function getLockedStylesForPlan(
+export interface Entitlements {
+  planTier: PlanTier;
+  tokensGranted: number;
+  tokensUsed: number;
+  tokensBalance: number;
+  allowedStyles: readonly DesignStyle[];
+  watermarkOnDownload: boolean;
+}
+
+// Pure function: no DB access. Caller is responsible for supplying the plan
+// tiers of the user's COMPLETED purchases and how many non-FAILED
+// generations (including edits) they've used.
+export function resolveEntitlements(
+  completedTiers: readonly PaidPlanTier[],
+  tokensUsed: number,
+): Entitlements {
+  const hasPaid = completedTiers.length > 0;
+  const tokensGranted =
+    FREE_TOKENS +
+    completedTiers.reduce((sum, tier) => sum + PACK_TOKENS[tier], 0);
+
+  return {
+    planTier: TIER_RANK_DESC.find((tier) => completedTiers.includes(tier)) ?? "FREE",
+    tokensGranted,
+    tokensUsed,
+    tokensBalance: Math.max(0, tokensGranted - tokensUsed),
+    allowedStyles: hasPaid ? DESIGN_STYLES : FREE_DESIGN_STYLES,
+    watermarkOnDownload: !hasPaid,
+  };
+}
+
+export function isStyleAllowedForEntitlements(
+  style: DesignStyle,
+  entitlements: Pick<Entitlements, "allowedStyles">,
+): boolean {
+  return entitlements.allowedStyles.includes(style);
+}
+
+export function getLockedStylesForEntitlements(
+  entitlements: Pick<Entitlements, "allowedStyles">,
+): readonly DesignStyle[] {
+  return DESIGN_STYLES.filter((style) => !entitlements.allowedStyles.includes(style));
+}
+
+// Client-side convenience: style access depends only on whether the user has
+// ever completed a purchase, not on their current token balance — the same
+// "hasPaid" check resolveEntitlements uses — so the lightweight TokensResponse
+// (which only carries planTier, not the full completed-tiers list) is enough.
+export function getLockedStylesForPlanTier(
   planTier: PlanTier,
 ): readonly DesignStyle[] {
-  const allowedStyles = PLAN_LIMITS[planTier].allowedStyles as readonly DesignStyle[];
-  return DESIGN_STYLES.filter((style) => !allowedStyles.includes(style));
+  return planTier === "FREE" ? LOCKED_DESIGN_STYLES : [];
 }

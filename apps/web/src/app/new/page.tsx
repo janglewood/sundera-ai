@@ -3,11 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
-import {
-  LOCKED_DESIGN_STYLES,
-  getLockedStylesForPlan,
-  resolveEntitledPlanTier,
-} from "@sundera/shared";
+import { getLockedStylesForPlanTier } from "@sundera/shared";
 import type { DesignStyle, RoomType } from "@sundera/shared";
 import { RoomTypeGrid } from "@/components/select/RoomTypeGrid";
 import { StyleGrid } from "@/components/select/StyleGrid";
@@ -15,9 +11,9 @@ import { VoiceTextarea } from "@/components/shared/VoiceTextarea";
 import { AuthGateModal } from "@/components/auth/AuthGateModal";
 import { ApiError } from "@/lib/api-client";
 import { createGeneration } from "@/lib/generations";
-import { getMyPurchase } from "@/lib/billing";
 import { useAuth } from "@/lib/auth/auth-context";
 import { usePaywall } from "@/lib/paywall/paywall-context";
+import { useTokenBalance } from "@/lib/useTokenBalance";
 import { track } from "@/lib/analytics/posthog";
 
 function NewGenerationForm() {
@@ -26,6 +22,7 @@ function NewGenerationForm() {
   const photoId = searchParams.get("photoId");
   const { user, loading } = useAuth();
   const { openPaywall } = usePaywall();
+  const { tokens, refetch: refetchTokens } = useTokenBalance();
 
   const [roomType, setRoomType] = useState<RoomType | null>(null);
   const [style, setStyle] = useState<DesignStyle | null>(null);
@@ -33,9 +30,10 @@ function NewGenerationForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAuthGate, setShowAuthGate] = useState(false);
-  const [lockedStyles, setLockedStyles] =
-    useState<readonly DesignStyle[]>(LOCKED_DESIGN_STYLES);
   const generateStepRef = useRef<HTMLDivElement | null>(null);
+
+  const lockedStyles = getLockedStylesForPlanTier(tokens?.planTier ?? "FREE");
+  const tokensBalance = tokens?.balance ?? 0;
 
   useEffect(() => {
     if (!roomType || !style) return;
@@ -47,21 +45,6 @@ function NewGenerationForm() {
     });
     return () => cancelAnimationFrame(frame);
   }, [roomType, style]);
-
-  useEffect(() => {
-    if (!user) return;
-    let cancelled = false;
-    void getMyPurchase().then((purchase) => {
-      if (!cancelled) {
-        setLockedStyles(
-          getLockedStylesForPlan(resolveEntitledPlanTier(purchase)),
-        );
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [user]);
 
   if (!photoId) {
     return (
@@ -97,6 +80,7 @@ function NewGenerationForm() {
         hasCustomPrompt: customPrompt.trim().length > 0,
       });
       router.push(`/generations/${generation.id}`);
+      void refetchTokens();
     } catch (err) {
       if (err instanceof ApiError && err.status === 402) {
         openPaywall("limit");
@@ -113,6 +97,10 @@ function NewGenerationForm() {
     if (!photoId || !roomType || !style) return;
     if (!user) {
       setShowAuthGate(true);
+      return;
+    }
+    if (tokensBalance < 1) {
+      openPaywall("limit");
       return;
     }
     await startGeneration();
@@ -183,14 +171,21 @@ function NewGenerationForm() {
 
           {error && <p className="text-sm text-red-500">{error}</p>}
 
-          <button
-            type="button"
-            disabled={isSubmitting}
-            onClick={() => void handleSubmit()}
-            className="rounded-full bg-foreground px-6 py-3 font-medium text-background transition-opacity disabled:opacity-40"
-          >
-            {isSubmitting ? "Starting…" : "Generate redesign"}
-          </button>
+          <div className="flex flex-col items-start gap-2">
+            <button
+              type="button"
+              disabled={isSubmitting || (!!user && tokensBalance < 1)}
+              onClick={() => void handleSubmit()}
+              className="rounded-full bg-foreground px-6 py-3 font-medium text-background transition-opacity disabled:opacity-40"
+            >
+              {isSubmitting ? "Starting…" : "Generate · 1 token"}
+            </button>
+            {user && (
+              <p className="text-xs text-foreground/60">
+                {tokensBalance} token{tokensBalance === 1 ? "" : "s"} left
+              </p>
+            )}
+          </div>
         </div>
       )}
 
