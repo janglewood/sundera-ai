@@ -130,6 +130,29 @@ ARTICLE_SYSTEM_PROMPT = (
     "'<room> <style> ideas' or '<room> makeover before after'."
 )
 
+# Phrases pulled from Sundera's own Google Ads search terms report (2026-10-21) — real
+# queries that actually drove clicks/conversions, not guessed keywords. Used to steer
+# generated titles/deks toward language proven to match search demand, instead of the
+# generic "<room> <style> redesign" phrasing the model defaults to. Room-specific lists are
+# empty for OFFICE/KIDS_ROOM because the report had no real volume for those rooms — GENERIC
+# covers them instead of inventing phrasing with no evidence behind it.
+GENERIC_KEYWORD_PHRASES = [
+    "AI room design",
+    "AI interior design",
+    "redesign my room",
+    "room planner",
+    "AI room makeover",
+]
+
+ROOM_KEYWORD_PHRASES = {
+    "Living Room": ["redesign my living room", "living room design", "decorate my living room with AI"],
+    "Bedroom": ["AI bedroom design", "redesign my bedroom"],
+    "Kitchen": ["AI kitchen design", "redesign kitchen with AI"],
+    "Bathroom": ["AI bathroom design"],
+    "Office": [],
+    "Kids Room": [],
+}
+
 REQUIRED_ARTICLE_KEYS = (
     "title", "dek", "problems", "palette", "materials", "lighting", "priceTable", "faq",
 )
@@ -159,9 +182,14 @@ def generate_article(env, room_label, style_label, retries=3):
     matches @sundera/shared's BlogPostDetail content fields, validated by apps/api's
     CreateBlogPostDto on the way in (this is just enough local validation to make the retry
     loop useful, not a full schema check)."""
+    target_phrases = ROOM_KEYWORD_PHRASES.get(room_label, []) + GENERIC_KEYWORD_PHRASES
     user_prompt = (
         f"Write structured content for a blog article about an AI-generated before/after "
-        f"redesign of a {room_label.lower()} in {style_label} style. Respond with ONLY a "
+        f"redesign of a {room_label.lower()} in {style_label} style. These phrases are "
+        f"proven real search queries for this product (from paid search data) — naturally "
+        f"work 2-3 of the most relevant ones into the title and/or dek, without forcing all "
+        f"of them in or making it read like a keyword list: {', '.join(target_phrases)}. "
+        "Respond with ONLY a "
         "JSON object (no markdown fences, no commentary) with exactly these keys:\n"
         '  "title": string, <= 150 chars, SEO-friendly, no quotes or emoji\n'
         '  "dek": string, <= 300 chars, one sentence summarizing the transformation\n'
