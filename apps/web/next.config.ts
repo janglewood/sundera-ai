@@ -20,6 +20,21 @@ const nextConfig: NextConfig = {
       ? [{ protocol: "https", hostname: process.env.NEXT_PUBLIC_BLOG_IMAGE_HOST }]
       : [],
   },
+  // Pinterest's profile "website" field doesn't allow query params, so we
+  // can't put UTM tags directly on the profile link. Instead the profile
+  // links here, and this redirects to the real landing page with UTM tags
+  // attached — not permanent, so the campaign params can change later
+  // without browsers caching the old redirect.
+  async redirects() {
+    return [
+      {
+        source: "/pinterest",
+        destination:
+          "/?utm_source=pinterest&utm_medium=social&utm_campaign=profile",
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
