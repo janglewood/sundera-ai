@@ -1,4 +1,8 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type {
   BlogPostAdminDetail,
@@ -82,10 +86,17 @@ export class BlogPostsService {
     private readonly configService: ConfigService,
   ) {}
 
-  async findPublished(): Promise<BlogPostSummary[]> {
+  // offset/limit are optional so existing callers that want the full list
+  // (sitemap, related-posts lookup) can keep calling this with no args.
+  async findPublished(
+    offset?: number,
+    limit?: number,
+  ): Promise<BlogPostSummary[]> {
     const posts = await this.prisma.blogPost.findMany({
       where: { status: 'PUBLISHED' },
       orderBy: { publishedAt: 'desc' },
+      ...(offset !== undefined && { skip: offset }),
+      ...(limit !== undefined && { take: limit }),
     });
     return posts.map(toSummary);
   }
@@ -121,7 +132,10 @@ export class BlogPostsService {
 
   // Editing is scoped to queued posts only — once a post is PUBLISHED it's
   // live on the site and out of blog-admin's "queue, edit, publish" flow.
-  async update(slug: string, dto: UpdateBlogPostDto): Promise<BlogPostAdminDetail> {
+  async update(
+    slug: string,
+    dto: UpdateBlogPostDto,
+  ): Promise<BlogPostAdminDetail> {
     const post = await this.requireScheduled(slug);
     const updated = await this.prisma.blogPost.update({
       where: { slug: post.slug },
@@ -138,7 +152,9 @@ export class BlogPostsService {
         ...(dto.priceTable !== undefined && {
           priceTable: dto.priceTable as unknown as Prisma.InputJsonValue,
         }),
-        ...(dto.faq !== undefined && { faq: dto.faq as unknown as Prisma.InputJsonValue }),
+        ...(dto.faq !== undefined && {
+          faq: dto.faq as unknown as Prisma.InputJsonValue,
+        }),
       },
     });
     return toAdminDetail(updated);
@@ -184,7 +200,9 @@ export class BlogPostsService {
     return posts.map((post) => post.sourceImageKey);
   }
 
-  async create(dto: CreateBlogPostDto): Promise<{ slug: string; scheduledFor: string }> {
+  async create(
+    dto: CreateBlogPostDto,
+  ): Promise<{ slug: string; scheduledFor: string }> {
     const existing = await this.prisma.blogPost.findUnique({
       where: { sourceImageKey: dto.sourceImageKey },
     });
@@ -239,13 +257,16 @@ export class BlogPostsService {
     );
 
     for (let dayOffset = 0; dayOffset < 365; dayOffset++) {
-      const candidateDay = new Date(dayStart.getTime() + dayOffset * 86_400_000);
+      const candidateDay = new Date(
+        dayStart.getTime() + dayOffset * 86_400_000,
+      );
       const rangeStart = new Date(candidateDay);
       rangeStart.setUTCHours(windowStart.hour, windowStart.minute, 0, 0);
       const rangeEnd = new Date(candidateDay);
       rangeEnd.setUTCHours(windowEnd.hour, windowEnd.minute, 0, 0);
 
-      const effectiveStart = dayOffset === 0 && rangeStart < now ? now : rangeStart;
+      const effectiveStart =
+        dayOffset === 0 && rangeStart < now ? now : rangeStart;
       if (effectiveStart >= rangeEnd) {
         continue; // today's window is already over — try tomorrow
       }
@@ -261,6 +282,8 @@ export class BlogPostsService {
       return new Date(effectiveStart.getTime() + Math.random() * spanMs);
     }
 
-    throw new Error('Could not find an available publish slot in the next year');
+    throw new Error(
+      'Could not find an available publish slot in the next year',
+    );
   }
 }

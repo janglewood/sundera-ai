@@ -1,8 +1,15 @@
 import type { BlogPostDetail, BlogPostSummary } from "@sundera/shared";
 import { apiGet, ApiError } from "./api-client";
 
-export function listBlogPosts(): Promise<BlogPostSummary[]> {
-  return apiGet<BlogPostSummary[]>("/blog-posts");
+export function listBlogPosts(params?: {
+  offset?: number;
+  limit?: number;
+}): Promise<BlogPostSummary[]> {
+  if (!params) return apiGet<BlogPostSummary[]>("/blog-posts");
+  const query = new URLSearchParams();
+  if (params.offset !== undefined) query.set("offset", String(params.offset));
+  if (params.limit !== undefined) query.set("limit", String(params.limit));
+  return apiGet<BlogPostSummary[]>(`/blog-posts?${query.toString()}`);
 }
 
 export async function getBlogPost(slug: string): Promise<BlogPostDetail | null> {

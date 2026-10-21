@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { BlogBotGuard } from './guards/blog-bot.guard';
 import { BlogPostsService } from './blog-posts.service';
 import { CreateBlogPostDto } from './dto/create-blog-post.dto';
@@ -8,8 +16,14 @@ export class BlogPostsController {
   constructor(private readonly blogPostsService: BlogPostsService) {}
 
   @Get()
-  findPublished() {
-    return this.blogPostsService.findPublished();
+  findPublished(
+    @Query('offset') offset?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.blogPostsService.findPublished(
+      offset !== undefined ? Number(offset) : undefined,
+      limit !== undefined ? Number(limit) : undefined,
+    );
   }
 
   @Get('source-keys')
