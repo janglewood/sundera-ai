@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 
 interface SpeechRecognitionResultLike {
@@ -39,12 +40,22 @@ interface VoiceTextareaProps {
   rows?: number;
 }
 
+const SPEECH_RECOGNITION_LANGS: Record<string, string> = {
+  en: "en-US",
+  es: "es-ES",
+  fr: "fr-FR",
+  de: "de-DE",
+  pt: "pt-PT",
+};
+
 export function VoiceTextarea({
   value,
   onChange,
   placeholder,
   rows = 3,
 }: VoiceTextareaProps) {
+  const t = useTranslations("VoiceTextarea");
+  const locale = useLocale();
   const [isListening, setIsListening] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
@@ -72,7 +83,7 @@ export function VoiceTextarea({
     const recognition = new SpeechRecognitionCtor();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = "en-US";
+    recognition.lang = SPEECH_RECOGNITION_LANGS[locale] ?? "en-US";
 
     baseTranscriptRef.current = value;
 
@@ -119,8 +130,8 @@ export function VoiceTextarea({
           type="button"
           onClick={toggleListening}
           aria-pressed={isListening}
-          aria-label={isListening ? "Stop voice input" : "Start voice input"}
-          title={isListening ? "Stop voice input" : "Start voice input"}
+          aria-label={isListening ? t("stopVoiceInput") : t("startVoiceInput")}
+          title={isListening ? t("stopVoiceInput") : t("startVoiceInput")}
           className={`absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full transition-colors ${
             isListening
               ? "bg-red-500 text-white animate-pulse"

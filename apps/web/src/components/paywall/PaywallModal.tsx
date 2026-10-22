@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { X } from "@phosphor-icons/react/dist/ssr";
+import { useTranslations } from "next-intl";
 import {
   CtaLabel,
   PricingCards,
@@ -13,23 +14,6 @@ import { useIsMobile } from "@/lib/useIsMobile";
 import { createCheckout } from "@/lib/billing";
 import { markCheckoutPending } from "@/lib/useTokenBalance";
 import { track } from "@/lib/analytics/posthog";
-
-const COPY: Record<PaywallReason, { heading: string; subtext: string }> = {
-  limit: {
-    heading: "You're out of tokens",
-    subtext: "Get a pack to continue redesigning and editing.",
-  },
-  browse: {
-    heading: "Get more tokens",
-    subtext:
-      "Every design style, watermark-free downloads, and tokens that never expire.",
-  },
-  style: {
-    heading: "Unlock every design style",
-    subtext:
-      "This style is available with a token pack — packs also unlock watermark-free downloads.",
-  },
-};
 
 interface PaywallModalProps {
   isOpen: boolean;
@@ -44,13 +28,15 @@ export function PaywallModal({
   tokensBalance,
   onClose,
 }: PaywallModalProps) {
+  const t = useTranslations("Paywall");
   const isMobile = useIsMobile();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const { heading, subtext } = COPY[reason];
+  const heading = t(`${reason}Heading` as "limitHeading");
+  const subtext = t(`${reason}Subtext` as "limitSubtext");
 
   async function handleUpgrade(plan: PricingPlan) {
     setCheckoutError(null);
@@ -65,7 +51,7 @@ export function PaywallModal({
       const { paymentUrl } = await createCheckout(plan.tier);
       window.location.href = paymentUrl;
     } catch {
-      setCheckoutError("Couldn't start checkout. Please try again.");
+      setCheckoutError(t("couldntStartCheckout"));
       setLoadingPlan(null);
     }
   }
@@ -76,7 +62,7 @@ export function PaywallModal({
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-label="Get more tokens"
+      aria-label={t("ariaLabel")}
     >
       <div
         className="relative flex h-full w-full flex-col overflow-y-auto bg-card p-4 sm:h-auto sm:max-h-[90vh] sm:max-w-4xl sm:rounded-3xl sm:border sm:border-white/40 sm:p-10 sm:shadow-2xl"
@@ -85,7 +71,7 @@ export function PaywallModal({
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t("close")}
           className="sticky top-0 z-10 -mt-1 -mr-1 self-end rounded-full bg-card/90 p-1.5 text-muted-foreground shadow-sm backdrop-blur transition-colors hover:bg-muted hover:text-foreground sm:absolute sm:top-4 sm:right-4 sm:m-0 sm:self-auto sm:bg-transparent sm:p-1.5 sm:shadow-none sm:backdrop-blur-none"
         >
           <X size={18} weight="bold" className="sm:size-5" />
@@ -93,7 +79,7 @@ export function PaywallModal({
 
         <div className="mx-auto max-w-xl shrink-0 text-center">
           <p className="text-sm font-medium text-accent-hover">
-            You have {tokensBalance} token{tokensBalance === 1 ? "" : "s"}
+            {t("youHaveTokens", { count: tokensBalance })}
           </p>
           <h2 className="mt-1 font-display text-lg tracking-tight sm:text-3xl">
             {heading}
@@ -115,7 +101,7 @@ export function PaywallModal({
               onClick={() => void handleUpgrade(plan)}
               className={ctaClassName(plan.highlighted, isMobile)}
             >
-              {loadingPlan === plan.tier ? "Redirecting…" : <CtaLabel plan={plan} />}
+              {loadingPlan === plan.tier ? t("redirecting") : <CtaLabel plan={plan} />}
             </button>
           )}
         />

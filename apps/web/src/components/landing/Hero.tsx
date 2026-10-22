@@ -1,17 +1,16 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
+import { useRouter } from "@/i18n/navigation";
 import { BeforeAfterSlider } from "@/components/generation/BeforeAfterSlider";
 import { PhotoDropzone } from "@/components/upload/PhotoDropzone";
 import { createUpload } from "@/lib/generations";
 import { Parallax } from "@/components/landing/Parallax";
 import { track } from "@/lib/analytics/posthog";
 
-const HERO_VIDEO_ALT =
-  "AI-generated preview of a room redesign from photo to finished style";
-
 export function Hero() {
+  const t = useTranslations("Hero");
   const router = useRouter();
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +30,7 @@ export function Hero() {
       track("photo_uploaded", { source: "landing" });
       router.push(`/new?photoId=${upload.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to upload photo");
+      setError(err instanceof Error ? err.message : t("uploadFailed"));
       setIsUploading(false);
     }
   }
@@ -69,7 +68,7 @@ export function Hero() {
             playsInline
             preload="auto"
             poster="/hero-poster.jpg"
-            aria-label={HERO_VIDEO_ALT}
+            aria-label={t("videoAlt")}
             onEnded={() => setShowSlider(true)}
           >
             <source src="/hero.webm" type="video/webm" />
@@ -78,8 +77,8 @@ export function Hero() {
           <BeforeAfterSlider
             beforeUrl="/room-before.jpg"
             afterUrl="/room-after.jpg"
-            beforeAlt="AI interior design before and after — room redesigned by Sundera"
-            afterAlt="AI interior design before and after — room redesigned by Sundera"
+            beforeAlt={t("beforeAfterAlt")}
+            afterAlt={t("beforeAfterAlt")}
             className={`absolute inset-0 h-full w-full rounded-none! transition-opacity duration-700 ${
               showSlider ? "opacity-100" : "pointer-events-none opacity-0"
             }`}
@@ -89,13 +88,11 @@ export function Hero() {
         <div className="flex w-full flex-col items-center gap-4 text-center sm:gap-6 lg:shrink-0 lg:flex-row lg:items-center lg:justify-between lg:gap-12 lg:text-left">
           <div className="flex flex-col items-center gap-3 sm:gap-4 lg:items-start">
             <h1 className="font-display text-3xl leading-[1.1] tracking-tight text-balance sm:text-5xl lg:text-6xl">
-              AI Interior Design From One Photo
+              {t("title")}
             </h1>
 
             <p className="max-w-lg text-base text-muted-foreground text-balance sm:text-lg">
-              Upload a photo of any room, pick a style, and see a
-              photorealistic redesign in seconds — your walls, windows, and
-              layout stay exactly where they are.
+              {t("subtitle")}
             </p>
           </div>
 
@@ -106,7 +103,7 @@ export function Hero() {
             <PhotoDropzone onFileReady={handleFileReady} disabled={isUploading} />
             {isUploading && (
               <p className="mt-3 text-center text-sm text-muted-foreground">
-                Uploading…
+                {t("uploading")}
               </p>
             )}
             {error && (
@@ -115,8 +112,7 @@ export function Hero() {
               </p>
             )}
             <p className="mt-4 text-center text-sm text-muted-foreground">
-              Free, no card required &middot; first redesign in about a
-              minute
+              {t("freeNoCard")}
             </p>
           </div>
         </div>

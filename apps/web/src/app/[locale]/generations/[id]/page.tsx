@@ -1,7 +1,7 @@
 import { GenerationView } from "@/components/generation/GenerationView";
 
 export default async function GenerationPage(
-  props: PageProps<"/generations/[id]">,
+  props: PageProps<"/[locale]/generations/[id]">,
 ) {
   const { id } = await props.params;
 

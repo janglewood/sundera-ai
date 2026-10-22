@@ -1,6 +1,7 @@
 "use client";
 
-import { ROOM_TYPES, ROOM_TYPE_LABELS, type RoomType } from "@sundera/shared";
+import { useTranslations } from "next-intl";
+import { ROOM_TYPES, type RoomType } from "@sundera/shared";
 
 interface RoomTypeGridProps {
   value: RoomType | null;
@@ -8,6 +9,8 @@ interface RoomTypeGridProps {
 }
 
 export function RoomTypeGrid({ value, onChange }: RoomTypeGridProps) {
+  const t = useTranslations("RoomTypes");
+
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
       {ROOM_TYPES.map((roomType) => (
@@ -21,7 +24,7 @@ export function RoomTypeGrid({ value, onChange }: RoomTypeGridProps) {
               : "border-foreground/20 hover:border-foreground/40"
           }`}
         >
-          {ROOM_TYPE_LABELS[roomType]}
+          {t(roomType)}
         </button>
       ))}
     </div>

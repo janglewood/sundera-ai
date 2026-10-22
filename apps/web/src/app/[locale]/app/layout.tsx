@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
 import { List } from "@phosphor-icons/react";
 import { useAuth } from "@/lib/auth/auth-context";
 import { AppSidebar } from "@/components/app/AppSidebar";
 import { AccountMenu } from "@/components/app/AccountMenu";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
+  const t = useTranslations("AppSidebar");
   const { user, loading } = useAuth();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -34,7 +36,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <button
           type="button"
           onClick={() => setSidebarOpen(true)}
-          aria-label="Open menu"
+          aria-label={t("openMenu")}
           className="absolute top-4 left-4 z-10 rounded-full border border-foreground/10 bg-background p-2 md:hidden"
         >
           <List className="size-5" />

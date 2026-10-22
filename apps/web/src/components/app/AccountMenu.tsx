@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { PLAN_DISPLAY_NAMES } from "@sundera/shared";
+import { useTranslations } from "next-intl";
 import { CaretDown } from "@phosphor-icons/react/dist/ssr";
 import { useAuth } from "@/lib/auth/auth-context";
 import { signOutUser } from "@/lib/auth/auth-actions";
@@ -9,6 +9,8 @@ import { usePaywall } from "@/lib/paywall/paywall-context";
 import { useTokenBalance } from "@/lib/useTokenBalance";
 
 export function AccountMenu() {
+  const t = useTranslations("AccountMenu");
+  const tPlanTier = useTranslations("PlanTiers");
   const { user } = useAuth();
   const { openPaywall } = usePaywall();
   const { tokens } = useTokenBalance();
@@ -26,7 +28,7 @@ export function AccountMenu() {
     return () => document.removeEventListener("mousedown", handlePointerDown);
   }, [isOpen]);
 
-  const planLabel = PLAN_DISPLAY_NAMES[tokens?.planTier ?? "FREE"];
+  const planLabel = tPlanTier(tokens?.planTier ?? "FREE");
   const balance = tokens?.balance ?? 0;
 
   return (
@@ -36,7 +38,7 @@ export function AccountMenu() {
         onClick={() => openPaywall("browse")}
         className="shrink-0 rounded-full border border-foreground/10 bg-background px-3 py-1.5 text-sm font-medium text-foreground/80 transition-colors hover:text-foreground"
       >
-        {balance} token{balance === 1 ? "" : "s"}
+        {t("tokens", { count: balance })}
       </button>
 
       <button
@@ -46,7 +48,7 @@ export function AccountMenu() {
         aria-expanded={isOpen}
         className="flex shrink-0 items-center gap-1.5 rounded-full border border-foreground/10 bg-background px-3 py-1.5 text-sm font-medium text-foreground/80 transition-colors hover:text-foreground"
       >
-        Account
+        {t("account")}
         <CaretDown
           weight="bold"
           className={`size-3 transition-transform ${isOpen ? "rotate-180" : ""}`}
@@ -78,7 +80,7 @@ export function AccountMenu() {
               }}
               className="w-full rounded-lg px-2 py-1.5 text-left font-medium text-foreground hover:bg-muted"
             >
-              Get more tokens
+              {t("getMoreTokens")}
             </button>
           </div>
 
@@ -88,7 +90,7 @@ export function AccountMenu() {
               onClick={() => void signOutUser()}
               className="w-full rounded-lg px-2 py-1.5 text-left font-medium text-foreground hover:bg-muted"
             >
-              Sign out
+              {t("signOut")}
             </button>
           </div>
         </div>

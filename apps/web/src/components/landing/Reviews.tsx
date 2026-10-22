@@ -1,4 +1,5 @@
 import { Star } from "@phosphor-icons/react/dist/ssr";
+import { useTranslations } from "next-intl";
 import { BeforeAfterSlider } from "@/components/generation/BeforeAfterSlider";
 
 const REVIEWS = [
@@ -45,6 +46,7 @@ const REVIEWS = [
 ];
 
 export function Reviews() {
+  const t = useTranslations("Reviews");
   return (
     <section
       id="reviews"
@@ -53,11 +55,9 @@ export function Reviews() {
       <div className="mx-auto w-full max-w-6xl">
         <div className="mx-auto max-w-xl text-center">
           <h2 className="font-display text-3xl tracking-tight sm:text-4xl">
-            Real rooms, redesigned
+            {t("heading")}
           </h2>
-          <p className="mt-4 text-muted-foreground">
-            Drag the slider to see what changed.
-          </p>
+          <p className="mt-4 text-muted-foreground">{t("subheading")}</p>
         </div>
 
         <div className="mt-14 grid gap-6 sm:grid-cols-2">

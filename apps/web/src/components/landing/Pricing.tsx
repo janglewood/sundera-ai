@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import {
   CtaLabel,
   PricingCards,
@@ -9,17 +10,16 @@ import {
 import { highlightUpload } from "@/lib/highlightUpload";
 
 export function Pricing() {
+  const t = useTranslations("Pricing");
+
   return (
     <section id="pricing" className="px-6 py-24 sm:px-8 sm:py-28">
       <div className="mx-auto w-full max-w-6xl">
         <div className="mx-auto max-w-xl text-center">
           <h2 className="font-display text-3xl tracking-tight sm:text-4xl">
-            Simple pricing, pay once
+            {t("heading")}
           </h2>
-          <p className="mt-4 text-muted-foreground">
-            Start free. Buy a token pack whenever you need more redesigns or
-            edits — packs stack and tokens never expire.
-          </p>
+          <p className="mt-4 text-muted-foreground">{t("subheading")}</p>
         </div>
 
         <PricingCards
@@ -34,9 +34,9 @@ export function Pricing() {
         />
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
-          Free: 2 tokens, watermarked downloads.{" "}
+          {t("freeLine")}{" "}
           <a href="#upload" onClick={highlightUpload} className="underline">
-            Try it free
+            {t("tryItFree")}
           </a>
         </p>
       </div>

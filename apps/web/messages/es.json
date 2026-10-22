@@ -1,0 +1,292 @@
+{
+  "Metadata": {
+    "siteTitle": "Sundera — Diseño de interiores con IA a partir de una foto",
+    "siteDescription": "Prueba el diseño de interiores con IA gratis: sube una foto de tu habitación, elige un estilo y obtén un rediseño fotorrealista en segundos.",
+    "blogTitle": "Blog — Diseño de interiores con IA de Sundera",
+    "blogDescription": "Rediseños de habitaciones con IA, antes y después, con desgloses reales de paleta, materiales y lo que costaría recrearlo en la vida real."
+  },
+  "Nav": {
+    "howItWorks": "Cómo funciona",
+    "reviews": "Opiniones",
+    "pricing": "Precios",
+    "faq": "Preguntas frecuentes",
+    "blog": "Blog",
+    "signIn": "Iniciar sesión",
+    "signOut": "Cerrar sesión",
+    "redesignMyRoom": "Rediseñar mi habitación"
+  },
+  "Hero": {
+    "title": "Diseño de interiores con IA a partir de una foto",
+    "subtitle": "Sube una foto de cualquier habitación, elige un estilo y ve un rediseño fotorrealista en segundos: tus paredes, ventanas y distribución se mantienen exactamente igual.",
+    "uploading": "Subiendo…",
+    "uploadFailed": "No se pudo subir la foto",
+    "freeNoCard": "Gratis, sin tarjeta · primer rediseño en aproximadamente un minuto",
+    "videoAlt": "Vista previa generada por IA de un rediseño de habitación, de la foto al estilo final",
+    "beforeAfterAlt": "Diseño de interiores con IA, antes y después — habitación rediseñada por Sundera"
+  },
+  "HowItWorks": {
+    "heading": "Sin diseñador, sin showroom, sin esperas",
+    "subheading": "Tres pasos entre tu galería de fotos y una habitación completamente rediseñada.",
+    "stepLabel": "Paso {number}",
+    "step1Title": "Haz una foto",
+    "step1Description": "Cualquier habitación, cualquier ángulo, directamente desde tu móvil. JPEG, PNG o WebP funcionan igual.",
+    "step2Title": "Elige habitación y estilo",
+    "step2Description": "Elige entre 6 tipos de habitación y 14 estilos de diseño, o describe un ajuste con tus propias palabras.",
+    "step3Title": "Compara antes y después",
+    "step3Description": "Ve tu habitación rediseñada en menos de un minuto y luego deslizar entre el antes y el después."
+  },
+  "Features": {
+    "heading": "Todo lo que necesitas para reimaginar una habitación",
+    "f1Title": "Tu habitación, no una nueva",
+    "f1Description": "Las paredes, ventanas y la perspectiva se conservan: es tu habitación real rediseñada, no un render genérico de IA.",
+    "f2Title": "14 estilos para probar",
+    "f2Description": "De escandinavo a japonés y art déco: cambia de estilo al instante para ver cuál te convence antes de decidirte.",
+    "f3Title": "Resultados fotorrealistas",
+    "f3Description": "Impulsado por IA de edición de imágenes de última generación, con el detalle suficiente para imaginarte viviendo ahí.",
+    "f4Title": "Antes y después, lado a lado",
+    "f4Description": "Un control deslizante interactivo muestra exactamente qué cambió: solo muebles, decoración y acabados.",
+    "f5Title": "Describe lo que quieres",
+    "f5Description": "Añade una nota como “iluminación más cálida” o “añade un rincón de lectura” y la IA lo incorpora al rediseño.",
+    "f6Title": "No se necesita tarjeta de crédito",
+    "f6Description": "Sube la foto y elige un estilo gratis — solo un registro rápido para revelar tu rediseño."
+  },
+  "Pricing": {
+    "heading": "Precios simples, pago único",
+    "subheading": "Empieza gratis. Compra un paquete de tokens cuando necesites más rediseños o ediciones — los paquetes se acumulan y los tokens nunca caducan.",
+    "freeLine": "Gratis: 2 tokens, descargas con marca de agua.",
+    "tryItFree": "Pruébalo gratis"
+  },
+  "Faq": {
+    "heading": "Preguntas frecuentes",
+    "q1question": "¿Necesito crear una cuenta?",
+    "q1answer": "Puedes subir una foto y elegir un estilo sin una cuenta — crear una cuenta gratuita solo es necesario para revelar y descargar tu rediseño.",
+    "q2question": "¿Cambiará la estructura de mi habitación?",
+    "q2answer": "No. Las paredes, ventanas y la distribución de la habitación se mantienen exactamente igual — solo cambian los muebles, la decoración y los acabados.",
+    "q3question": "¿Qué fotos funcionan mejor?",
+    "q3answer": "Una foto bien iluminada y de frente de la habitación funciona mejor. JPEG, PNG y WebP son compatibles.",
+    "q4question": "¿Cuánto tarda un rediseño?",
+    "q4answer": "Normalmente menos de un minuto desde que subes la foto hasta el resultado.",
+    "q5question": "¿Puedo pedir algo específico, como un color o un mueble concreto?",
+    "q5answer": "Sí — después de elegir el tipo de habitación y el estilo, hay un campo de texto libre para describir cualquier ajuste que quieras incluir.",
+    "q6question": "¿Es gratis?",
+    "q6answer": "Cada cuenta recibe 2 tokens gratuitos (1 token = 1 rediseño o 1 edición) con estilos limitados y marca de agua en las descargas — sin tarjeta. A partir de ahí, compra un paquete único (5 $ por 10 tokens, 12 $ por 25 o 20 $ por 50) para desbloquear todos los estilos de diseño y descargas sin marca de agua. Los paquetes se acumulan y los tokens nunca caducan.",
+    "q7question": "¿Qué pasa con mis fotos?",
+    "q7answer": "Tus fotos se usan únicamente para generar tu rediseño."
+  },
+  "Reviews": {
+    "heading": "Habitaciones reales, rediseñadas",
+    "subheading": "Arrastra el control deslizante para ver qué cambió."
+  },
+  "CtaBanner": {
+    "heading": "Ve tu habitación rediseñada en un minuto",
+    "subtext": "Gratis para probar, sin necesidad de cuenta. Sube una foto y elige un estilo para empezar.",
+    "cta": "Empezar a rediseñar"
+  },
+  "RoomTypes": {
+    "LIVING_ROOM": "Salón",
+    "BEDROOM": "Dormitorio",
+    "KITCHEN": "Cocina",
+    "BATHROOM": "Baño",
+    "OFFICE": "Oficina",
+    "KIDS_ROOM": "Habitación infantil"
+  },
+  "DesignStyles": {
+    "MODERN": "Moderno",
+    "SCANDINAVIAN": "Escandinavo",
+    "MINIMALISM": "Minimalista",
+    "LOFT_INDUSTRIAL": "Loft / Industrial",
+    "BOHO": "Boho",
+    "JAPANESE": "Japonés",
+    "CLASSIC": "Clásico",
+    "PROVENCE": "Provenzal",
+    "ART_DECO": "Art Déco",
+    "MID_CENTURY": "Mid-Century",
+    "COASTAL": "Costero",
+    "FARMHOUSE": "Rústico",
+    "MEDITERRANEAN": "Mediterráneo",
+    "ECLECTIC": "Eclético"
+  },
+  "PlanTiers": {
+    "FREE": "Gratis",
+    "ROOM": "Una habitación",
+    "ROOMS": "Varias habitaciones",
+    "HOUSE": "Casa completa"
+  },
+  "Auth": {
+    "signInTitle": "Iniciar sesión",
+    "signInSubtitle": "Bienvenido de nuevo a Sundera — o crea una cuenta gratis.",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "continue": "Continuar",
+    "pleaseWait": "Espera un momento…",
+    "or": "o",
+    "continueWithGoogle": "Continuar con Google"
+  },
+  "AuthGate": {
+    "generateTitle": "Estamos empezando a generar tu diseño",
+    "generateSubtitle": "Regístrate para ver el resultado cuando esté listo.",
+    "editTitle": "Regístrate para editar este resultado",
+    "editSubtitle": "Crea una cuenta gratis para ajustar y mejorar tu rediseño.",
+    "downloadTitle": "Regístrate para descargar este resultado",
+    "downloadSubtitle": "Crea una cuenta gratis para guardar tu rediseño en tu dispositivo.",
+    "accountTitle": "Regístrate para guardar este rediseño",
+    "accountSubtitle": "Crea una cuenta gratis para volver a verlo, editarlo y descargarlo más tarde.",
+    "close": "Cerrar"
+  },
+  "Paywall": {
+    "ariaLabel": "Consigue más tokens",
+    "close": "Cerrar",
+    "limitHeading": "Te has quedado sin tokens",
+    "limitSubtext": "Consigue un paquete para seguir rediseñando y editando.",
+    "browseHeading": "Consigue más tokens",
+    "browseSubtext": "Todos los estilos de diseño, descargas sin marca de agua y tokens que nunca caducan.",
+    "styleHeading": "Desbloquea todos los estilos de diseño",
+    "styleSubtext": "Este estilo está disponible con un paquete de tokens — los paquetes también desbloquean descargas sin marca de agua.",
+    "youHaveTokens": "Tienes {count, plural, one {{count} token} other {{count} tokens}}",
+    "couldntStartCheckout": "No se pudo iniciar el pago. Inténtalo de nuevo.",
+    "redirecting": "Redirigiendo…"
+  },
+  "PricingCards": {
+    "featureWatermark": "Descarga sin marca de agua",
+    "featureEveryStyle": "Todos los estilos de diseño",
+    "featurePayOnce": "Pago único · sin suscripción · los tokens nunca caducan",
+    "packTryTitle": "Pruébalo",
+    "packTrySubtitle": "Perfecto para tu primera habitación",
+    "packLevelTitle": "Sube de nivel",
+    "packLevelSubtitle": "Ideal para varias habitaciones",
+    "packHouseTitle": "A por todas",
+    "packHouseSubtitle": "Rediseña toda tu casa",
+    "mostPopular": "Más popular",
+    "once": "pago único",
+    "perToken": "({price} $/token)",
+    "tokensCount": "{count, plural, one {{count} token} other {{count} tokens}}",
+    "getTokens": "Consigue {tokens} tokens",
+    "getTokensShort": "Consigue tokens",
+    "oneTokenEquals": "1 token = 1 rediseño o 1 edición"
+  },
+  "New": {
+    "missingPhotoPrefix": "Falta la foto. Por favor,",
+    "uploadRoomPhoto": "sube una foto de la habitación",
+    "missingPhotoSuffix": "primero.",
+    "back": "Atrás",
+    "whatRoom": "¿Qué habitación es esta?",
+    "pickStyle": "Elige un estilo",
+    "anythingElse": "¿Algo más? (opcional)",
+    "promptPlaceholder": "p. ej. añade más plantas, conserva el suelo de madera",
+    "starting": "Empezando…",
+    "generateCta": "Generar · 1 token",
+    "tokensLeft": "{count, plural, one {Te queda {count} token} other {Te quedan {count} tokens}}",
+    "failedToStart": "No se pudo iniciar la generación"
+  },
+  "AppHome": {
+    "title": "Empezar un nuevo rediseño",
+    "subtitle": "Sube una foto de tu habitación para obtener un rediseño fotorrealista.",
+    "failedUpload": "No se pudo subir la foto"
+  },
+  "PhotoDropzone": {
+    "uploadPhotoShort": "Sube una foto",
+    "uploadPhotoLong": "Sube una foto de tu habitación",
+    "dragAndDrop": "Arrastra y suelta, o haz clic para elegir un archivo (JPEG, PNG, WebP, HEIC)",
+    "takePhoto": "Hacer una foto",
+    "roomPreviewAlt": "Vista previa de la habitación"
+  },
+  "GenerationView": {
+    "generationFailed": "La generación falló",
+    "somethingWentWrong": "Algo salió mal. Inténtalo de nuevo.",
+    "tryAgain": "Intentar de nuevo",
+    "startOver": "Empezar de nuevo",
+    "signUp": "Regístrate",
+    "myProjects": "Mis proyectos",
+    "saving": "Guardando…",
+    "save": "Guardar",
+    "rename": "Renombrar",
+    "editedPrefix": "Editado: {prompt}",
+    "undo": "Deshacer",
+    "wantToTweak": "¿Quieres ajustar este resultado?",
+    "editPlaceholder": "p. ej. cambia el sofá por uno de cuero",
+    "editCta": "Editar · 1 token",
+    "startingEllipsis": "Empezando…",
+    "unlockEveryStyle": "Desbloquea todos los estilos de diseño y descargas sin marca de agua",
+    "getMoreTokens": "Consigue más tokens",
+    "tokens": "{count, plural, one {{count} token} other {{count} tokens}}",
+    "variantAlt": "Variante {index}",
+    "failedToStartEdit": "No se pudo iniciar la edición"
+  },
+  "GenerationProgress": {
+    "queued": "En cola para generación…",
+    "processing": "Rediseñando tu habitación…",
+    "usuallyTakes": "Esto suele tardar entre 15 y 20 segundos."
+  },
+  "RegionMaskEditor": {
+    "drawAnArea": "Dibuja un área para editar",
+    "edit": "Editar",
+    "downloadImage": "Descargar imagen",
+    "download": "Descargar",
+    "preparingEllipsis": "Preparando…",
+    "drawInstructions": "Dibuja alrededor del área que quieres cambiar.",
+    "cancel": "Cancelar",
+    "apply": "Aplicar",
+    "startingEllipsis": "Empezando…",
+    "exitDrawMode": "Salir del modo de dibujo",
+    "editPromptPlaceholder": "p. ej. cambia esta alfombra por una de yute",
+    "editableImageAlt": "Habitación rediseñada, editable"
+  },
+  "VoiceTextarea": {
+    "startVoiceInput": "Iniciar entrada de voz",
+    "stopVoiceInput": "Detener entrada de voz"
+  },
+  "AppSidebar": {
+    "yourRedesigns": "Tus rediseños",
+    "statusPending": "Pendiente",
+    "statusProcessing": "Procesando",
+    "statusCompleted": "Completado",
+    "statusFailed": "Fallido",
+    "openMenu": "Abrir menú"
+  },
+  "AccountMenu": {
+    "account": "Cuenta",
+    "getMoreTokens": "Consigue más tokens",
+    "signOut": "Cerrar sesión",
+    "tokens": "{count, plural, one {{count} token} other {{count} tokens}}"
+  },
+  "FeedbackWidget": {
+    "sendFeedback": "Enviar comentarios",
+    "subtitle": "Preguntas, errores, ideas — lo leemos todo.",
+    "thanks": "¡Gracias!",
+    "thanksBody": "Hemos recibido tu mensaje y te responderemos si es necesario.",
+    "close": "Cerrar",
+    "whatsOnYourMind": "¿Qué tienes en mente?",
+    "send": "Enviar",
+    "sendingEllipsis": "Enviando…",
+    "couldntSend": "No se pudo enviar tu mensaje. Inténtalo de nuevo.",
+    "email": "Correo electrónico"
+  },
+  "Blog": {
+    "indexHeading": "Ideas de rediseño, antes y después",
+    "indexSubheading": "Habitaciones reales, reimaginadas por la IA de Sundera — con la paleta, los materiales y el coste aproximado en la vida real detrás de cada transformación.",
+    "loadingMore": "Cargando más…",
+    "publishedPrefix": "Publicado el {date}",
+    "thisIsAiViz": "Esta es una visualización con IA hecha con Sundera: se subió una foto real y el estilo aplicado fue {style}.",
+    "whatWasntWorking": "Qué no funcionaba",
+    "whatChanged": "Qué cambió",
+    "palette": "Paleta",
+    "materials": "Materiales",
+    "lightAccents": "Luz y acentos",
+    "howToGetThisLook": "Cómo conseguir este estilo en Sundera",
+    "step1": "Sube una foto de tu habitación.",
+    "step2": "Elige el tipo de habitación. {roomLabel}.",
+    "step3": "Elige un estilo de diseño. {styleLabel}.",
+    "tryItFree": "Pruébalo gratis",
+    "whatCostInRealLife": "Lo que podría costar en la vida real",
+    "roughRanges": "Rangos aproximados e ilustrativos, no un presupuesto — el coste real depende de tu región y del contratista.",
+    "item": "Elemento",
+    "budget": "Económico",
+    "midRange": "Gama media",
+    "otherStylesForThisRoom": "Otros estilos para esta habitación",
+    "questionsAnswers": "Preguntas y respuestas",
+    "redesignMyRoom": "Rediseñar mi habitación"
+  },
+  "LanguageSwitcher": {
+    "label": "Idioma"
+  }
+}

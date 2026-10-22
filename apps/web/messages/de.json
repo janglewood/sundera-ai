@@ -1,0 +1,292 @@
+{
+  "Metadata": {
+    "siteTitle": "Sundera — KI-Innenraumdesign aus nur einem Foto",
+    "siteDescription": "Teste KI-Innenraumdesign kostenlos: Lade ein Foto eines Raums hoch, wähle einen Stil und erhalte in Sekunden ein fotorealistisches Redesign.",
+    "blogTitle": "Blog — KI-Innenraumdesign von Sundera",
+    "blogDescription": "Vorher-Nachher-KI-Raumrenovierungen mit echten Aufschlüsselungen zu Farbpalette, Materialien und was die Umsetzung im echten Leben kosten würde."
+  },
+  "Nav": {
+    "howItWorks": "So funktioniert's",
+    "reviews": "Bewertungen",
+    "pricing": "Preise",
+    "faq": "FAQ",
+    "blog": "Blog",
+    "signIn": "Anmelden",
+    "signOut": "Abmelden",
+    "redesignMyRoom": "Meinen Raum neu gestalten"
+  },
+  "Hero": {
+    "title": "KI-Innenraumdesign aus nur einem Foto",
+    "subtitle": "Lade das Foto eines beliebigen Raums hoch, wähle einen Stil und sieh in Sekunden ein fotorealistisches Redesign — deine Wände, Fenster und der Grundriss bleiben exakt erhalten.",
+    "uploading": "Wird hochgeladen…",
+    "uploadFailed": "Foto konnte nicht hochgeladen werden",
+    "freeNoCard": "Kostenlos, keine Karte nötig · erstes Redesign in etwa einer Minute",
+    "videoAlt": "KI-generierte Vorschau eines Raum-Redesigns vom Foto zum fertigen Stil",
+    "beforeAfterAlt": "KI-Innenraumdesign vorher und nachher — Raum neu gestaltet von Sundera"
+  },
+  "HowItWorks": {
+    "heading": "Kein Designer, kein Showroom, kein Warten",
+    "subheading": "Drei Schritte zwischen deiner Fotogalerie und einem komplett neu gestalteten Raum.",
+    "stepLabel": "Schritt {number}",
+    "step1Title": "Mach ein Foto",
+    "step1Description": "Jeder Raum, jeder Winkel, direkt vom Handy. JPEG, PNG oder WebP funktionieren alle.",
+    "step2Title": "Wähle Raum & Stil",
+    "step2Description": "Wähle aus 6 Raumtypen und 14 Einrichtungsstilen oder beschreibe eine Anpassung in eigenen Worten.",
+    "step3Title": "Vergleiche vorher & nachher",
+    "step3Description": "Sieh deinen neu gestalteten Raum in unter einer Minute und schiebe dann zwischen Vorher und Nachher."
+  },
+  "Features": {
+    "heading": "Alles, was du brauchst, um einen Raum neu zu denken",
+    "f1Title": "Dein Raum, nicht ein neuer",
+    "f1Description": "Wände, Fenster und Perspektive bleiben erhalten — das ist dein echter Raum, neu gestaltet, kein generisches KI-Rendering.",
+    "f2Title": "14 Stile zum Ausprobieren",
+    "f2Description": "Von skandinavisch über japanisch bis Art Déco — wechsle sofort den Stil, um zu sehen, was passt, bevor du dich entscheidest.",
+    "f3Title": "Fotorealistische Ergebnisse",
+    "f3Description": "Angetrieben von modernster Bildbearbeitungs-KI, detailliert genug, um sich selbst darin zu sehen.",
+    "f4Title": "Vorher & Nachher, nebeneinander",
+    "f4Description": "Ein interaktiver Schieberegler zeigt genau, was sich geändert hat — nur Möbel, Deko und Oberflächen.",
+    "f5Title": "Beschreibe, was du möchtest",
+    "f5Description": "Füge eine Notiz wie „wärmeres Licht“ oder „eine Leseecke hinzufügen“ hinzu, und die KI baut es ins Redesign ein.",
+    "f6Title": "Keine Kreditkarte erforderlich",
+    "f6Description": "Lade dein Foto hoch und wähle kostenlos einen Stil — nur eine kurze Anmeldung, um dein Redesign freizuschalten."
+  },
+  "Pricing": {
+    "heading": "Einfache Preise, einmalige Zahlung",
+    "subheading": "Starte kostenlos. Kaufe ein Token-Paket, wenn du mehr Redesigns oder Bearbeitungen brauchst — Pakete stapeln sich und Tokens verfallen nie.",
+    "freeLine": "Kostenlos: 2 Tokens, Downloads mit Wasserzeichen.",
+    "tryItFree": "Kostenlos testen"
+  },
+  "Faq": {
+    "heading": "Häufig gestellte Fragen",
+    "q1question": "Muss ich ein Konto erstellen?",
+    "q1answer": "Du kannst ein Foto hochladen und einen Stil wählen, ohne ein Konto zu haben — ein kostenloses Konto wird nur benötigt, um dein Redesign anzuzeigen und herunterzuladen.",
+    "q2question": "Wird dadurch die Struktur meines Raums verändert?",
+    "q2answer": "Nein. Wände, Fenster und der Grundriss des Raums bleiben exakt erhalten — nur Möbel, Deko und Oberflächen ändern sich.",
+    "q3question": "Welche Fotos funktionieren am besten?",
+    "q3answer": "Ein gut beleuchtetes, frontales Foto des Raums funktioniert am besten. JPEG, PNG und WebP werden alle unterstützt.",
+    "q4question": "Wie lange dauert ein Redesign?",
+    "q4answer": "Normalerweise unter einer Minute vom Hochladen bis zum Ergebnis.",
+    "q5question": "Kann ich etwas Bestimmtes anfragen, wie eine Farbe oder ein Möbelstück?",
+    "q5answer": "Ja — nach der Wahl von Raumtyp und Stil gibt es ein Freitextfeld, um jede gewünschte Anpassung zu beschreiben.",
+    "q6question": "Ist es kostenlos?",
+    "q6answer": "Jedes Konto erhält 2 kostenlose Tokens (1 Token = 1 Redesign oder 1 Bearbeitung) mit eingeschränkten Stilen und Wasserzeichen bei Downloads — keine Karte nötig. Darüber hinaus kannst du ein einmaliges Paket kaufen (5 $ für 10 Tokens, 12 $ für 25 oder 20 $ für 50), um alle Einrichtungsstile und Downloads ohne Wasserzeichen freizuschalten. Pakete stapeln sich und Tokens verfallen nie.",
+    "q7question": "Was passiert mit meinen Fotos?",
+    "q7answer": "Deine Fotos werden ausschließlich verwendet, um dein Redesign zu erstellen."
+  },
+  "Reviews": {
+    "heading": "Echte Räume, neu gestaltet",
+    "subheading": "Ziehe den Schieberegler, um zu sehen, was sich geändert hat."
+  },
+  "CtaBanner": {
+    "heading": "Sieh deinen Raum in einer Minute neu gestaltet",
+    "subtext": "Kostenlos zu testen, kein Konto nötig. Lade ein Foto hoch und wähle einen Stil, um zu starten.",
+    "cta": "Jetzt neu gestalten"
+  },
+  "RoomTypes": {
+    "LIVING_ROOM": "Wohnzimmer",
+    "BEDROOM": "Schlafzimmer",
+    "KITCHEN": "Küche",
+    "BATHROOM": "Badezimmer",
+    "OFFICE": "Büro",
+    "KIDS_ROOM": "Kinderzimmer"
+  },
+  "DesignStyles": {
+    "MODERN": "Modern",
+    "SCANDINAVIAN": "Skandinavisch",
+    "MINIMALISM": "Minimalistisch",
+    "LOFT_INDUSTRIAL": "Loft / Industrial",
+    "BOHO": "Boho",
+    "JAPANESE": "Japanisch",
+    "CLASSIC": "Klassisch",
+    "PROVENCE": "Provence",
+    "ART_DECO": "Art Déco",
+    "MID_CENTURY": "Mid-Century",
+    "COASTAL": "Küstenstil",
+    "FARMHOUSE": "Landhaus",
+    "MEDITERRANEAN": "Mediterran",
+    "ECLECTIC": "Eklektisch"
+  },
+  "PlanTiers": {
+    "FREE": "Kostenlos",
+    "ROOM": "Ein Raum",
+    "ROOMS": "Mehrere Räume",
+    "HOUSE": "Ganzes Haus"
+  },
+  "Auth": {
+    "signInTitle": "Anmelden",
+    "signInSubtitle": "Willkommen zurück bei Sundera — oder erstelle ein kostenloses Konto.",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "continue": "Weiter",
+    "pleaseWait": "Bitte warten…",
+    "or": "oder",
+    "continueWithGoogle": "Mit Google fortfahren"
+  },
+  "AuthGate": {
+    "generateTitle": "Wir beginnen gerade, dein Design zu generieren",
+    "generateSubtitle": "Melde dich an, um das Ergebnis zu sehen, sobald es fertig ist.",
+    "editTitle": "Melde dich an, um dieses Ergebnis zu bearbeiten",
+    "editSubtitle": "Erstelle ein kostenloses Konto, um dein Redesign anzupassen und zu verfeinern.",
+    "downloadTitle": "Melde dich an, um dieses Ergebnis herunterzuladen",
+    "downloadSubtitle": "Erstelle ein kostenloses Konto, um dein Redesign auf deinem Gerät zu speichern.",
+    "accountTitle": "Melde dich an, um dieses Redesign zu speichern",
+    "accountSubtitle": "Erstelle ein kostenloses Konto, um es später erneut aufzurufen, zu bearbeiten und herunterzuladen.",
+    "close": "Schließen"
+  },
+  "Paywall": {
+    "ariaLabel": "Mehr Tokens holen",
+    "close": "Schließen",
+    "limitHeading": "Dir sind die Tokens ausgegangen",
+    "limitSubtext": "Hol dir ein Paket, um weiter neu zu gestalten und zu bearbeiten.",
+    "browseHeading": "Mehr Tokens holen",
+    "browseSubtext": "Jeder Einrichtungsstil, Downloads ohne Wasserzeichen und Tokens, die nie verfallen.",
+    "styleHeading": "Alle Einrichtungsstile freischalten",
+    "styleSubtext": "Dieser Stil ist mit einem Token-Paket verfügbar — Pakete schalten außerdem Downloads ohne Wasserzeichen frei.",
+    "youHaveTokens": "Du hast {count, plural, one {{count} Token} other {{count} Tokens}}",
+    "couldntStartCheckout": "Bezahlvorgang konnte nicht gestartet werden. Bitte versuche es erneut.",
+    "redirecting": "Weiterleitung…"
+  },
+  "PricingCards": {
+    "featureWatermark": "Download ohne Wasserzeichen",
+    "featureEveryStyle": "Jeder Einrichtungsstil",
+    "featurePayOnce": "Einmalige Zahlung · kein Abo · Tokens verfallen nie",
+    "packTryTitle": "Ausprobieren",
+    "packTrySubtitle": "Perfekt für deinen ersten Raum",
+    "packLevelTitle": "Aufstocken",
+    "packLevelSubtitle": "Ideal für mehrere Räume",
+    "packHouseTitle": "Volles Programm",
+    "packHouseSubtitle": "Gestalte dein ganzes Zuhause neu",
+    "mostPopular": "Am beliebtesten",
+    "once": "einmalig",
+    "perToken": "({price} $/Token)",
+    "tokensCount": "{count, plural, one {{count} Token} other {{count} Tokens}}",
+    "getTokens": "{tokens} Tokens holen",
+    "getTokensShort": "Tokens holen",
+    "oneTokenEquals": "1 Token = 1 Redesign oder 1 Bearbeitung"
+  },
+  "New": {
+    "missingPhotoPrefix": "Foto fehlt. Bitte",
+    "uploadRoomPhoto": "lade ein Foto des Raums hoch",
+    "missingPhotoSuffix": "zuerst.",
+    "back": "Zurück",
+    "whatRoom": "Um welchen Raum geht es?",
+    "pickStyle": "Wähle einen Stil",
+    "anythingElse": "Sonst noch etwas? (optional)",
+    "promptPlaceholder": "z. B. mehr Pflanzen hinzufügen, Holzboden beibehalten",
+    "starting": "Wird gestartet…",
+    "generateCta": "Generieren · 1 Token",
+    "tokensLeft": "{count, plural, one {Noch {count} Token übrig} other {Noch {count} Tokens übrig}}",
+    "failedToStart": "Generierung konnte nicht gestartet werden"
+  },
+  "AppHome": {
+    "title": "Neues Redesign starten",
+    "subtitle": "Lade ein Foto deines Raums hoch, um ein fotorealistisches Redesign zu erhalten.",
+    "failedUpload": "Foto konnte nicht hochgeladen werden"
+  },
+  "PhotoDropzone": {
+    "uploadPhotoShort": "Foto hochladen",
+    "uploadPhotoLong": "Lade ein Foto deines Raums hoch",
+    "dragAndDrop": "Ziehen und ablegen, oder klicken, um eine Datei zu wählen (JPEG, PNG, WebP, HEIC)",
+    "takePhoto": "Foto aufnehmen",
+    "roomPreviewAlt": "Raumvorschau"
+  },
+  "GenerationView": {
+    "generationFailed": "Generierung fehlgeschlagen",
+    "somethingWentWrong": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
+    "tryAgain": "Erneut versuchen",
+    "startOver": "Neu starten",
+    "signUp": "Registrieren",
+    "myProjects": "Meine Projekte",
+    "saving": "Wird gespeichert…",
+    "save": "Speichern",
+    "rename": "Umbenennen",
+    "editedPrefix": "Bearbeitet: {prompt}",
+    "undo": "Rückgängig",
+    "wantToTweak": "Möchtest du dieses Ergebnis anpassen?",
+    "editPlaceholder": "z. B. Sofa durch ein Ledersofa ersetzen",
+    "editCta": "Bearbeiten · 1 Token",
+    "startingEllipsis": "Wird gestartet…",
+    "unlockEveryStyle": "Schalte alle Einrichtungsstile und Downloads ohne Wasserzeichen frei",
+    "getMoreTokens": "Mehr Tokens holen",
+    "tokens": "{count, plural, one {{count} Token} other {{count} Tokens}}",
+    "variantAlt": "Variante {index}",
+    "failedToStartEdit": "Bearbeitung konnte nicht gestartet werden"
+  },
+  "GenerationProgress": {
+    "queued": "In der Warteschlange für die Generierung…",
+    "processing": "Dein Raum wird neu gestaltet…",
+    "usuallyTakes": "Das dauert normalerweise 15–20 Sekunden."
+  },
+  "RegionMaskEditor": {
+    "drawAnArea": "Zeichne einen zu bearbeitenden Bereich",
+    "edit": "Bearbeiten",
+    "downloadImage": "Bild herunterladen",
+    "download": "Herunterladen",
+    "preparingEllipsis": "Wird vorbereitet…",
+    "drawInstructions": "Zeichne um den Bereich, den du ändern möchtest.",
+    "cancel": "Abbrechen",
+    "apply": "Anwenden",
+    "startingEllipsis": "Wird gestartet…",
+    "exitDrawMode": "Zeichenmodus beenden",
+    "editPromptPlaceholder": "z. B. diesen Teppich durch einen aus Jute ersetzen",
+    "editableImageAlt": "Neu gestalteter Raum, bearbeitbar"
+  },
+  "VoiceTextarea": {
+    "startVoiceInput": "Spracheingabe starten",
+    "stopVoiceInput": "Spracheingabe beenden"
+  },
+  "AppSidebar": {
+    "yourRedesigns": "Deine Redesigns",
+    "statusPending": "Ausstehend",
+    "statusProcessing": "In Bearbeitung",
+    "statusCompleted": "Abgeschlossen",
+    "statusFailed": "Fehlgeschlagen",
+    "openMenu": "Menü öffnen"
+  },
+  "AccountMenu": {
+    "account": "Konto",
+    "getMoreTokens": "Mehr Tokens holen",
+    "signOut": "Abmelden",
+    "tokens": "{count, plural, one {{count} Token} other {{count} Tokens}}"
+  },
+  "FeedbackWidget": {
+    "sendFeedback": "Feedback senden",
+    "subtitle": "Fragen, Fehler, Ideen — wir lesen alles.",
+    "thanks": "Danke!",
+    "thanksBody": "Wir haben deine Nachricht erhalten und melden uns, falls nötig.",
+    "close": "Schließen",
+    "whatsOnYourMind": "Was liegt dir auf dem Herzen?",
+    "send": "Senden",
+    "sendingEllipsis": "Wird gesendet…",
+    "couldntSend": "Deine Nachricht konnte nicht gesendet werden. Bitte versuche es erneut.",
+    "email": "E-Mail"
+  },
+  "Blog": {
+    "indexHeading": "Redesign-Ideen, vorher & nachher",
+    "indexSubheading": "Echte Räume, neu gedacht von Sunderas KI — mit Farbpalette, Materialien und ungefähren Realwelt-Kosten hinter jeder Verwandlung.",
+    "loadingMore": "Weitere werden geladen…",
+    "publishedPrefix": "Veröffentlicht am {date}",
+    "thisIsAiViz": "Dies ist eine KI-Visualisierung, erstellt mit Sundera: Ein echtes Foto wurde hochgeladen, und der angewendete Stil war {style}.",
+    "whatWasntWorking": "Was nicht funktionierte",
+    "whatChanged": "Was sich geändert hat",
+    "palette": "Farbpalette",
+    "materials": "Materialien",
+    "lightAccents": "Licht & Akzente",
+    "howToGetThisLook": "So bekommst du diesen Look in Sundera",
+    "step1": "Lade ein Foto deines Raums hoch.",
+    "step2": "Wähle den Raumtyp. {roomLabel}.",
+    "step3": "Wähle einen Einrichtungsstil. {styleLabel}.",
+    "tryItFree": "Kostenlos testen",
+    "whatCostInRealLife": "Was es im echten Leben kosten könnte",
+    "roughRanges": "Grobe, illustrative Richtwerte, kein Angebot — die tatsächlichen Kosten hängen von deiner Region und dem Handwerker ab.",
+    "item": "Posten",
+    "budget": "Budget",
+    "midRange": "Mittelklasse",
+    "otherStylesForThisRoom": "Weitere Stile für diesen Raum",
+    "questionsAnswers": "Fragen & Antworten",
+    "redesignMyRoom": "Meinen Raum neu gestalten"
+  },
+  "LanguageSwitcher": {
+    "label": "Sprache"
+  }
+}

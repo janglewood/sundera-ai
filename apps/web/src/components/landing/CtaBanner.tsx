@@ -1,10 +1,12 @@
 "use client";
 
 import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
+import { useTranslations } from "next-intl";
 import { Parallax } from "@/components/landing/Parallax";
 import { highlightUpload } from "@/lib/highlightUpload";
 
 export function CtaBanner() {
+  const t = useTranslations("CtaBanner");
   return (
     <section className="px-6 py-24 sm:px-8 sm:py-28">
       <div className="relative mx-auto flex w-full max-w-4xl flex-col items-center gap-6 overflow-hidden rounded-3xl border border-white/10 bg-primary/85 px-8 py-16 text-center text-primary-foreground shadow-2xl shadow-black/20 backdrop-blur-xl sm:py-20">
@@ -23,18 +25,17 @@ export function CtaBanner() {
           <div />
         </Parallax>
         <h2 className="relative z-10 font-display text-3xl tracking-tight sm:text-4xl">
-          See your room redesigned in a minute
+          {t("heading")}
         </h2>
         <p className="relative z-10 max-w-md text-primary-foreground/70">
-          Free to try, no account needed. Upload a photo and pick a style to
-          get started.
+          {t("subtext")}
         </p>
         <a
           href="#upload"
           onClick={highlightUpload}
           className="relative z-10 inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 font-semibold text-accent-foreground transition-colors hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-foreground"
         >
-          Start redesigning
+          {t("cta")}
           <ArrowRight size={18} weight="bold" aria-hidden />
         </a>
       </div>

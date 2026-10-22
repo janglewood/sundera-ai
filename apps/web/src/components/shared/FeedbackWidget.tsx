@@ -1,11 +1,13 @@
 "use client";
 
 import { ChatCircleDots, X } from "@phosphor-icons/react/dist/ssr";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth/auth-context";
 import { submitFeedback } from "@/lib/feedback";
 
 export function FeedbackWidget() {
+  const t = useTranslations("FeedbackWidget");
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [email, setEmail] = useState("");
@@ -29,7 +31,7 @@ export function FeedbackWidget() {
       await submitFeedback(email, message);
       setIsSent(true);
     } catch {
-      setError("Couldn't send your message. Please try again.");
+      setError(t("couldntSend"));
     } finally {
       setIsSubmitting(false);
     }
@@ -40,7 +42,7 @@ export function FeedbackWidget() {
       <button
         type="button"
         onClick={open}
-        aria-label="Send feedback"
+        aria-label={t("sendFeedback")}
         className="fixed right-4 bottom-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-foreground text-background shadow-lg transition-transform hover:scale-105 sm:right-6 sm:bottom-6"
       >
         <ChatCircleDots size={22} weight="bold" />
@@ -52,7 +54,7 @@ export function FeedbackWidget() {
           onClick={() => setIsOpen(false)}
           role="dialog"
           aria-modal="true"
-          aria-label="Send feedback"
+          aria-label={t("sendFeedback")}
         >
           <div
             className="relative w-full max-w-sm rounded-3xl border border-white/40 bg-card p-6 shadow-2xl sm:p-8"
@@ -61,7 +63,7 @@ export function FeedbackWidget() {
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              aria-label="Close"
+              aria-label={t("close")}
               className="absolute top-4 right-4 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
               <X size={18} weight="bold" />
@@ -69,16 +71,14 @@ export function FeedbackWidget() {
 
             {isSent ? (
               <div className="flex flex-col items-center gap-3 py-6 text-center">
-                <h2 className="font-display text-xl">Thanks!</h2>
-                <p className="text-sm text-foreground/60">
-                  We got your message and will follow up if needed.
-                </p>
+                <h2 className="font-display text-xl">{t("thanks")}</h2>
+                <p className="text-sm text-foreground/60">{t("thanksBody")}</p>
                 <button
                   type="button"
                   onClick={() => setIsOpen(false)}
                   className="mt-2 rounded-full bg-foreground px-6 py-2.5 text-sm font-medium text-background"
                 >
-                  Close
+                  {t("close")}
                 </button>
               </div>
             ) : (
@@ -90,15 +90,15 @@ export function FeedbackWidget() {
                 }}
               >
                 <div>
-                  <h2 className="font-display text-xl">Send feedback</h2>
+                  <h2 className="font-display text-xl">{t("sendFeedback")}</h2>
                   <p className="mt-1 text-sm text-foreground/60">
-                    Questions, bugs, ideas — we read everything.
+                    {t("subtitle")}
                   </p>
                 </div>
 
                 <div>
                   <label className="mb-2 block text-sm font-medium" htmlFor="feedback-email">
-                    Email
+                    {t("email")}
                   </label>
                   <input
                     id="feedback-email"
@@ -113,7 +113,7 @@ export function FeedbackWidget() {
 
                 <div>
                   <label className="mb-2 block text-sm font-medium" htmlFor="feedback-message">
-                    What&apos;s on your mind?
+                    {t("whatsOnYourMind")}
                   </label>
                   <textarea
                     id="feedback-message"
@@ -133,7 +133,7 @@ export function FeedbackWidget() {
                   disabled={isSubmitting}
                   className="rounded-full bg-foreground px-6 py-3 font-medium text-background transition-opacity disabled:opacity-40"
                 >
-                  {isSubmitting ? "Sending…" : "Send"}
+                  {isSubmitting ? t("sendingEllipsis") : t("send")}
                 </button>
               </form>
             )}

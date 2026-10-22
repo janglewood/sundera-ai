@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
-import { DESIGN_STYLE_LABELS, ROOM_TYPE_LABELS } from "@sundera/shared";
+import { useLocale, useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import type { BlogPostSummary } from "@sundera/shared";
 import { listBlogPosts, formatPostDate } from "@/lib/blog";
 
@@ -15,6 +15,10 @@ interface BlogPostsGridProps {
 }
 
 export function BlogPostsGrid({ initialPosts }: BlogPostsGridProps) {
+  const t = useTranslations("Blog");
+  const tRoomType = useTranslations("RoomTypes");
+  const tDesignStyle = useTranslations("DesignStyles");
+  const locale = useLocale();
   const [posts, setPosts] = useState(initialPosts);
   const [hasMore, setHasMore] = useState(initialPosts.length >= BLOG_INITIAL_PAGE_SIZE);
   const [loading, setLoading] = useState(false);
@@ -65,9 +69,9 @@ export function BlogPostsGrid({ initialPosts }: BlogPostsGridProps) {
             </div>
             <div className="p-5">
               <div className="flex flex-wrap gap-2 text-xs font-semibold tracking-wide text-accent-hover uppercase">
-                <span>{ROOM_TYPE_LABELS[post.roomType]}</span>
+                <span>{tRoomType(post.roomType)}</span>
                 <span aria-hidden>&middot;</span>
-                <span>{DESIGN_STYLE_LABELS[post.style]}</span>
+                <span>{tDesignStyle(post.style)}</span>
               </div>
               <h2 className="mt-2 font-display text-lg leading-snug tracking-tight">
                 {post.title}
@@ -77,7 +81,7 @@ export function BlogPostsGrid({ initialPosts }: BlogPostsGridProps) {
                 dateTime={post.publishedAt}
                 className="mt-3 block text-xs text-muted-foreground"
               >
-                {formatPostDate(post.publishedAt)}
+                {formatPostDate(post.publishedAt, locale)}
               </time>
             </div>
           </Link>
@@ -87,7 +91,9 @@ export function BlogPostsGrid({ initialPosts }: BlogPostsGridProps) {
       {hasMore && (
         <div ref={sentinelRef} className="mt-12 flex justify-center">
           {loading && (
-            <span className="text-sm text-muted-foreground">Loading more&hellip;</span>
+            <span className="text-sm text-muted-foreground">
+              {t("loadingMore")}
+            </span>
           )}
         </div>
       )}

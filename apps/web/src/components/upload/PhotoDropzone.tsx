@@ -1,6 +1,7 @@
 "use client";
 
 import { UploadSimple } from "@phosphor-icons/react";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 
 const MAX_DIMENSION = 2000;
@@ -55,6 +56,7 @@ export function PhotoDropzone({
   disabled,
   onRequestSelect,
 }: PhotoDropzoneProps) {
+  const t = useTranslations("PhotoDropzone");
   const [isDragging, setIsDragging] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [isChromeIOS, setIsChromeIOS] = useState(false);
@@ -104,7 +106,7 @@ export function PhotoDropzone({
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={preview}
-            alt="Room preview"
+            alt={t("roomPreviewAlt")}
             className="max-h-full rounded-lg object-contain sm:max-h-64"
           />
         ) : (
@@ -116,13 +118,11 @@ export function PhotoDropzone({
               aria-hidden
             />
             <p className="min-w-0 truncate text-sm font-medium sm:w-auto sm:text-lg">
-              <span className="sm:hidden">Upload a photo</span>
-              <span className="hidden sm:inline">
-                Upload a photo of your room
-              </span>
+              <span className="sm:hidden">{t("uploadPhotoShort")}</span>
+              <span className="hidden sm:inline">{t("uploadPhotoLong")}</span>
             </p>
             <p className="hidden text-sm text-foreground/60 sm:block">
-              Drag and drop, or click to choose a file (JPEG, PNG, WebP, HEIC)
+              {t("dragAndDrop")}
             </p>
           </>
         )}
@@ -138,7 +138,7 @@ export function PhotoDropzone({
       {!isChromeIOS && (
         <button
           type="button"
-          aria-label="Take a photo"
+          aria-label={t("takePhoto")}
           disabled={disabled}
           onClick={() => openPicker(cameraInputRef.current)}
           className="flex sm:hidden aspect-square w-16 shrink-0 items-center justify-center self-center rounded-2xl bg-accent text-accent-foreground shadow-md transition-colors hover:bg-accent-hover disabled:pointer-events-none disabled:opacity-50"

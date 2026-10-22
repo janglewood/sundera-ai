@@ -2,11 +2,8 @@
 
 import Image from "next/image";
 import { Lock } from "@phosphor-icons/react/dist/ssr";
-import {
-  DESIGN_STYLES,
-  DESIGN_STYLE_LABELS,
-  type DesignStyle,
-} from "@sundera/shared";
+import { useTranslations } from "next-intl";
+import { DESIGN_STYLES, type DesignStyle } from "@sundera/shared";
 
 interface StyleGridProps {
   value: DesignStyle | null;
@@ -21,6 +18,8 @@ export function StyleGrid({
   lockedStyles = [],
   onLockedSelect,
 }: StyleGridProps) {
+  const t = useTranslations("DesignStyles");
+
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       {DESIGN_STYLES.map((style) => {
@@ -41,7 +40,7 @@ export function StyleGrid({
             <div className="relative aspect-4/3 w-full overflow-hidden bg-foreground/5">
               <Image
                 src={`/styles/${style.toLowerCase()}.jpg`}
-                alt={DESIGN_STYLE_LABELS[style]}
+                alt={t(style)}
                 fill
                 sizes="(min-width: 640px) 25vw, 50vw"
                 className="object-cover transition-transform group-hover:scale-105"
@@ -60,7 +59,7 @@ export function StyleGrid({
                 value === style ? "bg-foreground text-background" : ""
               }`}
             >
-              {DESIGN_STYLE_LABELS[style]}
+              {t(style)}
             </div>
           </button>
         );

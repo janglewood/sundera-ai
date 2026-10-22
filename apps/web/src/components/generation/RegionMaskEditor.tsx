@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { DownloadSimple, PencilSimple, X } from "@phosphor-icons/react/dist/ssr";
+import { useTranslations } from "next-intl";
 import type { RegionMask, RegionMaskPoint } from "@sundera/shared";
 import { VoiceTextarea } from "@/components/shared/VoiceTextarea";
 import { BeforeAfterSlider } from "./BeforeAfterSlider";
@@ -83,6 +84,7 @@ export function RegionMaskEditor({
   onRequestSignUp,
   autoEnterDrawModeSignal,
 }: RegionMaskEditorProps) {
+  const t = useTranslations("RegionMaskEditor");
   const containerRef = useRef<HTMLDivElement>(null);
   const polygonElRef = useRef<SVGPolygonElement>(null);
   // The in-progress stroke lives entirely outside React state — every
@@ -200,14 +202,14 @@ export function RegionMaskEditor({
               }}
               onMouseDown={(e) => e.stopPropagation()}
               onTouchStart={(e) => e.stopPropagation()}
-              aria-label="Draw an area to edit"
-              title="Draw an area to edit"
+              aria-label={t("drawAnArea")}
+              title={t("drawAnArea")}
               className="flex h-9 w-9 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-md transition-opacity hover:opacity-80"
             >
               <PencilSimple size={18} weight="bold" />
             </button>
             <span className="pointer-events-none absolute top-1/2 right-full mr-2 -translate-y-1/2 rounded-full bg-black/70 px-2.5 py-1 text-xs whitespace-nowrap text-white opacity-0 backdrop-blur-md transition-opacity group-hover:opacity-100">
-              Edit
+              {t("edit")}
             </span>
           </div>
           <div className="group relative">
@@ -220,14 +222,14 @@ export function RegionMaskEditor({
               onMouseDown={(e) => e.stopPropagation()}
               onTouchStart={(e) => e.stopPropagation()}
               disabled={isDownloading}
-              aria-label="Download image"
-              title="Download image"
+              aria-label={t("downloadImage")}
+              title={t("downloadImage")}
               className="flex h-9 w-9 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-md transition-opacity hover:opacity-80 disabled:opacity-40"
             >
               <DownloadSimple size={18} weight="bold" />
             </button>
             <span className="pointer-events-none absolute top-1/2 right-full mr-2 -translate-y-1/2 rounded-full bg-black/70 px-2.5 py-1 text-xs whitespace-nowrap text-white opacity-0 backdrop-blur-md transition-opacity group-hover:opacity-100">
-              {isDownloading ? "Preparing…" : "Download"}
+              {isDownloading ? t("preparingEllipsis") : t("download")}
             </span>
           </div>
         </div>
@@ -239,7 +241,7 @@ export function RegionMaskEditor({
     <div className="relative">
       {!finalizedMask && (
         <p className="mb-2 text-center text-xs text-foreground/50">
-          Draw around the area you want to change.
+          {t("drawInstructions")}
         </p>
       )}
 
@@ -254,7 +256,7 @@ export function RegionMaskEditor({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={afterUrl}
-          alt="Redesigned room, editable"
+          alt={t("editableImageAlt")}
           className="block h-auto w-full"
           draggable={false}
         />
@@ -279,8 +281,8 @@ export function RegionMaskEditor({
         type="button"
         onClick={exitDrawMode}
         disabled={isSubmitting}
-        aria-label="Exit draw mode"
-        title="Exit draw mode"
+        aria-label={t("exitDrawMode")}
+        title={t("exitDrawMode")}
         className="absolute top-14 right-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-md transition-opacity hover:opacity-80 disabled:opacity-40"
       >
         <X size={18} weight="bold" />
@@ -295,7 +297,7 @@ export function RegionMaskEditor({
             <VoiceTextarea
               value={prompt}
               onChange={setPrompt}
-              placeholder="e.g. change this rug to a jute one"
+              placeholder={t("editPromptPlaceholder")}
               rows={2}
             />
             {error && <p className="text-sm text-red-500">{error}</p>}
@@ -306,7 +308,7 @@ export function RegionMaskEditor({
                 disabled={isSubmitting}
                 className="flex-1 rounded-full border border-foreground/20 px-4 py-2 text-sm font-medium transition-opacity disabled:opacity-40"
               >
-                Cancel
+                {t("cancel")}
               </button>
               <button
                 type="button"
@@ -314,7 +316,7 @@ export function RegionMaskEditor({
                 disabled={!prompt.trim() || isSubmitting}
                 className="flex-1 rounded-full bg-foreground px-4 py-2 text-sm font-medium text-background transition-opacity disabled:opacity-40"
               >
-                {isSubmitting ? "Starting…" : "Apply"}
+                {isSubmitting ? t("startingEllipsis") : t("apply")}
               </button>
             </div>
           </div>

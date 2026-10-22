@@ -1,6 +1,8 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { PhotoDropzone } from "@/components/upload/PhotoDropzone";
 import { createUpload } from "@/lib/generations";
@@ -10,6 +12,7 @@ import { useTokenBalance } from "@/lib/useTokenBalance";
 import { track } from "@/lib/analytics/posthog";
 
 function AppHome() {
+  const t = useTranslations("AppHome");
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
@@ -41,9 +44,7 @@ function AppHome() {
       track("photo_uploaded", { source: "app_home" });
       router.push(`/new?photoId=${upload.id}`);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to upload photo",
-      );
+      setError(err instanceof Error ? err.message : t("failedUpload"));
       setIsUploading(false);
     }
   }
@@ -52,10 +53,8 @@ function AppHome() {
     <div className="flex min-h-full w-full items-center justify-center px-6 py-16">
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
         <div>
-          <h1 className="font-display text-2xl">Start a new redesign</h1>
-          <p className="mt-1 text-sm text-foreground/60">
-            Upload a photo of your room to get a photorealistic redesign.
-          </p>
+          <h1 className="font-display text-2xl">{t("title")}</h1>
+          <p className="mt-1 text-sm text-foreground/60">{t("subtitle")}</p>
         </div>
 
         <PhotoDropzone

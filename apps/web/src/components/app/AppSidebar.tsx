@@ -1,17 +1,10 @@
 "use client";
 
-import { DESIGN_STYLE_LABELS, ROOM_TYPE_LABELS } from "@sundera/shared";
 import type { GenerationSummary } from "@sundera/shared";
-import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { useEffect, useState } from "react";
 import { listMyGenerations } from "@/lib/generations";
-
-const STATUS_LABELS: Record<GenerationSummary["status"], string> = {
-  PENDING: "Pending",
-  PROCESSING: "Processing",
-  COMPLETED: "Completed",
-  FAILED: "Failed",
-};
 
 function GenerationRow({
   generation,
@@ -20,6 +13,18 @@ function GenerationRow({
   generation: GenerationSummary;
   onNavigate: () => void;
 }) {
+  const t = useTranslations("AppSidebar");
+  const tRoomType = useTranslations("RoomTypes");
+  const tDesignStyle = useTranslations("DesignStyles");
+  const locale = useLocale();
+
+  const statusLabels: Record<GenerationSummary["status"], string> = {
+    PENDING: t("statusPending"),
+    PROCESSING: t("statusProcessing"),
+    COMPLETED: t("statusCompleted"),
+    FAILED: t("statusFailed"),
+  };
+
   return (
     <Link
       href={`/generations/${generation.id}`}
@@ -35,12 +40,12 @@ function GenerationRow({
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">
           {generation.title ??
-            `${ROOM_TYPE_LABELS[generation.roomType]} · ${DESIGN_STYLE_LABELS[generation.style]}`}
+            `${tRoomType(generation.roomType)} · ${tDesignStyle(generation.style)}`}
         </p>
         <p className="text-xs text-foreground/60">
           {generation.status === "COMPLETED"
-            ? new Date(generation.createdAt).toLocaleDateString()
-            : STATUS_LABELS[generation.status]}
+            ? new Date(generation.createdAt).toLocaleDateString(locale)
+            : statusLabels[generation.status]}
         </p>
       </div>
     </Link>
@@ -54,6 +59,7 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ open, onClose, onEmptyChange }: AppSidebarProps) {
+  const t = useTranslations("AppSidebar");
   const [generations, setGenerations] = useState<GenerationSummary[] | null>(
     null,
   );
@@ -98,7 +104,7 @@ export function AppSidebar({ open, onClose, onEmptyChange }: AppSidebarProps) {
       >
         <div className="flex-1 overflow-y-auto">
           <h2 className="mb-2 px-2 text-xs font-semibold tracking-wide text-foreground/50 uppercase">
-            Your redesigns
+            {t("yourRedesigns")}
           </h2>
           <div className="flex flex-col gap-1">
             {generations.map((generation) => (

@@ -1,0 +1,292 @@
+{
+  "Metadata": {
+    "siteTitle": "Sundera — Décoration d'intérieur par IA à partir d'une photo",
+    "siteDescription": "Essayez la décoration d'intérieur par IA gratuitement : téléchargez la photo d'une pièce, choisissez un style, obtenez un relooking photoréaliste en quelques secondes.",
+    "blogTitle": "Blog — Décoration d'intérieur par IA de Sundera",
+    "blogDescription": "Relookings de pièces par IA, avant-après, avec de vraies analyses de palette, de matériaux et du coût pour le recréer dans la vraie vie."
+  },
+  "Nav": {
+    "howItWorks": "Comment ça marche",
+    "reviews": "Avis",
+    "pricing": "Tarifs",
+    "faq": "FAQ",
+    "blog": "Blog",
+    "signIn": "Se connecter",
+    "signOut": "Se déconnecter",
+    "redesignMyRoom": "Relooker ma pièce"
+  },
+  "Hero": {
+    "title": "Décoration d'intérieur par IA à partir d'une photo",
+    "subtitle": "Téléchargez la photo d'une pièce, choisissez un style, et découvrez un relooking photoréaliste en quelques secondes — vos murs, fenêtres et l'agencement restent exactement les mêmes.",
+    "uploading": "Envoi en cours…",
+    "uploadFailed": "Échec de l'envoi de la photo",
+    "freeNoCard": "Gratuit, sans carte bancaire · premier relooking en environ une minute",
+    "videoAlt": "Aperçu généré par IA d'un relooking de pièce, de la photo au style final",
+    "beforeAfterAlt": "Décoration d'intérieur par IA, avant et après — pièce relookée par Sundera"
+  },
+  "HowItWorks": {
+    "heading": "Sans décorateur, sans showroom, sans attente",
+    "subheading": "Trois étapes entre votre pellicule photo et une pièce entièrement relookée.",
+    "stepLabel": "Étape {number}",
+    "step1Title": "Prenez une photo",
+    "step1Description": "N'importe quelle pièce, n'importe quel angle, directement depuis votre téléphone. JPEG, PNG ou WebP fonctionnent tous.",
+    "step2Title": "Choisissez la pièce et le style",
+    "step2Description": "Choisissez parmi 6 types de pièces et 14 styles de décoration, ou décrivez une retouche avec vos propres mots.",
+    "step3Title": "Comparez l'avant et l'après",
+    "step3Description": "Découvrez votre pièce relookée en moins d'une minute, puis faites glisser entre l'avant et l'après."
+  },
+  "Features": {
+    "heading": "Tout ce qu'il faut pour réinventer une pièce",
+    "f1Title": "Votre pièce, pas une nouvelle",
+    "f1Description": "Les murs, fenêtres et la perspective sont préservés — c'est votre vraie pièce relookée, pas un rendu IA générique.",
+    "f2Title": "14 styles à essayer",
+    "f2Description": "Du scandinave au japonais en passant par l'art déco — changez de style instantanément pour voir ce qui vous convient avant de vous décider.",
+    "f3Title": "Résultats photoréalistes",
+    "f3Description": "Propulsé par une IA d'édition d'image de pointe, assez détaillée pour vous imaginer y vivre.",
+    "f4Title": "Avant et après, côte à côte",
+    "f4Description": "Un curseur interactif montre exactement ce qui a changé — uniquement les meubles, la décoration et les finitions.",
+    "f5Title": "Décrivez ce que vous voulez",
+    "f5Description": "Ajoutez une note comme « éclairage plus chaud » ou « ajouter un coin lecture » et l'IA l'intègre au relooking.",
+    "f6Title": "Aucune carte bancaire requise",
+    "f6Description": "Téléchargez votre photo et choisissez un style gratuitement — juste une inscription rapide pour révéler votre relooking."
+  },
+  "Pricing": {
+    "heading": "Tarifs simples, paiement unique",
+    "subheading": "Commencez gratuitement. Achetez un pack de jetons quand vous avez besoin de plus de relookings ou de retouches — les packs se cumulent et les jetons n'expirent jamais.",
+    "freeLine": "Gratuit : 2 jetons, téléchargements avec filigrane.",
+    "tryItFree": "Essayer gratuitement"
+  },
+  "Faq": {
+    "heading": "Questions fréquentes",
+    "q1question": "Dois-je créer un compte ?",
+    "q1answer": "Vous pouvez télécharger une photo et choisir un style sans compte — créer un compte gratuit n'est nécessaire que pour révéler et télécharger votre relooking.",
+    "q2question": "Est-ce que cela change la structure de ma pièce ?",
+    "q2answer": "Non. Les murs, fenêtres et l'agencement de la pièce restent exactement les mêmes — seuls les meubles, la décoration et les finitions changent.",
+    "q3question": "Quelles photos fonctionnent le mieux ?",
+    "q3answer": "Une photo bien éclairée, prise de face, fonctionne le mieux. JPEG, PNG et WebP sont tous pris en charge.",
+    "q4question": "Combien de temps prend un relooking ?",
+    "q4answer": "Généralement moins d'une minute entre l'envoi et le résultat.",
+    "q5question": "Puis-je demander quelque chose de précis, comme une couleur ou un meuble ?",
+    "q5answer": "Oui — après avoir choisi un type de pièce et un style, un champ de texte libre permet de décrire toute retouche que vous souhaitez.",
+    "q6question": "Est-ce gratuit ?",
+    "q6answer": "Chaque compte reçoit 2 jetons gratuits (1 jeton = 1 relooking ou 1 retouche) avec des styles limités et un filigrane sur les téléchargements — sans carte bancaire. Au-delà, achetez un pack unique (5 $ pour 10 jetons, 12 $ pour 25, ou 20 $ pour 50) pour débloquer tous les styles de décoration et les téléchargements sans filigrane. Les packs se cumulent et les jetons n'expirent jamais.",
+    "q7question": "Qu'advient-il de mes photos ?",
+    "q7answer": "Vos photos sont utilisées uniquement pour générer votre relooking."
+  },
+  "Reviews": {
+    "heading": "De vraies pièces, relookées",
+    "subheading": "Faites glisser le curseur pour voir ce qui a changé."
+  },
+  "CtaBanner": {
+    "heading": "Découvrez votre pièce relookée en une minute",
+    "subtext": "Gratuit à essayer, sans compte nécessaire. Téléchargez une photo et choisissez un style pour commencer.",
+    "cta": "Commencer le relooking"
+  },
+  "RoomTypes": {
+    "LIVING_ROOM": "Salon",
+    "BEDROOM": "Chambre",
+    "KITCHEN": "Cuisine",
+    "BATHROOM": "Salle de bain",
+    "OFFICE": "Bureau",
+    "KIDS_ROOM": "Chambre d'enfant"
+  },
+  "DesignStyles": {
+    "MODERN": "Moderne",
+    "SCANDINAVIAN": "Scandinave",
+    "MINIMALISM": "Minimaliste",
+    "LOFT_INDUSTRIAL": "Loft / Industriel",
+    "BOHO": "Bohème",
+    "JAPANESE": "Japonais",
+    "CLASSIC": "Classique",
+    "PROVENCE": "Provençal",
+    "ART_DECO": "Art déco",
+    "MID_CENTURY": "Mid-Century",
+    "COASTAL": "Bord de mer",
+    "FARMHOUSE": "Campagne",
+    "MEDITERRANEAN": "Méditerranéen",
+    "ECLECTIC": "Éclectique"
+  },
+  "PlanTiers": {
+    "FREE": "Gratuit",
+    "ROOM": "Une pièce",
+    "ROOMS": "Plusieurs pièces",
+    "HOUSE": "Maison entière"
+  },
+  "Auth": {
+    "signInTitle": "Se connecter",
+    "signInSubtitle": "Content de vous revoir sur Sundera — ou créez un compte gratuit.",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "continue": "Continuer",
+    "pleaseWait": "Veuillez patienter…",
+    "or": "ou",
+    "continueWithGoogle": "Continuer avec Google"
+  },
+  "AuthGate": {
+    "generateTitle": "Nous commençons à générer votre design",
+    "generateSubtitle": "Inscrivez-vous pour voir le résultat une fois prêt.",
+    "editTitle": "Inscrivez-vous pour modifier ce résultat",
+    "editSubtitle": "Créez un compte gratuit pour ajuster et affiner votre relooking.",
+    "downloadTitle": "Inscrivez-vous pour télécharger ce résultat",
+    "downloadSubtitle": "Créez un compte gratuit pour enregistrer votre relooking sur votre appareil.",
+    "accountTitle": "Inscrivez-vous pour enregistrer ce relooking",
+    "accountSubtitle": "Créez un compte gratuit pour le revoir, le modifier et le télécharger plus tard.",
+    "close": "Fermer"
+  },
+  "Paywall": {
+    "ariaLabel": "Obtenir plus de jetons",
+    "close": "Fermer",
+    "limitHeading": "Vous n'avez plus de jetons",
+    "limitSubtext": "Obtenez un pack pour continuer à relooker et retoucher.",
+    "browseHeading": "Obtenir plus de jetons",
+    "browseSubtext": "Tous les styles de décoration, des téléchargements sans filigrane, et des jetons qui n'expirent jamais.",
+    "styleHeading": "Débloquez tous les styles de décoration",
+    "styleSubtext": "Ce style est disponible avec un pack de jetons — les packs débloquent aussi les téléchargements sans filigrane.",
+    "youHaveTokens": "Vous avez {count, plural, one {{count} jeton} other {{count} jetons}}",
+    "couldntStartCheckout": "Impossible de démarrer le paiement. Veuillez réessayer.",
+    "redirecting": "Redirection…"
+  },
+  "PricingCards": {
+    "featureWatermark": "Téléchargement sans filigrane",
+    "featureEveryStyle": "Tous les styles de décoration",
+    "featurePayOnce": "Paiement unique · sans abonnement · les jetons n'expirent jamais",
+    "packTryTitle": "Essayer",
+    "packTrySubtitle": "Parfait pour votre première pièce",
+    "packLevelTitle": "Passer un niveau",
+    "packLevelSubtitle": "Idéal pour plusieurs pièces",
+    "packHouseTitle": "Tout miser",
+    "packHouseSubtitle": "Relookez toute votre maison",
+    "mostPopular": "Le plus populaire",
+    "once": "une fois",
+    "perToken": "({price} $/jeton)",
+    "tokensCount": "{count, plural, one {{count} jeton} other {{count} jetons}}",
+    "getTokens": "Obtenir {tokens} jetons",
+    "getTokensShort": "Obtenir des jetons",
+    "oneTokenEquals": "1 jeton = 1 relooking ou 1 retouche"
+  },
+  "New": {
+    "missingPhotoPrefix": "Photo manquante. Veuillez",
+    "uploadRoomPhoto": "télécharger une photo de la pièce",
+    "missingPhotoSuffix": "d'abord.",
+    "back": "Retour",
+    "whatRoom": "De quelle pièce s'agit-il ?",
+    "pickStyle": "Choisissez un style",
+    "anythingElse": "Autre chose ? (facultatif)",
+    "promptPlaceholder": "ex. ajouter plus de plantes, garder le parquet",
+    "starting": "Démarrage…",
+    "generateCta": "Générer · 1 jeton",
+    "tokensLeft": "{count, plural, one {Il vous reste {count} jeton} other {Il vous reste {count} jetons}}",
+    "failedToStart": "Impossible de démarrer la génération"
+  },
+  "AppHome": {
+    "title": "Commencer un nouveau relooking",
+    "subtitle": "Téléchargez la photo de votre pièce pour obtenir un relooking photoréaliste.",
+    "failedUpload": "Échec de l'envoi de la photo"
+  },
+  "PhotoDropzone": {
+    "uploadPhotoShort": "Télécharger une photo",
+    "uploadPhotoLong": "Téléchargez une photo de votre pièce",
+    "dragAndDrop": "Glissez-déposez, ou cliquez pour choisir un fichier (JPEG, PNG, WebP, HEIC)",
+    "takePhoto": "Prendre une photo",
+    "roomPreviewAlt": "Aperçu de la pièce"
+  },
+  "GenerationView": {
+    "generationFailed": "La génération a échoué",
+    "somethingWentWrong": "Quelque chose s'est mal passé. Veuillez réessayer.",
+    "tryAgain": "Réessayer",
+    "startOver": "Recommencer",
+    "signUp": "S'inscrire",
+    "myProjects": "Mes projets",
+    "saving": "Enregistrement…",
+    "save": "Enregistrer",
+    "rename": "Renommer",
+    "editedPrefix": "Modifié : {prompt}",
+    "undo": "Annuler",
+    "wantToTweak": "Envie d'ajuster ce résultat ?",
+    "editPlaceholder": "ex. remplacer le canapé par un en cuir",
+    "editCta": "Modifier · 1 jeton",
+    "startingEllipsis": "Démarrage…",
+    "unlockEveryStyle": "Débloquez tous les styles de décoration et les téléchargements sans filigrane",
+    "getMoreTokens": "Obtenir plus de jetons",
+    "tokens": "{count, plural, one {{count} jeton} other {{count} jetons}}",
+    "variantAlt": "Variante {index}",
+    "failedToStartEdit": "Impossible de démarrer la modification"
+  },
+  "GenerationProgress": {
+    "queued": "En file d'attente pour la génération…",
+    "processing": "Relooking de votre pièce en cours…",
+    "usuallyTakes": "Cela prend généralement 15 à 20 secondes."
+  },
+  "RegionMaskEditor": {
+    "drawAnArea": "Dessinez une zone à modifier",
+    "edit": "Modifier",
+    "downloadImage": "Télécharger l'image",
+    "download": "Télécharger",
+    "preparingEllipsis": "Préparation…",
+    "drawInstructions": "Dessinez autour de la zone que vous voulez changer.",
+    "cancel": "Annuler",
+    "apply": "Appliquer",
+    "startingEllipsis": "Démarrage…",
+    "exitDrawMode": "Quitter le mode dessin",
+    "editPromptPlaceholder": "ex. remplacer ce tapis par un en jute",
+    "editableImageAlt": "Pièce relookée, modifiable"
+  },
+  "VoiceTextarea": {
+    "startVoiceInput": "Démarrer la saisie vocale",
+    "stopVoiceInput": "Arrêter la saisie vocale"
+  },
+  "AppSidebar": {
+    "yourRedesigns": "Vos relookings",
+    "statusPending": "En attente",
+    "statusProcessing": "En cours",
+    "statusCompleted": "Terminé",
+    "statusFailed": "Échoué",
+    "openMenu": "Ouvrir le menu"
+  },
+  "AccountMenu": {
+    "account": "Compte",
+    "getMoreTokens": "Obtenir plus de jetons",
+    "signOut": "Se déconnecter",
+    "tokens": "{count, plural, one {{count} jeton} other {{count} jetons}}"
+  },
+  "FeedbackWidget": {
+    "sendFeedback": "Envoyer un commentaire",
+    "subtitle": "Questions, bugs, idées — on lit tout.",
+    "thanks": "Merci !",
+    "thanksBody": "Nous avons bien reçu votre message et reviendrons vers vous si nécessaire.",
+    "close": "Fermer",
+    "whatsOnYourMind": "Qu'avez-vous en tête ?",
+    "send": "Envoyer",
+    "sendingEllipsis": "Envoi en cours…",
+    "couldntSend": "Impossible d'envoyer votre message. Veuillez réessayer.",
+    "email": "E-mail"
+  },
+  "Blog": {
+    "indexHeading": "Idées de relooking, avant et après",
+    "indexSubheading": "De vraies pièces, réinventées par l'IA de Sundera — avec la palette, les matériaux et le coût approximatif dans la vraie vie derrière chaque transformation.",
+    "loadingMore": "Chargement…",
+    "publishedPrefix": "Publié le {date}",
+    "thisIsAiViz": "Ceci est une visualisation par IA réalisée avec Sundera : une vraie photo a été téléchargée, et le style appliqué était {style}.",
+    "whatWasntWorking": "Ce qui ne fonctionnait pas",
+    "whatChanged": "Ce qui a changé",
+    "palette": "Palette",
+    "materials": "Matériaux",
+    "lightAccents": "Lumière et accents",
+    "howToGetThisLook": "Comment obtenir ce look dans Sundera",
+    "step1": "Téléchargez une photo de votre pièce.",
+    "step2": "Choisissez le type de pièce. {roomLabel}.",
+    "step3": "Choisissez un style de décoration. {styleLabel}.",
+    "tryItFree": "Essayer gratuitement",
+    "whatCostInRealLife": "Ce que cela pourrait coûter dans la vraie vie",
+    "roughRanges": "Fourchettes approximatives et illustratives, pas un devis — le coût réel dépend de votre région et de l'artisan.",
+    "item": "Élément",
+    "budget": "Économique",
+    "midRange": "Milieu de gamme",
+    "otherStylesForThisRoom": "D'autres styles pour cette pièce",
+    "questionsAnswers": "Questions et réponses",
+    "redesignMyRoom": "Relooker ma pièce"
+  },
+  "LanguageSwitcher": {
+    "label": "Langue"
+  }
+}

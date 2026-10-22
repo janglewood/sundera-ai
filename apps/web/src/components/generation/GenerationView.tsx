@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Link, useRouter } from "@/i18n/navigation";
 import { useState } from "react";
 import { ArrowUUpLeft, PencilSimple, Sparkle } from "@phosphor-icons/react/dist/ssr";
-import { ROOM_TYPE_LABELS, DESIGN_STYLE_LABELS } from "@sundera/shared";
 import type { RoomType, DesignStyle, RegionMask } from "@sundera/shared";
 import { usePollGeneration } from "@/lib/use-poll-generation";
 import {
@@ -34,6 +33,7 @@ function extensionFromUrl(url: string): string {
 }
 
 function BackLink() {
+  const t = useTranslations("GenerationView");
   const { user } = useAuth();
   if (!user) return null;
 
@@ -55,7 +55,7 @@ function BackLink() {
       >
         <path d="m15 18-6-6 6-6" />
       </svg>
-      My projects
+      {t("myProjects")}
     </Link>
   );
 }
@@ -69,6 +69,7 @@ function HeaderActions({
   tokensBalance: number | undefined;
   onUpgrade: () => void;
 }) {
+  const t = useTranslations("GenerationView");
   const { user } = useAuth();
 
   return (
@@ -81,7 +82,7 @@ function HeaderActions({
             onClick={onUpgrade}
             className="rounded-full border border-foreground/10 bg-background px-3 py-1.5 text-sm font-medium text-foreground/80 transition-colors hover:text-foreground"
           >
-            {tokensBalance} token{tokensBalance === 1 ? "" : "s"}
+            {t("tokens", { count: tokensBalance })}
           </button>
         )}
         {user ? (
@@ -89,7 +90,7 @@ function HeaderActions({
             href="/app"
             className="rounded-full border border-foreground/20 px-3 py-1.5 text-sm font-medium transition-colors hover:bg-foreground/5"
           >
-            Start over
+            {t("startOver")}
           </Link>
         ) : (
           <button
@@ -97,7 +98,7 @@ function HeaderActions({
             onClick={onSignUp}
             className="rounded-full border border-foreground/20 px-3 py-1.5 text-sm font-medium transition-colors hover:bg-foreground/5"
           >
-            Sign up
+            {t("signUp")}
           </button>
         )}
       </div>
@@ -106,6 +107,9 @@ function HeaderActions({
 }
 
 export function GenerationView({ id }: GenerationViewProps) {
+  const t = useTranslations("GenerationView");
+  const tRoomType = useTranslations("RoomTypes");
+  const tDesignStyle = useTranslations("DesignStyles");
   const router = useRouter();
   const { openPaywall } = usePaywall();
   const { user } = useAuth();
@@ -141,7 +145,7 @@ export function GenerationView({ id }: GenerationViewProps) {
         <div className="flex flex-col items-center gap-4 py-16 text-center">
           <p className="text-red-500">{error}</p>
           <Link href="/app" className="underline">
-            Start over
+            {t("startOver")}
           </Link>
         </div>
       </>
@@ -161,13 +165,12 @@ export function GenerationView({ id }: GenerationViewProps) {
       <>
         <BackLink />
         <div className="flex flex-col items-center gap-4 py-16 text-center">
-          <p className="text-lg font-medium">Generation failed</p>
+          <p className="text-lg font-medium">{t("generationFailed")}</p>
           <p className="text-sm text-foreground/60">
-            {generation.errorMessage ??
-              "Something went wrong. Please try again."}
+            {generation.errorMessage ?? t("somethingWentWrong")}
           </p>
           <Link href="/" className="underline">
-            Try again
+            {t("tryAgain")}
           </Link>
         </div>
       </>
@@ -176,7 +179,7 @@ export function GenerationView({ id }: GenerationViewProps) {
 
   const results = generation.resultImages ?? [];
   const activeResult = results[selectedVariant] ?? results[0];
-  const defaultTitle = `${ROOM_TYPE_LABELS[generation.roomType as RoomType]} in ${DESIGN_STYLE_LABELS[generation.style as DesignStyle]} style`;
+  const defaultTitle = `${tRoomType(generation.roomType as RoomType)} · ${tDesignStyle(generation.style as DesignStyle)}`;
   const displayTitle = titleOverride ?? generation.title ?? defaultTitle;
 
   async function performEditSubmit() {
@@ -197,7 +200,7 @@ export function GenerationView({ id }: GenerationViewProps) {
         openPaywall("limit");
       } else {
         setEditError(
-          err instanceof Error ? err.message : "Failed to start edit",
+          err instanceof Error ? err.message : t("failedToStartEdit"),
         );
       }
       setIsEditSubmitting(false);
@@ -236,7 +239,7 @@ export function GenerationView({ id }: GenerationViewProps) {
         openPaywall("limit");
       } else {
         setEditError(
-          err instanceof Error ? err.message : "Failed to start edit",
+          err instanceof Error ? err.message : t("failedToStartEdit"),
         );
       }
       setIsEditSubmitting(false);
@@ -350,7 +353,7 @@ export function GenerationView({ id }: GenerationViewProps) {
                 onClick={() => void handleRenameSubmit()}
                 className="shrink-0 rounded-full bg-foreground px-3 py-1.5 text-sm font-medium text-background disabled:opacity-40"
               >
-                {isSavingTitle ? "Saving…" : "Save"}
+                {isSavingTitle ? t("saving") : t("save")}
               </button>
             </div>
           ) : (
@@ -359,7 +362,7 @@ export function GenerationView({ id }: GenerationViewProps) {
               <button
                 type="button"
                 onClick={startEditingTitle}
-                aria-label="Rename"
+                aria-label={t("rename")}
                 className="text-foreground/40 transition-colors hover:text-foreground"
               >
                 <PencilSimple size={16} weight="bold" />
@@ -369,7 +372,7 @@ export function GenerationView({ id }: GenerationViewProps) {
           {generation.isEdit && generation.customPrompt && (
             <div className="mt-1 flex items-center justify-center gap-2">
               <p className="text-sm text-foreground/60">
-                Edited: {generation.customPrompt}
+                {t("editedPrefix", { prompt: generation.customPrompt })}
               </p>
               {generation.parentGenerationId && (
                 <Link
@@ -377,7 +380,7 @@ export function GenerationView({ id }: GenerationViewProps) {
                   className="flex shrink-0 items-center gap-1 text-sm font-semibold text-foreground underline underline-offset-2 transition-opacity hover:opacity-70"
                 >
                   <ArrowUUpLeft size={14} weight="bold" />
-                  Undo
+                  {t("undo")}
                 </Link>
               )}
             </div>
@@ -412,7 +415,7 @@ export function GenerationView({ id }: GenerationViewProps) {
               <img
                 key={result.index}
                 src={result.url}
-                alt={`Variant ${result.index + 1}`}
+                alt={t("variantAlt", { index: result.index + 1 })}
                 onClick={() => setSelectedVariant(result.index)}
                 className={`h-16 w-16 cursor-pointer rounded-lg object-cover ring-2 transition-opacity ${
                   result.index === selectedVariant
@@ -426,13 +429,11 @@ export function GenerationView({ id }: GenerationViewProps) {
 
         {activeResult && !isDrawingRegion && (
           <div className="flex flex-col gap-3">
-            <label className="text-sm font-medium">
-              Want to tweak this result?
-            </label>
+            <label className="text-sm font-medium">{t("wantToTweak")}</label>
             <VoiceTextarea
               value={editPrompt}
               onChange={setEditPrompt}
-              placeholder="e.g. change the sofa to leather"
+              placeholder={t("editPlaceholder")}
               rows={3}
             />
             {editError && <p className="text-sm text-red-500">{editError}</p>}
@@ -446,23 +447,21 @@ export function GenerationView({ id }: GenerationViewProps) {
               onClick={() => void handleEditSubmit()}
               className="rounded-full bg-foreground px-6 py-3 font-medium text-background transition-opacity disabled:opacity-40"
             >
-              {isEditSubmitting ? "Starting…" : "Edit · 1 token"}
+              {isEditSubmitting ? t("startingEllipsis") : t("editCta")}
             </button>
           </div>
         )}
 
         {isFreePlan && (
           <div className="flex flex-col items-center gap-2 rounded-2xl border border-foreground/10 bg-muted/50 px-6 py-5 text-center">
-            <p className="text-sm font-medium">
-              Unlock every design style and watermark-free downloads
-            </p>
+            <p className="text-sm font-medium">{t("unlockEveryStyle")}</p>
             <button
               type="button"
               onClick={() => openPaywall("browse")}
               className="flex items-center gap-1 rounded-full bg-foreground px-5 py-2 text-sm font-medium text-background transition-opacity hover:opacity-90"
             >
               <Sparkle size={14} weight="fill" />
-              Get more tokens
+              {t("getMoreTokens")}
             </button>
           </div>
         )}

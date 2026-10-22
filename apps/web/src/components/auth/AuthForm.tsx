@@ -2,6 +2,7 @@
 
 import { GoogleLogo } from "@phosphor-icons/react";
 import type { UserCredential } from "firebase/auth";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import {
   continueWithEmail,
@@ -16,6 +17,7 @@ interface AuthFormProps {
 }
 
 export function AuthForm({ title, subtitle, onSuccess }: AuthFormProps) {
+  const t = useTranslations("Auth");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -61,7 +63,7 @@ export function AuthForm({ title, subtitle, onSuccess }: AuthFormProps) {
       >
         <div>
           <label className="mb-2 block text-sm font-medium" htmlFor="email">
-            Email
+            {t("email")}
           </label>
           <input
             id="email"
@@ -76,7 +78,7 @@ export function AuthForm({ title, subtitle, onSuccess }: AuthFormProps) {
 
         <div>
           <label className="mb-2 block text-sm font-medium" htmlFor="password">
-            Password
+            {t("password")}
           </label>
           <input
             id="password"
@@ -97,13 +99,13 @@ export function AuthForm({ title, subtitle, onSuccess }: AuthFormProps) {
           disabled={isSubmitting}
           className="rounded-full bg-foreground px-6 py-3 font-medium text-background transition-opacity disabled:opacity-40"
         >
-          {isSubmitting ? "Please wait…" : "Continue"}
+          {isSubmitting ? t("pleaseWait") : t("continue")}
         </button>
       </form>
 
       <div className="flex items-center gap-3 text-xs text-foreground/40">
         <div className="h-px flex-1 bg-foreground/10" />
-        or
+        {t("or")}
         <div className="h-px flex-1 bg-foreground/10" />
       </div>
 
@@ -114,7 +116,7 @@ export function AuthForm({ title, subtitle, onSuccess }: AuthFormProps) {
         className="flex items-center justify-center gap-2 rounded-full border border-foreground/20 px-6 py-3 text-sm font-medium transition-opacity disabled:opacity-40"
       >
         <GoogleLogo weight="bold" className="h-4 w-4" />
-        Continue with Google
+        {t("continueWithGoogle")}
       </button>
     </div>
   );

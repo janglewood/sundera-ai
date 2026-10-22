@@ -2,28 +2,10 @@
 
 import { X } from "@phosphor-icons/react/dist/ssr";
 import type { UserCredential } from "firebase/auth";
+import { useTranslations } from "next-intl";
 import { AuthForm } from "./AuthForm";
 
 export type AuthGateReason = "generate" | "edit" | "download" | "account";
-
-const COPY: Record<AuthGateReason, { title: string; subtitle: string }> = {
-  generate: {
-    title: "We're starting to generate your design",
-    subtitle: "Sign up to see the result once it's ready.",
-  },
-  edit: {
-    title: "Sign up to edit this result",
-    subtitle: "Create a free account to tweak and refine your redesign.",
-  },
-  download: {
-    title: "Sign up to download this result",
-    subtitle: "Create a free account to save your redesign to your device.",
-  },
-  account: {
-    title: "Sign up to save this redesign",
-    subtitle: "Create a free account to revisit, edit, and download it later.",
-  },
-};
 
 interface AuthGateModalProps {
   reason: AuthGateReason;
@@ -32,7 +14,9 @@ interface AuthGateModalProps {
 }
 
 export function AuthGateModal({ reason, onClose, onSuccess }: AuthGateModalProps) {
-  const { title, subtitle } = COPY[reason];
+  const t = useTranslations("AuthGate");
+  const title = t(`${reason}Title` as "generateTitle");
+  const subtitle = t(`${reason}Subtitle` as "generateSubtitle");
 
   return (
     <div
@@ -49,7 +33,7 @@ export function AuthGateModal({ reason, onClose, onSuccess }: AuthGateModalProps
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t("close")}
           className="sticky top-0 z-10 -mt-1 -mr-1 self-end rounded-full bg-card/90 p-1.5 text-muted-foreground shadow-sm backdrop-blur transition-colors hover:bg-muted hover:text-foreground sm:absolute sm:top-4 sm:right-4 sm:m-0 sm:self-auto sm:bg-transparent sm:p-1.5 sm:shadow-none sm:backdrop-blur-none"
         >
           <X size={18} weight="bold" className="sm:size-5" />

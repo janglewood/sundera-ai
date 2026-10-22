@@ -2,12 +2,15 @@
 
 import { getAdditionalUserInfo, type UserCredential } from "firebase/auth";
 import { Suspense, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { track } from "@/lib/analytics/posthog";
 
 function LoginForm() {
+  const t = useTranslations("Auth");
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, loading } = useAuth();
@@ -32,8 +35,8 @@ function LoginForm() {
   return (
     <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-6 py-16">
       <AuthForm
-        title="Sign in"
-        subtitle="Welcome back to Sundera — or create a free account."
+        title={t("signInTitle")}
+        subtitle={t("signInSubtitle")}
         onSuccess={handleSuccess}
       />
     </div>

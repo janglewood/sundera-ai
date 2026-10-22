@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Link, useRouter } from "@/i18n/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { getLockedStylesForPlanTier } from "@sundera/shared";
 import type { DesignStyle, RoomType } from "@sundera/shared";
@@ -17,6 +18,7 @@ import { useTokenBalance } from "@/lib/useTokenBalance";
 import { track } from "@/lib/analytics/posthog";
 
 function NewGenerationForm() {
+  const t = useTranslations("New");
   const router = useRouter();
   const searchParams = useSearchParams();
   const photoId = searchParams.get("photoId");
@@ -49,11 +51,11 @@ function NewGenerationForm() {
   if (!photoId) {
     return (
       <div className="text-center text-foreground/60">
-        Missing photo. Please{" "}
+        {t("missingPhotoPrefix")}{" "}
         <Link href="/" className="underline">
-          upload a room photo
+          {t("uploadRoomPhoto")}
         </Link>{" "}
-        first.
+        {t("missingPhotoSuffix")}
       </div>
     );
   }
@@ -86,7 +88,7 @@ function NewGenerationForm() {
         openPaywall("limit");
       } else {
         setError(
-          err instanceof Error ? err.message : "Failed to start generation",
+          err instanceof Error ? err.message : t("failedToStart"),
         );
       }
       setIsSubmitting(false);
@@ -126,11 +128,11 @@ function NewGenerationForm() {
         >
           <path d="m15 18-6-6 6-6" />
         </svg>
-        Back
+        {t("back")}
       </button>
 
       <section>
-        <h2 className="mb-4 text-lg font-semibold">What room is this?</h2>
+        <h2 className="mb-4 text-lg font-semibold">{t("whatRoom")}</h2>
         <RoomTypeGrid
           value={roomType}
           onChange={(nextRoomType) => {
@@ -142,7 +144,7 @@ function NewGenerationForm() {
 
       {roomType && (
         <section className="wizard-step-enter">
-          <h2 className="mb-4 text-lg font-semibold">Pick a style</h2>
+          <h2 className="mb-4 text-lg font-semibold">{t("pickStyle")}</h2>
           <StyleGrid
             value={style}
             onChange={setStyle}
@@ -159,12 +161,12 @@ function NewGenerationForm() {
         >
           <section>
             <label className="mb-2 block text-sm font-medium">
-              Anything else? (optional)
+              {t("anythingElse")}
             </label>
             <VoiceTextarea
               value={customPrompt}
               onChange={setCustomPrompt}
-              placeholder="e.g. add more plants, keep the wooden floor"
+              placeholder={t("promptPlaceholder")}
               rows={3}
             />
           </section>
@@ -178,11 +180,11 @@ function NewGenerationForm() {
               onClick={() => void handleSubmit()}
               className="rounded-full bg-foreground px-6 py-3 font-medium text-background transition-opacity disabled:opacity-40"
             >
-              {isSubmitting ? "Starting…" : "Generate · 1 token"}
+              {isSubmitting ? t("starting") : t("generateCta")}
             </button>
             {user && (
               <p className="text-xs text-foreground/60">
-                {tokensBalance} token{tokensBalance === 1 ? "" : "s"} left
+                {t("tokensLeft", { count: tokensBalance })}
               </p>
             )}
           </div>

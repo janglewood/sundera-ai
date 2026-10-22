@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { Check } from "@phosphor-icons/react/dist/ssr";
+import { useTranslations } from "next-intl";
 import {
   PAID_PLAN_TIERS,
   PACK_TOKENS,
@@ -9,36 +10,43 @@ import {
   type PaidPlanTier,
 } from "@sundera/shared";
 
-const COMMON_FEATURES = [
-  "Download without watermark",
-  "Every design style",
-  "Pay once · no subscription · tokens never expire",
-];
-
-const PACK_COPY: Record<PaidPlanTier, { title: string; subtitle: string }> = {
-  ROOM: { title: "Try it out", subtitle: "Perfect for your first room" },
-  ROOMS: { title: "Level up", subtitle: "Great for a few rooms" },
-  HOUSE: { title: "Go all in", subtitle: "Redesign your whole home" },
+const PACK_TITLE_KEYS: Record<PaidPlanTier, "packTryTitle" | "packLevelTitle" | "packHouseTitle"> = {
+  ROOM: "packTryTitle",
+  ROOMS: "packLevelTitle",
+  HOUSE: "packHouseTitle",
+};
+const PACK_SUBTITLE_KEYS: Record<
+  PaidPlanTier,
+  "packTrySubtitle" | "packLevelSubtitle" | "packHouseSubtitle"
+> = {
+  ROOM: "packTrySubtitle",
+  ROOMS: "packLevelSubtitle",
+  HOUSE: "packHouseSubtitle",
 };
 
-export const PRICING_PLANS = PAID_PLAN_TIERS.map((tier) => {
-  const tokens = PACK_TOKENS[tier];
-  const price = PLAN_PRICES_USD[tier];
-  return {
-    tier,
-    title: PACK_COPY[tier].title,
-    subtitle: PACK_COPY[tier].subtitle,
-    price,
-    tokens,
-    pricePerToken: (price / tokens).toFixed(2),
-    features: COMMON_FEATURES,
-    cta: `Get ${tokens} tokens`,
-    ctaShort: "Get tokens",
-    highlighted: tier === "ROOMS",
-  };
-});
+export function usePricingPlans() {
+  const t = useTranslations("PricingCards");
+  const features = [t("featureWatermark"), t("featureEveryStyle"), t("featurePayOnce")];
 
-export type PricingPlan = (typeof PRICING_PLANS)[number];
+  return PAID_PLAN_TIERS.map((tier) => {
+    const tokens = PACK_TOKENS[tier];
+    const price = PLAN_PRICES_USD[tier];
+    return {
+      tier,
+      title: t(PACK_TITLE_KEYS[tier]),
+      subtitle: t(PACK_SUBTITLE_KEYS[tier]),
+      price,
+      tokens,
+      pricePerToken: (price / tokens).toFixed(2),
+      features,
+      cta: t("getTokens", { tokens }),
+      ctaShort: t("getTokensShort"),
+      highlighted: tier === "ROOMS",
+    };
+  });
+}
+
+export type PricingPlan = ReturnType<typeof usePricingPlans>[number];
 
 export function CtaLabel({ plan }: { plan: PricingPlan }) {
   return (
@@ -68,11 +76,14 @@ export function PricingCards({
   renderCta,
   compactOnMobile = false,
 }: PricingCardsProps) {
+  const t = useTranslations("PricingCards");
+  const plans = usePricingPlans();
+
   return (
     <div
       className={`grid ${compactOnMobile ? "mt-4 grid-cols-1 gap-2 sm:mt-12 sm:grid-cols-3 sm:gap-4" : "mt-8 grid-cols-1 gap-4 sm:mt-12 sm:grid-cols-3 sm:gap-4"}`}
     >
-      {PRICING_PLANS.map((plan) => (
+      {plans.map((plan) => (
         <div
           key={plan.tier}
           className={`relative flex flex-col rounded-2xl border shadow-lg shadow-black/5 backdrop-blur-xl ${
@@ -91,7 +102,7 @@ export function PricingCards({
                   : "-top-3 px-3 py-1 text-xs"
               }`}
             >
-              Most popular
+              {t("mostPopular")}
             </span>
           )}
 
@@ -118,14 +129,16 @@ export function PricingCards({
                 >
                   ${plan.price}
                 </span>
-                <span className="text-sm text-muted-foreground">once</span>
+                <span className="text-sm text-muted-foreground">
+                  {t("once")}
+                </span>
               </div>
               <p
                 className={`font-medium text-accent-hover ${compactOnMobile ? "text-[10px] sm:text-xs" : "text-xs"}`}
               >
-                {plan.tokens} tokens{" "}
+                {t("tokensCount", { count: plan.tokens })}{" "}
                 <span className="font-normal text-muted-foreground">
-                  (${plan.pricePerToken}/token)
+                  {t("perToken", { price: plan.pricePerToken })}
                 </span>
               </p>
 
@@ -133,7 +146,7 @@ export function PricingCards({
                 <div className="mt-2 flex flex-col items-center sm:hidden">
                   {renderCta(plan)}
                   <p className="mt-1.5 text-center text-[10px] text-muted-foreground">
-                    1 token = 1 redesign or 1 edit
+                    {t("oneTokenEquals")}
                   </p>
                 </div>
               )}
@@ -167,7 +180,7 @@ export function PricingCards({
           >
             {renderCta(plan)}
             <p className="mt-2 text-center text-xs text-muted-foreground">
-              1 token = 1 redesign or 1 edit
+              {t("oneTokenEquals")}
             </p>
           </div>
         </div>

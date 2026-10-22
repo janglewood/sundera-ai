@@ -32,8 +32,8 @@ export function getRelatedBlogPosts(
   return [...sameRoom, ...rest].slice(0, limit);
 }
 
-export function formatPostDate(isoDate: string): string {
-  return new Date(isoDate).toLocaleDateString("en-US", {
+export function formatPostDate(isoDate: string, locale = "en"): string {
+  return new Date(isoDate).toLocaleDateString(locale, {
     year: "numeric",
     month: "long",
     day: "numeric",

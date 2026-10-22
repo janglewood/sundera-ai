@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { DESIGN_STYLE_LABELS, ROOM_TYPE_LABELS } from "@sundera/shared";
+import { getTranslations } from "next-intl/server";
 import { Header } from "@/components/landing/Header";
 import { Footer } from "@/components/landing/Footer";
 import { BlogArticleBody } from "@/components/blog/BlogArticleBody";
@@ -13,7 +13,7 @@ import {
 import { SITE_URL } from "@/lib/site";
 
 interface BlogPostPageProps {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ slug: string; locale: string }>;
 }
 
 // See app/blog/page.tsx — same force-dynamic reasoning (DB-backed content,
@@ -41,12 +41,38 @@ export async function generateMetadata({
 }
 
 export default async function BlogPostPage({ params }: BlogPostPageProps) {
-  const { slug } = await params;
+  const { slug, locale } = await params;
   const post = await getBlogPost(slug);
   if (!post) notFound();
 
-  const roomLabel = ROOM_TYPE_LABELS[post.roomType];
-  const styleLabel = DESIGN_STYLE_LABELS[post.style];
+  const t = await getTranslations({ locale, namespace: "Blog" });
+  const tRoomType = await getTranslations({ locale, namespace: "RoomTypes" });
+  const tDesignStyle = await getTranslations({ locale, namespace: "DesignStyles" });
+  const roomLabel = tRoomType(post.roomType);
+  const styleLabel = tDesignStyle(post.style);
+  const strings = {
+    aiVizNote: t("thisIsAiViz", { style: styleLabel }),
+    whatWasntWorking: t("whatWasntWorking"),
+    whatChanged: t("whatChanged"),
+    palette: t("palette"),
+    materials: t("materials"),
+    lightAccents: t("lightAccents"),
+    howToGetThisLook: t("howToGetThisLook"),
+    steps: [
+      t("step1"),
+      t("step2", { roomLabel }),
+      t("step3", { styleLabel }),
+    ] as [string, string, string],
+    tryItFree: t("tryItFree"),
+    whatCostInRealLife: t("whatCostInRealLife"),
+    roughRanges: t("roughRanges"),
+    item: t("item"),
+    budget: t("budget"),
+    midRange: t("midRange"),
+    otherStylesForThisRoom: t("otherStylesForThisRoom"),
+    questionsAnswers: t("questionsAnswers"),
+    redesignMyRoom: t("redesignMyRoom"),
+  };
   const allPosts = await listBlogPosts();
   const related = getRelatedBlogPosts(allPosts, post);
   const pageUrl = `${SITE_URL}/blog/${post.slug}`;
@@ -96,9 +122,13 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           slug={post.slug}
           roomLabel={roomLabel}
           styleLabel={styleLabel}
-          dateLabel={`Published ${formatPostDate(post.publishedAt)}`}
+          dateLabel={t("publishedPrefix", {
+            date: formatPostDate(post.publishedAt, locale),
+          })}
           dateValue={post.publishedAt}
           related={related}
+          strings={strings}
+          locale={locale}
         />
       </main>
       <Footer />
