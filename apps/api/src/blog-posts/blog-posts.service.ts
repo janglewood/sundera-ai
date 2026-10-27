@@ -20,6 +20,18 @@ import type { BlogPost, Prisma } from '../../generated/prisma';
 // BLOG_POSTS_PER_DAY publish rate, without leaving `take` unset.
 const DEFAULT_PUBLISHED_TAKE = 100;
 
+// "No real limit" sentinel for blogPost.findMany() calls that need every
+// matching row (findQueue, listUsedSourceKeys) — still passed explicitly
+// rather than omitted. Prod hit an intermittent `PrismaClientValidationError:
+// Argument 'take' is missing` on findPublished() that we could only explain
+// as a race in Prisma 7.9.1's query compiler sharing state across concurrent
+// blogPost.findMany() calls of differing shape on the same PrismaClient —
+// every such call now gets an explicit `take` so there's no omitted-take
+// shape left anywhere in this file to trigger it. Postgres LIMIT-safe
+// (max int32), never expected to actually bind (queue/source-key counts stay
+// tiny at today's publish rate).
+const UNBOUNDED_TAKE = 2_147_483_647;
+
 function parseHourMinute(value: string): { hour: number; minute: number } {
   const [hour, minute] = value.split(':').map(Number);
   return { hour, minute };
@@ -124,6 +136,7 @@ export class BlogPostsService {
     const posts = await this.prisma.blogPost.findMany({
       where: { status: 'SCHEDULED' },
       orderBy: { scheduledFor: 'asc' },
+      take: UNBOUNDED_TAKE,
     });
     return posts.map(toQueueItem);
   }
@@ -204,6 +217,7 @@ export class BlogPostsService {
   async listUsedSourceKeys(): Promise<string[]> {
     const posts = await this.prisma.blogPost.findMany({
       select: { sourceImageKey: true },
+      take: UNBOUNDED_TAKE,
     });
     return posts.map((post) => post.sourceImageKey);
   }
