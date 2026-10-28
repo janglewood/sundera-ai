@@ -8,16 +8,24 @@ import { LavaTopClientService } from './lava-top-client.service';
 import { LavaTopWebhookController } from './lava-top-webhook.controller';
 import { LavaTopWebhookService } from './lava-top-webhook.service';
 import { LavaTopWebhookGuard } from './guards/lava-top-webhook.guard';
+import { AdminPurchasesController } from './admin-purchases.controller';
+import { AdminApiGuard } from './guards/admin-api.guard';
 
 @Module({
   imports: [AuthModule],
-  controllers: [PaymentsController, TokensController, LavaTopWebhookController],
+  controllers: [
+    PaymentsController,
+    TokensController,
+    LavaTopWebhookController,
+    AdminPurchasesController,
+  ],
   providers: [
     PaymentsService,
     TokensService,
     LavaTopClientService,
     LavaTopWebhookService,
     LavaTopWebhookGuard,
+    AdminApiGuard,
   ],
   exports: [PaymentsService, TokensService],
 })
