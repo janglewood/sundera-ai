@@ -15,11 +15,6 @@ import { CreateBlogPostDto } from './dto/create-blog-post.dto';
 import { UpdateBlogPostDto } from './dto/update-blog-post.dto';
 import type { BlogPost, Prisma } from '../../generated/prisma';
 
-// Cap for findPublished() callers that don't pass their own `limit` (sitemap,
-// related-posts lookup) — comfortably above the catalog size at today's
-// BLOG_POSTS_PER_DAY publish rate, without leaving `take` unset.
-const DEFAULT_PUBLISHED_TAKE = 100;
-
 // "No real limit" sentinel for blogPost.findMany() calls that need every
 // matching row (findQueue, listUsedSourceKeys) — still passed explicitly
 // rather than omitted. Prod hit an intermittent `PrismaClientValidationError:
@@ -105,9 +100,12 @@ export class BlogPostsService {
 
   // offset/limit are optional so existing callers that want the full list
   // (sitemap, related-posts lookup) can keep calling this with no args — but
-  // `take` is always sent explicitly (falling back to DEFAULT_PUBLISHED_TAKE)
-  // rather than omitted, since prod hit a `PrismaClientValidationError:
-  // Argument 'take' is missing` on this exact query when it was left unset.
+  // `take` is always sent explicitly rather than omitted or computed, since
+  // prod hit a `PrismaClientValidationError: Argument 'take' is missing` on
+  // this exact query even with `take` set via a named constant / computed
+  // local. Hardcoded to the literal 100 here so there's nothing left to
+  // compute — comfortably above the catalog size at today's
+  // BLOG_POSTS_PER_DAY publish rate.
   async findPublished(
     offset?: number,
     limit?: number,
@@ -116,7 +114,7 @@ export class BlogPostsService {
       where: { status: 'PUBLISHED' },
       orderBy: { publishedAt: 'desc' },
       ...(offset !== undefined && { skip: offset }),
-      take: limit ?? DEFAULT_PUBLISHED_TAKE,
+      ...(limit !== undefined ? { take: limit } : { take: 100 }),
     });
     return posts.map(toSummary);
   }
