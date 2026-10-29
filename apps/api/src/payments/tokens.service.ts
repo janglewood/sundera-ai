@@ -20,7 +20,7 @@ export class TokensService {
     userId: string,
     client: QueryClient = this.prisma,
   ): Promise<Entitlements> {
-    const [completedPurchases, tokensUsed] = await Promise.all([
+    const [completedPurchases, tokensUsed, bonusGrants] = await Promise.all([
       client.purchase.findMany({
         where: { userId, status: 'COMPLETED' },
         select: { planTier: true },
@@ -31,11 +31,19 @@ export class TokensService {
       client.generation.count({
         where: { userId, status: { not: 'FAILED' } },
       }),
+      client.tokenGrant.aggregate({
+        where: { userId },
+        _sum: { amount: true },
+      }),
     ]);
 
     const completedTiers = completedPurchases.map(
       (purchase) => purchase.planTier,
     ) as PaidPlanTier[];
-    return resolveEntitlements(completedTiers, tokensUsed);
+    return resolveEntitlements(
+      completedTiers,
+      tokensUsed,
+      bonusGrants._sum.amount ?? 0,
+    );
   }
 }

@@ -23,6 +23,13 @@ describe('resolveEntitlements', () => {
     expect(resolveEntitlements(['ROOM', 'HOUSE'], 0).planTier).toBe('HOUSE');
     expect(resolveEntitlements([], 0).planTier).toBe('FREE');
   });
+
+  it('adds bonus tokens without affecting planTier', () => {
+    const entitlements = resolveEntitlements([], 0, 5);
+    expect(entitlements.tokensBalance).toBe(7);
+    expect(entitlements.planTier).toBe('FREE');
+    expect(entitlements.watermarkOnDownload).toBe(true);
+  });
 });
 
 describe('TokensService.getEntitlements', () => {
@@ -31,11 +38,13 @@ describe('TokensService.getEntitlements', () => {
       .fn()
       .mockResolvedValue(completedTiers.map((planTier) => ({ planTier })));
     const count = jest.fn().mockResolvedValue(tokensUsed);
+    const aggregate = jest.fn().mockResolvedValue({ _sum: { amount: null } });
     const prisma = {
       purchase: { findMany },
       generation: { count },
+      tokenGrant: { aggregate },
     } as unknown as PrismaService;
-    return { prisma, findMany, count };
+    return { prisma, findMany, count, aggregate };
   }
 
   it('excludes FAILED generations from tokensUsed', async () => {

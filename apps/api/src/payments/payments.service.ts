@@ -9,7 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
 import type { PaidPlanTier, PurchaseResponse } from '@sundera/shared';
 import { PrismaService } from '../prisma/prisma.service';
-import type { Purchase, User } from '../../generated/prisma';
+import type { Purchase, TokenGrant, User } from '../../generated/prisma';
 import { LavaTopClientService } from './lava-top-client.service';
 import type { LavaTopCurrency } from './types/lava-top-api.types';
 
@@ -104,6 +104,24 @@ export class PaymentsService {
         status: 'COMPLETED',
         purchasedAt: new Date(),
       },
+    });
+  }
+
+  // Admin-only arbitrary top-up (see AdminTokensController) — adds `amount`
+  // tokens without creating a Purchase, so it doesn't unlock paid styles or
+  // drop the watermark the way grantPack's full-pack grant does.
+  async grantBonusTokens(
+    userId: string,
+    amount: number,
+    reason?: string,
+  ): Promise<TokenGrant> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException(`No user with id ${userId}`);
+    }
+
+    return this.prisma.tokenGrant.create({
+      data: { userId, amount, reason },
     });
   }
 

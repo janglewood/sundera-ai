@@ -8,7 +8,7 @@ import { LavaTopClientService } from './lava-top-client.service';
 import { LavaTopWebhookController } from './lava-top-webhook.controller';
 import { LavaTopWebhookService } from './lava-top-webhook.service';
 import { LavaTopWebhookGuard } from './guards/lava-top-webhook.guard';
-import { AdminPurchasesController } from './admin-purchases.controller';
+import { AdminTokensController } from './admin-tokens.controller';
 import { AdminApiGuard } from './guards/admin-api.guard';
 
 @Module({
@@ -17,7 +17,7 @@ import { AdminApiGuard } from './guards/admin-api.guard';
     PaymentsController,
     TokensController,
     LavaTopWebhookController,
-    AdminPurchasesController,
+    AdminTokensController,
   ],
   providers: [
     PaymentsService,
