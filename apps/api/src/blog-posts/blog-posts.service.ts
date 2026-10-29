@@ -100,23 +100,23 @@ export class BlogPostsService {
 
   // offset/limit are optional so existing callers that want the full list
   // (sitemap, related-posts lookup) can keep calling this with no args — but
-  // `take` is always sent explicitly rather than omitted or computed, since
-  // prod hit a `PrismaClientValidationError: Argument 'take' is missing` on
-  // this exact query even with `take` set via a named constant / computed
-  // local. Hardcoded to the literal 100 here so there's nothing left to
-  // compute — comfortably above the catalog size at today's
-  // BLOG_POSTS_PER_DAY publish rate.
+  // `take` is always sent explicitly rather than omitted, since prod hit a
+  // `PrismaClientValidationError: Argument 'take' is missing` on this exact
+  // query. A plain `take: 100` literal (no `??`, no computed local, no
+  // conditional spread around `take`) is what confirmed-fixed it in prod —
+  // so `limit` is branched at the call level, with `take` staying a bare
+  // literal/property in both branches, rather than reintroducing any
+  // computation around it. 100 is comfortably above the catalog size at
+  // today's BLOG_POSTS_PER_DAY publish rate.
   async findPublished(
     offset?: number,
     limit?: number,
   ): Promise<BlogPostSummary[]> {
-    console.log('🚀 ~ BlogPostsService ~ findPublished ~ limit:', limit);
     const posts = await this.prisma.blogPost.findMany({
       where: { status: 'PUBLISHED' },
       orderBy: { publishedAt: 'desc' },
       ...(offset !== undefined && { skip: offset }),
-      // ...(limit !== undefined ? { take: limit } : { take: 100 }),
-      take: 100,
+      take: limit || 100,
     });
     return posts.map(toSummary);
   }
