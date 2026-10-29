@@ -189,6 +189,33 @@ promoting Sundera, with Anton approving each one in Telegram:
   candidate-photo, "Generating…" status, and collage-review message is removed once acted on, instead of
   piling up. Known gap: on a mid-batch restart, `post_init`'s resend path doesn't delete whatever message was
   left over from before the crash (it just sends a fresh one) — a rare, cosmetic edge case, not fixed here.
+- **2026-10-29: `pipeline.edit_image()` can run on Sosana (api.sosana.art) instead of OpenRouter** —
+  Sosana is a cheaper third-party reseller of the same Nano Banana model family. `IMAGE_PROVIDER`
+  env var (`.env`, default `"openrouter"`) switches between them; `SOSANA_API_KEY`/`SOSANA_BASE_URL`/
+  `SOSANA_IMAGE_MODEL` (default `nano-banana-2.1-1k`) configure the Sosana side. Both providers
+  return the same `(image_bytes, media_type)` shape, so `generate_pairs.py`/`bot.py` call sites are
+  unchanged — see `_edit_image_openrouter`/`_edit_image_sosana` in `pipeline.py`.
+  **Why switched:** measured $0.022/image on Sosana (`nano-banana-2.1-1k`) vs ~$0.04/image for
+  OpenRouter's `google/gemini-3.1-flash-image` (per OpenRouter's own example responses) — roughly
+  45% cheaper for what's marketed as the same underlying model family. A cheaper `nano-banana-2-lite`
+  tier also exists on Sosana if quality holds up there too — not yet tested.
+  **API shape is NOT a drop-in** — Sosana is async (`POST /api/image/create-async` → poll
+  `GET /api/image/{uid}` until `status: "COMPLETED"`, ~26-36s observed), using `image_urls` (data
+  URLs or https) instead of OpenRouter's `input_references`, and returns a downloadable
+  `result_file_url` rather than base64. `_edit_image_sosana` implements this polling loop
+  (`poll_interval=3s`, `poll_timeout=180s`).
+  **Structural preservation verified live, two tests**: a scandi redesign of an already-furnished
+  home office (wardrobe/desk/clock position all preserved, no new doors/windows) and a harder test —
+  a bare concrete-shell apartment with three separate window groupings redesigned Japanese-style,
+  all three window positions and the ceiling beam layout preserved. Consistent with this file's
+  existing Nano Banana vs FLUX note above (same model family, same structural reliability).
+  **IMAGE_PROVIDER=sosana is live in `.env` now** — takes effect on the next `bot.py` restart
+  (`launchctl kickstart -k gui/$(id -u)/com.sundera.pinterest-bot`, see "Running via launchd"
+  below); not auto-restarted as part of this change. Set back to `openrouter` in `.env` to revert
+  instantly with no code change if quality/reliability doesn't hold up at scale.
+  **Housekeeping note**: the Sosana API key was pasted into an agent chat during initial setup
+  (same mistake flagged for the Pexels key and the Telegram bot token below) — rotate it at
+  sosana.art if that hasn't happened since 2026-10-29.
 - **Storage: Cloudflare R2** (`storage_r2.py`), same bucket the app uses in prod, under a `pinterest/` prefix
   — private, presigned GET URLs (~6 day expiry; `generate_pairs.py --presign <batch_id>` re-mints fresh ones
   for an older batch). Chosen over local-disk-only so a batch is reviewable without SSHing into wherever this

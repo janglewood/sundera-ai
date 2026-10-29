@@ -110,11 +110,13 @@ export class BlogPostsService {
     offset?: number,
     limit?: number,
   ): Promise<BlogPostSummary[]> {
+    console.log('🚀 ~ BlogPostsService ~ findPublished ~ limit:', limit);
     const posts = await this.prisma.blogPost.findMany({
       where: { status: 'PUBLISHED' },
       orderBy: { publishedAt: 'desc' },
       ...(offset !== undefined && { skip: offset }),
-      ...(limit !== undefined ? { take: limit } : { take: 100 }),
+      // ...(limit !== undefined ? { take: limit } : { take: 100 }),
+      take: 100,
     });
     return posts.map(toSummary);
   }

@@ -88,6 +88,12 @@ def read_env_file(path):
 DEFAULT_TEXT_MODEL = "google/gemini-2.5-flash-lite"  # cheap + reliable for short pin copy — see CLAUDE.md
 
 
+DEFAULT_SOSANA_BASE_URL = "https://api.sosana.art"
+DEFAULT_SOSANA_IMAGE_MODEL = "nano-banana-2.1-1k"  # ~$0.022/image measured 2026-10-29, vs
+# ~$0.04/image for OpenRouter's google/gemini-3.1-flash-image — see CLAUDE.md for the
+# side-by-side structural-preservation test that justified the switch.
+
+
 def load_api_env():
     """OPENROUTER_* — checks marketing/pinterest/.env first, then apps/api/.env, then the environment."""
     env = read_env_file(API_ENV_PATH)
@@ -105,6 +111,17 @@ def load_api_env():
     env["OPENROUTER_TEXT_MODEL"] = os.environ.get(
         "OPENROUTER_TEXT_MODEL", env.get("OPENROUTER_TEXT_MODEL") or DEFAULT_TEXT_MODEL
     )
+    # IMAGE_PROVIDER switches edit_image() between OpenRouter (default, unchanged) and Sosana
+    # (cheaper reseller of the same Nano Banana family — see CLAUDE.md). SOSANA_API_KEY is only
+    # required when actually set to "sosana", so existing deployments need no .env change.
+    env["IMAGE_PROVIDER"] = os.environ.get("IMAGE_PROVIDER", env.get("IMAGE_PROVIDER") or "openrouter").lower()
+    env["SOSANA_BASE_URL"] = os.environ.get("SOSANA_BASE_URL", env.get("SOSANA_BASE_URL") or DEFAULT_SOSANA_BASE_URL)
+    env["SOSANA_IMAGE_MODEL"] = os.environ.get(
+        "SOSANA_IMAGE_MODEL", env.get("SOSANA_IMAGE_MODEL") or DEFAULT_SOSANA_IMAGE_MODEL
+    )
+    env["SOSANA_API_KEY"] = os.environ.get("SOSANA_API_KEY", env.get("SOSANA_API_KEY", ""))
+    if env["IMAGE_PROVIDER"] == "sosana" and not env["SOSANA_API_KEY"]:
+        sys.exit("IMAGE_PROVIDER=sosana but SOSANA_API_KEY is missing (checked .env files and the environment)")
     return env
 
 
@@ -121,6 +138,14 @@ def build_prompt(room_label, style_label):
 
 
 def edit_image(env, image_bytes, mime_type, prompt, retries=3):
+    """Dispatches to OpenRouter (default) or Sosana based on env["IMAGE_PROVIDER"] — see
+    load_api_env(). Both return (image_bytes, media_type), so callers never branch on provider."""
+    if env["IMAGE_PROVIDER"] == "sosana":
+        return _edit_image_sosana(env, image_bytes, mime_type, prompt, retries=retries)
+    return _edit_image_openrouter(env, image_bytes, mime_type, prompt, retries=retries)
+
+
+def _edit_image_openrouter(env, image_bytes, mime_type, prompt, retries=3):
     data_url = f"data:{mime_type};base64,{base64.b64encode(image_bytes).decode()}"
     body = {
         "model": env["OPENROUTER_MODEL"],
@@ -149,6 +174,59 @@ def edit_image(env, image_bytes, mime_type, prompt, retries=3):
         media_type = variant.get("media_type", "image/png")
         return base64.b64decode(variant["b64_json"]), media_type
     raise RuntimeError("OpenRouter request failed after retries")
+
+
+# Sosana's image API is async (create job, poll for completion) — a different shape from
+# OpenRouter's synchronous /images call, not just a different base URL/model. Verified live
+# 2026-10-29: POST returns {"uid", "status": "PROCESSING", ...}; polling GET eventually returns
+# {"status": "COMPLETED", "result_file_url": "https://...png", "cost": 0.022, ...} — a plain
+# downloadable URL, not base64. ~26-36s observed end to end for nano-banana-2.1-1k.
+_SOSANA_TERMINAL_STATUSES = {"COMPLETED", "FAILED", "ERROR"}
+
+
+def _edit_image_sosana(env, image_bytes, mime_type, prompt, retries=3, poll_interval=3, poll_timeout=180):
+    data_url = f"data:{mime_type};base64,{base64.b64encode(image_bytes).decode()}"
+    headers = {
+        "Authorization": f"Bearer {env['SOSANA_API_KEY']}",
+        "Content-Type": "application/json",
+    }
+    body = {
+        "model": env["SOSANA_IMAGE_MODEL"],
+        "prompt": prompt,
+        "image_urls": [data_url],
+    }
+    for attempt in range(retries):
+        resp = requests.post(f"{env['SOSANA_BASE_URL']}/api/image/create-async", headers=headers, json=body, timeout=30)
+        if resp.status_code == 429 and attempt < retries - 1:
+            wait = 20 * (attempt + 1)
+            print(f"  rate limited, sleeping {wait}s", file=sys.stderr)
+            time.sleep(wait)
+            continue
+        resp.raise_for_status()
+        job = resp.json()
+        break
+    else:
+        raise RuntimeError("Sosana create-async request failed after retries")
+
+    uid = job["uid"]
+    deadline = time.monotonic() + poll_timeout
+    while True:
+        resp = requests.get(f"{env['SOSANA_BASE_URL']}/api/image/{uid}", headers=headers, timeout=30)
+        resp.raise_for_status()
+        job = resp.json()
+        status = job.get("status")
+        if status == "COMPLETED":
+            break
+        if status in _SOSANA_TERMINAL_STATUSES:
+            raise RuntimeError(f"Sosana job {uid} failed: {job.get('error')}")
+        if time.monotonic() > deadline:
+            raise RuntimeError(f"Sosana job {uid} did not complete within {poll_timeout}s (last status: {status})")
+        time.sleep(poll_interval)
+
+    image_resp = requests.get(job["result_file_url"], timeout=60)
+    image_resp.raise_for_status()
+    media_type = mimetypes.guess_type(job["result_file_url"])[0] or "image/png"
+    return image_resp.content, media_type
 
 
 def utm_link(date, slot_num):
