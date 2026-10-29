@@ -20,6 +20,7 @@ model User {
   roomPhotos  RoomPhoto[]
   generations Generation[]
   purchases   Purchase[]
+  tokenGrants TokenGrant[]
 }
 
 model RoomPhoto {
@@ -163,8 +164,8 @@ model BlogPost {
 
 // One row per checkout attempt — packs stack, so a user can own several
 // COMPLETED purchases over time. Token balance = FREE_TOKENS + sum of
-// PACK_TOKENS[planTier] over COMPLETED purchases - tokens used
-// (see resolveEntitlements in @sundera/shared).
+// PACK_TOKENS[planTier] over COMPLETED purchases + sum of TokenGrant.amount
+// - tokens used (see resolveEntitlements in @sundera/shared).
 model Purchase {
   id             String         @id @default(cuid())
   userId         String
@@ -176,6 +177,21 @@ model Purchase {
   purchasedAt    DateTime?
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
+
+  @@index([userId])
+}
+
+// Arbitrary ad-hoc token top-ups (comps, support cases) that don't warrant a
+// full Purchase row — unlike Purchase, granting these never flips hasPaid in
+// resolveEntitlements, so it doesn't unlock paid styles or drop the
+// watermark; it only adds to the token count. See AdminTokensController.
+model TokenGrant {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  amount    Int
+  reason    String?
+  createdAt DateTime @default(now())
 
   @@index([userId])
 }

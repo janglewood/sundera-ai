@@ -2,12 +2,14 @@ import {
   BadGatewayException,
   BadRequestException,
   Injectable,
+  NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { randomUUID } from 'crypto';
 import type { PaidPlanTier, PurchaseResponse } from '@sundera/shared';
 import { PrismaService } from '../prisma/prisma.service';
-import type { User } from '../../generated/prisma';
+import type { Purchase, TokenGrant, User } from '../../generated/prisma';
 import { LavaTopClientService } from './lava-top-client.service';
 import type { LavaTopCurrency } from './types/lava-top-api.types';
 
@@ -81,6 +83,46 @@ export class PaymentsService {
     });
 
     return { paymentUrl: invoice.paymentUrl };
+  }
+
+  // Admin-only manual grant (see AdminPurchasesController) — creates an
+  // already-COMPLETED purchase so TokensService picks it up immediately,
+  // with a synthetic contract id since there's no real lava.top payment
+  // behind it. Used for comps/support cases instead of hand-written SQL.
+  async grantPack(userId: string, planTier: PaidPlanTier): Promise<Purchase> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException(`No user with id ${userId}`);
+    }
+
+    return this.prisma.purchase.create({
+      data: {
+        userId,
+        planTier,
+        lavaOfferId: 'admin-grant',
+        lavaContractId: `admin-grant-${randomUUID()}`,
+        status: 'COMPLETED',
+        purchasedAt: new Date(),
+      },
+    });
+  }
+
+  // Admin-only arbitrary top-up (see AdminTokensController) — adds `amount`
+  // tokens without creating a Purchase, so it doesn't unlock paid styles or
+  // drop the watermark the way grantPack's full-pack grant does.
+  async grantBonusTokens(
+    userId: string,
+    amount: number,
+    reason?: string,
+  ): Promise<TokenGrant> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException(`No user with id ${userId}`);
+    }
+
+    return this.prisma.tokenGrant.create({
+      data: { userId, amount, reason },
+    });
   }
 
   // Most recent purchase attempt, used by the frontend to show a "payment

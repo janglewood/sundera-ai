@@ -59,16 +59,20 @@ export interface Entitlements {
 }
 
 // Pure function: no DB access. Caller is responsible for supplying the plan
-// tiers of the user's COMPLETED purchases and how many non-FAILED
-// generations (including edits) they've used.
+// tiers of the user's COMPLETED purchases, any ad-hoc bonus token grants,
+// and how many non-FAILED generations (including edits) they've used.
+// bonusTokens does NOT affect hasPaid — a comp grant alone doesn't unlock
+// paid styles or drop the watermark, only a real purchase does.
 export function resolveEntitlements(
   completedTiers: readonly PaidPlanTier[],
   tokensUsed: number,
+  bonusTokens = 0,
 ): Entitlements {
   const hasPaid = completedTiers.length > 0;
   const tokensGranted =
     FREE_TOKENS +
-    completedTiers.reduce((sum, tier) => sum + PACK_TOKENS[tier], 0);
+    completedTiers.reduce((sum, tier) => sum + PACK_TOKENS[tier], 0) +
+    bonusTokens;
 
   return {
     planTier: TIER_RANK_DESC.find((tier) => completedTiers.includes(tier)) ?? "FREE",
