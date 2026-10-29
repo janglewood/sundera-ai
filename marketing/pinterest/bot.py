@@ -718,6 +718,7 @@ async def do_publish(app, item):
         url = await asyncio.to_thread(
             pinterest_publish.publish_pin,
             item["image_path"], item["title"], item["description"], item["link"], item["board"],
+            headless=False,
         )
         try:
             os.remove(item["image_path"])

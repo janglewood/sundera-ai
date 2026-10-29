@@ -367,6 +367,20 @@ promoting Sundera, with Anton approving each one in Telegram:
     leaves an empty/partial draft sitting in Pinterest's own Drafts sidebar** (Pinterest autosaves
     as you type) — cosmetic, doesn't affect the public profile, but worth an occasional manual
     cleanup in Pinterest's UI since nothing here deletes those.
+    **2026-10-29: root cause found for repeated "Uh oh! Access Denied" failures on
+    `upload_image`** — `do_publish` in `bot.py` called `publish_pin()` without a `headless`
+    arg, defaulting to `headless=True`. Confirmed by direct A/B on this machine, same
+    session/network: 3/3 headless runs hit Pinterest's Access Denied block page, 2/2 headed
+    (`test --headed`) runs published cleanly. A VPN/residential-proxy theory was chased first
+    (a prior day's failure really was VPN-related) but turned out to be a red herring for
+    *this* failure — fixing the VPN route and retrying through the bot still failed, because
+    the bot always runs headless regardless of network path. Pinterest is almost certainly
+    fingerprinting headless Chromium (`navigator.webdriver` etc.), not blocking by IP, for
+    this specific symptom. **Fix: `do_publish` now calls `publish_pin(..., headless=False)`**
+    — every real publish pops a visible Chromium window on this Mac. Accepted tradeoff for a
+    background daemon (confirmed with Anton) since headless is simply blocked outright; if
+    this machine is ever left headless/no-GUI-session, publishing will need a different
+    workaround (e.g. a virtual display) since `headless=False` requires a real display.
   - **Wired into `bot.py`:** `upload_and_reply()` now writes the already-generated collage to
     `output/to_publish/<stem>_<date>.jpg` and appends `{id, image_path, title, description, link, board,
     added_at}` to `state.py`'s `publish_queue` instead of publishing immediately (unchanged: the
