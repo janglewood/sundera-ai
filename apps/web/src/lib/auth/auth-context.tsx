@@ -1,7 +1,7 @@
 "use client";
 
 import { onAuthStateChanged, type User } from "firebase/auth";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { getFirebaseAuth, isFirebaseConfigured } from "@/lib/firebase";
 import { identifyUser, resetUser } from "@/lib/analytics/posthog";
 
@@ -18,6 +18,13 @@ const AuthContext = createContext<AuthContextValue>({
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(isFirebaseConfigured);
+  // Tracks the previously-seen uid so we can tell a real sign-out (uid -> null)
+  // apart from the initial anonymous state (null from the start). Calling
+  // resetUser() on that initial state would discard the PostHog anon
+  // distinct_id that already captured pre-signup events (photo_uploaded,
+  // paywall_viewed, etc.), orphaning them from the identified person created
+  // moments later — this was fragmenting one real user across many ids.
+  const previousUidRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!isFirebaseConfigured) return;
@@ -26,9 +33,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
       if (nextUser) {
         identifyUser(nextUser.uid, { email: nextUser.email });
-      } else {
+      } else if (previousUidRef.current) {
         resetUser();
       }
+      previousUidRef.current = nextUser?.uid ?? null;
     });
   }, []);
 
