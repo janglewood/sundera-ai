@@ -1,11 +1,10 @@
 "use client";
 
-import { getAdditionalUserInfo, type UserCredential } from "firebase/auth";
+import type { UserCredential } from "firebase/auth";
 import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
 import { AuthForm } from "@/components/auth/AuthForm";
-import { track } from "@/lib/analytics/posthog";
 
 function LoginForm() {
   const router = useRouter();
@@ -21,11 +20,7 @@ function LoginForm() {
     }
   }, [loading, user, router, destination]);
 
-  function handleSuccess(credential: UserCredential) {
-    const isNewUser = getAdditionalUserInfo(credential)?.isNewUser ?? false;
-    track(isNewUser ? "signed_up" : "signed_in", {
-      method: credential.providerId ?? "password",
-    });
+  function handleSuccess(_credential: UserCredential) {
     router.push(destination);
   }
 

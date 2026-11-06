@@ -1,18 +1,29 @@
 "use client";
 
 import { GoogleLogo } from "@phosphor-icons/react";
-import type { UserCredential } from "firebase/auth";
+import { getAdditionalUserInfo, type UserCredential } from "firebase/auth";
 import { useState } from "react";
 import {
   continueWithEmail,
   getAuthErrorMessage,
   signInWithGoogle,
 } from "@/lib/auth/auth-actions";
+import { track } from "@/lib/analytics/posthog";
 
 interface AuthFormProps {
   title: string;
   subtitle: string;
   onSuccess: (credential: UserCredential) => void;
+}
+
+// Every entry point into AuthForm (the dedicated /login page and every
+// AuthGateModal paywall) should produce a signed_up/signed_in event, so it's
+// tracked here once rather than relying on each onSuccess caller to do it.
+function trackAuthResult(credential: UserCredential) {
+  const isNewUser = getAdditionalUserInfo(credential)?.isNewUser ?? false;
+  track(isNewUser ? "signed_up" : "signed_in", {
+    method: credential.providerId ?? "password",
+  });
 }
 
 export function AuthForm({ title, subtitle, onSuccess }: AuthFormProps) {
@@ -26,6 +37,7 @@ export function AuthForm({ title, subtitle, onSuccess }: AuthFormProps) {
     setError(null);
     try {
       const credential = await continueWithEmail(email, password);
+      trackAuthResult(credential);
       onSuccess(credential);
     } catch (err) {
       setError(getAuthErrorMessage(err));
@@ -38,6 +50,7 @@ export function AuthForm({ title, subtitle, onSuccess }: AuthFormProps) {
     setError(null);
     try {
       const credential = await signInWithGoogle();
+      trackAuthResult(credential);
       onSuccess(credential);
     } catch (err) {
       setError(getAuthErrorMessage(err));

@@ -1,12 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { PosthogService } from '../analytics/posthog.service';
 import type { LavaTopWebhookPayload } from './types/lava-top-api.types';
 
 @Injectable()
 export class LavaTopWebhookService {
   private readonly logger = new Logger(LavaTopWebhookService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly posthog: PosthogService,
+  ) {}
 
   async handle(payload: LavaTopWebhookPayload): Promise<void> {
     const purchase = await this.prisma.purchase.findUnique({
@@ -27,6 +31,12 @@ export class LavaTopWebhookService {
             status: 'COMPLETED',
             purchasedAt: new Date(payload.timestamp),
           },
+        });
+        this.posthog.capture(purchase.userId, 'paid', {
+          planTier: purchase.planTier,
+          amount: payload.amount,
+          currency: payload.currency,
+          lavaContractId: purchase.lavaContractId,
         });
         return;
 
